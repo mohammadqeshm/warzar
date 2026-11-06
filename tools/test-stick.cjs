@@ -1,0 +1,16 @@
+const fs = require('fs'), vm = require('vm'); global.window = global;
+global.document = { addEventListener() {} }; global.matchMedia = () => ({ matches: true }); global.innerWidth = 800; global.innerHeight = 400;
+global.addEventListener = () => {};
+global.WZ = { Audio: { unlock() {} }, Events: { emit() {} } };
+vm.runInThisContext(fs.readFileSync(require('path').join(__dirname, '../src/game/') + 'systems/input.js', 'utf8'));
+const L = {}, zone = { addEventListener: (n, f) => { L[n] = f; }, setPointerCapture() {} };
+const el = () => ({ style: {} }); const IN = WZ.Input; IN.init(zone, el(), el());
+const ev = (x, y) => ({ pointerId: 1, pointerType: 'touch', clientX: x, clientY: y, preventDefault() {} });
+const out = (label) => { IN.update(); const s = IN.stick; console.log(label.padEnd(34), 'x', s.x.toFixed(2), 'y', s.y.toFixed(2), 'mag', s.mag.toFixed(2), 'origin', IN._ox, IN._oy); };
+L.pointerdown(ev(200, 300)); console.log('ring R =', IN._R.toFixed(0));
+L.pointermove(ev(300, 300)); out('drag right 100px');
+L.pointermove(ev(500, 300)); out('drag far right 300px');
+L.pointermove(ev(245, 300)); out('thumb creeps back to 45px');
+L.pointermove(ev(235, 300)); out('creeps to 35px');
+L.pointermove(ev(150, 300)); out('reverse to -50px');
+L.pointermove(ev(203, 303)); out('tiny wiggle 3px (dead zone)');

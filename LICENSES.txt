@@ -1,0 +1,15 @@
+WARZAR: CRATE RUSH — third-party and asset licenses
+
+CODE / LIBRARIES (bundled into index.html, no CDN, no runtime downloads)
+- three.js r150.1 — MIT License — Copyright (c) 2010-2023 three.js authors (https://threejs.org).
+- React 19 / ReactDOM 19 — MIT License — Copyright (c) Meta Platforms, Inc. and affiliates. (Only used as a thin shell that mounts the game.)
+
+GAME CONTENT (original, created for this project)
+- All 3D models (Commander, Nana, enemies, jeep, village kit, crates, plane, parachutes) are generated procedurally in code.
+- All textures (camo, wood, stone, plaster, roof, sandbags, sprites, faces, decals, logo) are painted procedurally on <canvas> at runtime.
+- All sound effects are synthesized at runtime with the WebAudio API. No audio files.
+- The WARZAR logo is drawn at runtime on <canvas> from text. No fonts are bundled; the UI uses the system font stack
+  (Impact, Haettenschweiler, Arial Narrow Bold, Franklin Gothic Heavy, Roboto Condensed, Arial Black, sans-serif-condensed).
+- No real-world weapon brands, no social-media icons, no external links.
+
+No CC0/OFL third-party art, audio or font files are included in M1.
