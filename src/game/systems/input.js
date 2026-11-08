@@ -3,7 +3,7 @@
 (function (WZ) {
   'use strict';
   const IN = {
-    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false },
+    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false },
     boostHeld: false, bot: null, enabled: true, _touchId: -1, _ox: 0, _oy: 0, _tx: 0, _ty: 0, _R: 70, _baseEl: null, _knobEl: null,
 
     init(zone, baseEl, knobEl) {
@@ -21,6 +21,8 @@
           case 'Escape': case 'KeyP': IN.pressed.pause = true; break;
           case 'Backquote': case 'F3': IN.pressed.debug = true; e.preventDefault(); break;
           case 'KeyN': IN.pressed.skip = true; break;
+          case 'KeyF': case 'KeyM': IN.pressed.mine = true; break;
+          case 'KeyT': IN.pressed.turret = true; break;
           default: if (e.code.indexOf('Arrow') === 0) e.preventDefault();
         }
       });

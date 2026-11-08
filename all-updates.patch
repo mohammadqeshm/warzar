@@ -1,0 +1,1329 @@
+diff --git a/PROJECT_MEMORY.md b/PROJECT_MEMORY.md
+index dfe0871..3c28baf 100644
+--- a/PROJECT_MEMORY.md
++++ b/PROJECT_MEMORY.md
+@@ -191,3 +191,22 @@ Open questions for the human: confirm single-file `dist/index.html` is acceptabl
+ 
+ ### Fix — touch stick drift (2026-11-05)
+ - `systems/input.js`: the stick base used to follow the thumb once dragged past the ring, so deflection shrank and the jeep slowed. Now the origin is **fixed** where you touch, the knob is clamped visually, dead zone 6 px, and **full throttle is reached at 60% of the ring** so a creeping thumb never slows the jeep. Test: `npm run test:stick`.
++
++---
++## Update — Garage (3D shop), 3 vehicles, buyable landmines · 2026-11-05
++- **Scene `shop`** (`scenes/shop.js`, reached from the menu's GARAGE button and from the mission summary; summary passes `ret` so Back resumes the run): live 3D showroom (turntable, studio lights, hold+drag to rotate, heroes seated), **3D-rendered thumbnails** per card (WebGLRenderTarget -> dataURL, cached), stat bars, BUY/EQUIP. No emoji anywhere; coin icon is SVG. Purchase logic is pure: `Shop.buyVehicle/equip/buyMines`.
++- **Vehicles** (`art/vehicles_extra.js`, `WZ.Vehicles.build(id)`, `WZ.Vehicles.stats(id)`): `jeep` (free), `buggy` (600), `truck` (2500). Stats live in `CFG.vehicles` and merge over `CFG.jeep`. `entities/jeep.js` now reads `this.P` (per-vehicle) instead of the module constant; camera, enemy damage, ram (`speed * P.ram >= CFG.ram.minSpeed`), engine pitch and wheel radius use it. Models expose `bed:{z,y}` for the crate stack. Slots 4-5 (APC, Tank) are reserved in `CFG.vehicleOrder`: add a builder + a `CFG.vehicles` entry + the id in `vehicleOrder`.
++- **Landmines** (`systems/landmines.js`, `WZ.Landmines`): inventory `Save.data.inv.mines` (new saves/old saves start with `CFG.shop.mines.starter` = 3). Plant with **F / M / MINE button** (behind the vehicle); each plant consumes one for good, unused ones carry to the next mission. Arms after 0.9 s, any enemy stepping on it detonates it (blast 8 u, KOs everyone inside); never hurts the jeep/Nana. Packs: 1/5/15 for 30/130/360 coins, stock cap 40 (`CFG.shop.mines`, `CFG.mine`).
++- Save defaults added: `inv:{mines:3}`; `equipped.vehicle` / `owned.vehicles` already existed.
++- Tests (Node, no browser): `npm run test:garage` (save defaults, 3 models' interface, prices/stats, purchases, planted mines) - NO ISSUES. The real `Jeep` entity was also driven for each vehicle (top speeds 22 / 28 / 18). Garage DOM clicks were checked in jsdom (outside the repo).
++- **Untested in a real browser:** WebGL thumbnails, showroom look/FPS on phones, mine button placement. Vehicle previews were rasterised offline and looked right.
++- Pending idea from earlier: swap Nana's model with the Meshy GLB (T-pose, 10.4k tris, no skeleton; plan = own 7-bone rig with the same bone names/pivots as the procedural rig so `animate()` is reused).
++
++---
++## Update — DEFENSE turret + gun nerf · 2026-11-05
++- **Gun nerf:** `CFG.gun` damage 4 -> **2.3**, rate 8 -> **7** (dps ~32 -> ~16, ~30 while stopped; a grunt now takes ~5 hits, was 3). Tune in `config.js`.
++- **DEFENSE** (`systems/turrets.js`, `WZ.Turrets`): press **T** or the amber DEFENSE button (cooldown sweep + `active/max` counter). A twin-barrel auto turret rises out of the ground next to the vehicle (behind first, then sides/front if blocked), tracks the nearest enemy (range 30 u, 6 shots/s, 1.7 dmg + a small knockback, ~10 dps), uses the shared tracers (`WZ.Gun._tracer`, tracer pool raised to 48), dismantles itself after 32 s (lamp green -> amber -> blinking red). Max 2 at once, 14 s recharge. Invulnerable, harmless to friends. Numbers: `CFG.turret`.
++- Wiring: input `pressed.turret` (KeyT), HUD ids `btn-turret` / `turret-n`, mission enter/update/render/exit, i18n `hud.turret*` + `brief.tip9`, SFX `build` and `tshot`.
++- Tests: `npm run test:turrets` (nerf, plant/cooldown/max, placement, targeting, range, lifetime, cleanup) - NO ISSUES. The model was rasterised offline (`WZ.Turrets.model()`); looks right.
++- Ideas not done: sell turrets/upgrades in the Garage (more turrets, longer life, faster fire), enemies attacking turrets.
++- GitHub: push from the container is impossible (no credentials); deliver as `garage-update.patch` / zip, or commit locally.
+diff --git a/package.json b/package.json
+index 970b3f5..3c30806 100644
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,9 @@
+     "build": "vite build",
+     "preview": "vite preview",
+     "test:hazards": "node tools/test-hazards.cjs",
+-    "test:stick": "node tools/test-stick.cjs"
++    "test:stick": "node tools/test-stick.cjs",
++    "test:garage": "node tools/test-garage.cjs",
++    "test:turrets": "node tools/test-turrets.cjs"
+   },
+   "dependencies": {
+     "clsx": "2.1.1",
+diff --git a/src/game/art/vehicles_extra.js b/src/game/art/vehicles_extra.js
+new file mode 100644
+index 0000000..aa49dc9
+--- /dev/null
++++ b/src/game/art/vehicles_extra.js
+@@ -0,0 +1,229 @@
++/* Extra vehicles for the Garage: Dune Buggy (tier 2) and Armored Truck (tier 3), plus the player's landmine model.
++ * Every vehicle model returns the same interface as WZ.Vehicles.jeep():
++ *   { root, bodyG, wheels[], front[], gunYaw, muzzle, seatCmdr, seatNana, bedCrates[], flag, lights, plainM, camoM, bed:{z,y} }
++ * Forward = +Z, driver (Commander) on local +X, passenger (Nana) on local -X. WZ.Vehicles.build(id) picks the model. */
++(function (WZ) {
++  'use strict';
++  const T = THREE, G = WZ.Geo, A = WZ.Assets, rb = G.rbox, V = WZ.Vehicles;
++  const B = () => new G.Builder();
++  const STEEL = 0x2B2E31, DARK = 0x1B1D1F, CHROME = 0xB9BDC2, WHITE = 0xECE9E1, YEL = 0xFFB400;
++
++  /** wheel: tyre + coloured rim + spokes + tread blocks. r = radius, w = width */
++  function wheelGeo(r, w, rim, tread) {
++    const b = B();
++    b.add(G.cyl(22), { rz: Math.PI / 2, sx: r, sy: w, sz: r, color: 0x1B1C1E });
++    b.add(G.cyl(16), { rz: Math.PI / 2, sx: r * 0.54, sy: w + 0.05, sz: r * 0.54, color: rim });
++    b.add(G.cyl(10), { rz: Math.PI / 2, sx: r * 0.3, sy: w + 0.09, sz: r * 0.3, color: DARK });
++    b.add(G.cyl(8), { rz: Math.PI / 2, sx: r * 0.1, sy: w + 0.13, sz: r * 0.1, color: CHROME });
++    for (let i = 0; i < tread; i++) {
++      const a = (i / tread) * Math.PI * 2;
++      b.add(G.box1, { y: Math.cos(a) * r * 1.01, z: Math.sin(a) * r * 1.01, rx: a, sx: w * 1.05, sy: r * 0.15, sz: r * 0.27, color: 0x2A2C2E });
++    }
++    return b.build();
++  }
++
++  /** roof gun: same behaviour as the jeep's (yaw group + muzzle), painted in the vehicle colour */
++  function roofGun(parent, plainM, paint, x, y, z, scale) {
++    const gunYaw = new T.Group(); gunYaw.position.set(x, y, z); gunYaw.scale.setScalar(scale); parent.add(gunYaw);
++    const gb = B();
++    gb.add(rb(1.4, 0.95, 0.14, 0.05), { y: 0.62, z: 0.62, color: paint });
++    gb.add(G.cyl(12), { y: 0.0, sx: 0.36, sy: 0.22, sz: 0.36, color: STEEL });
++    gb.add(rb(0.42, 0.46, 1.1, 0.08), { y: 0.5, z: 0.0, color: 0x23272A });
++    gb.add(rb(0.17, 0.17, 2.0, 0.05), { y: 0.5, z: 1.45, color: 0x0E0E0E });
++    gb.add(rb(0.26, 0.26, 0.34, 0.05), { y: 0.5, z: 2.45, color: DARK });
++    gb.add(rb(0.5, 0.4, 0.6, 0.06), { x: 0.56, y: 0.34, z: 0.05, color: paint });
++    gb.add(rb(0.12, 0.4, 0.12, 0.04), { y: 0.18, z: -0.55, rx: 0.4, color: 0x0E0E0E });
++    const m = new T.Mesh(gb.build(), plainM); m.castShadow = true; gunYaw.add(m);
++    const muzzle = new T.Object3D(); muzzle.position.set(0, 0.5, 2.7); gunYaw.add(muzzle);
++    return { gunYaw, muzzle };
++  }
++
++  /** shared tail of every model: flag, wheels, bed crates, seats, lights, glass */
++  function finish(root, bodyG, o) {
++    const plainM = o.plainM;
++    const body = new T.Mesh(o.pb.build(), plainM); body.castShadow = true; bodyG.add(body);
++    if (o.db && !o.db.empty) bodyG.add(new T.Mesh(o.db.build(), new T.MeshLambertMaterial({ map: A.tex('star'), alphaTest: 0.5, vertexColors: true })));
++    const lights = new T.Mesh(o.lb.build(), new T.MeshBasicMaterial({ vertexColors: true })); bodyG.add(lights);
++    if (o.gb && !o.gb.empty) bodyG.add(new T.Mesh(o.gb.build(), new T.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false })));
++    const fb = B();
++    fb.add(G.box1, { z: -0.55, y: -0.3, sx: 0.04, sy: 0.6, sz: 1.1, color: YEL });
++    fb.add(G.box1, { z: -0.55, y: -0.3, sx: 0.05, sy: 0.16, sz: 1.1, color: 0x0E0E0E });
++    const flag = new T.Mesh(fb.build(), new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide }));
++    flag.position.set(o.flag[0], o.flag[1], o.flag[2]); bodyG.add(flag);
++    const gun = roofGun(bodyG, plainM, o.paint, o.gun[0], o.gun[1], o.gun[2], o.gun[3]);
++    const wg = wheelGeo(o.wr, o.ww, o.rim, o.tread), wmat = new T.MeshLambertMaterial({ vertexColors: true });
++    const wheels = [], front = [];
++    for (const [x, z, fr] of o.wheelPos) {
++      const pivot = new T.Group(); pivot.position.set(x, o.wr, z); root.add(pivot);
++      const spin = new T.Group(); pivot.add(spin);
++      const m = new T.Mesh(wg, wmat); m.castShadow = true; m.scale.x = x < 0 ? -1 : 1; spin.add(m);
++      wheels.push(spin); if (fr) front.push(pivot);
++    }
++    const bedCrates = [];
++    o.bedPos.forEach((p, i) => {
++      const c = WZ.Props.crateMeshShared(1.4); c.position.set(p[0], p[1], p[2]); c.rotation.y = i === 2 ? 0.2 : (i - 0.5) * 0.15;
++      c.visible = false; bodyG.add(c); bedCrates.push(c);
++    });
++    const seatCmdr = new T.Object3D(); seatCmdr.position.set(o.seat[0], o.seat[1], o.seat[2]); bodyG.add(seatCmdr);
++    const seatNana = new T.Object3D(); seatNana.position.set(-o.seat[0], o.seat[1], o.seat[2]); bodyG.add(seatNana);
++    return { root, bodyG, wheels, front, gunYaw: gun.gunYaw, muzzle: gun.muzzle, seatCmdr, seatNana, bedCrates, flag, lights, plainM, camoM: plainM, bed: o.bed };
++  }
++
++  // ------------------------------------------------------------------------------------------ DUNE BUGGY
++  function buggy() {
++    const root = new T.Group(), bodyG = new T.Group(); root.add(bodyG);
++    const P1 = 0xF2891B, P2 = 0x1C1F23, R = 0xD2391E;
++    const pb = B(), lb = B(), gb = B(), db = B();
++    // chassis, skid plate, axle arms
++    pb.add(rb(1.9, 0.28, 4.7, 0.1), { y: 0.95, z: -0.05, color: DARK });
++    pb.add(rb(1.6, 0.1, 1.3, 0.04), { y: 0.72, z: 2.05, color: 0x6D7176 });
++    for (const s of [1, -1]) for (const z of [1.7, -1.65]) pb.beam(1.6 * s, 0.88, z, 0.7 * s, 0.97, z, 0.2, 0.2, STEEL);
++    // nose, hood scoop, headlight pods, bull bar
++    pb.add(rb(1.85, 0.55, 1.6, 0.26), { y: 1.32, z: 1.95, color: P1 });
++    pb.add(rb(0.72, 0.24, 0.95, 0.08), { y: 1.72, z: 1.78, color: P2 });
++    for (const s of [1, -1]) {
++      pb.add(rb(0.5, 0.46, 0.36, 0.1), { x: 0.62 * s, y: 1.46, z: 2.66, color: P2 });
++      pb.add(rb(0.18, 0.03, 1.5, 0.01), { x: 0.2 * s, y: 1.61, z: 1.9, color: WHITE });
++      pb.beam(0.9 * s, 0.95, 2.72, 0.9 * s, 1.55, 2.78, 0.13, 0.13, STEEL);
++    }
++    pb.beam(-0.9, 1.1, 2.78, 0.9, 1.1, 2.78, 0.15, 0.15, STEEL); pb.beam(-0.9, 1.5, 2.8, 0.9, 1.5, 2.8, 0.13, 0.13, STEEL);
++    // seat tubs with stripes, fenders
++    for (const s of [1, -1]) {
++      pb.add(rb(0.45, 0.78, 2.3, 0.18), { x: 1.15 * s, y: 1.36, z: -0.5, color: P1 });
++      pb.add(rb(0.47, 0.1, 2.2, 0.03), { x: 1.15 * s, y: 1.66, z: -0.5, color: WHITE });
++      for (const z of [1.7, -1.65]) pb.add(rb(0.78, 0.12, 1.45, 0.05), { x: 1.6 * s, y: 1.95, z, color: P1 });
++      // bucket seats
++      pb.add(rb(0.82, 0.24, 0.85, 0.1), { x: 0.52 * s, y: 1.2, z: -0.25, color: 0x23272A });
++      pb.add(rb(0.82, 0.8, 0.18, 0.08), { x: 0.52 * s, y: 1.68, z: -0.7, rx: -0.12, color: 0x23272A });
++      pb.add(rb(0.12, 0.5, 0.7, 0.04), { x: 0.52 * s + 0.42, y: 1.5, z: -0.3, color: P1 });
++    }
++    // roll cage
++    for (const s of [1, -1]) {
++      pb.beam(1.1 * s, 1.6, -1.1, 0.95 * s, 3.05, -1.1, 0.12, 0.12, DARK);          // rear hoop
++      pb.beam(1.1 * s, 1.6, 0.55, 0.95 * s, 2.55, 0.5, 0.12, 0.12, DARK);          // mid hoop
++      pb.beam(0.95 * s, 2.55, 0.5, 0.85 * s, 1.65, 2.0, 0.12, 0.12, DARK);         // A-pillar to nose
++      pb.beam(0.95 * s, 3.05, -1.1, 0.95 * s, 2.55, 0.5, 0.12, 0.12, DARK);        // roof rail
++      pb.beam(0.95 * s, 3.05, -1.1, 0.75 * s, 1.55, -2.1, 0.12, 0.12, DARK);       // rear stay
++    }
++    pb.beam(-0.95, 3.05, -1.1, 0.95, 3.05, -1.1, 0.12, 0.12, DARK); pb.beam(-0.95, 2.55, 0.5, 0.95, 2.55, 0.5, 0.12, 0.12, DARK);
++    pb.beam(-0.95, 2.8, -0.3, 0.95, 2.8, -0.3, 0.1, 0.1, DARK);
++    // rear: engine, valve covers, exhausts, spoiler, cargo rack
++    pb.add(rb(1.5, 0.7, 1.1, 0.15), { y: 1.35, z: -2.0, color: P2 });
++    pb.add(rb(1.3, 0.18, 0.8, 0.05), { y: 1.78, z: -2.0, color: P1 });
++    for (const s of [1, -1]) {
++      pb.add(G.cyl(8), { x: 0.5 * s, y: 1.45, z: -2.85, rx: Math.PI / 2, sx: 0.14, sy: 0.8, sz: 0.14, color: CHROME });
++      pb.beam(0.8 * s, 1.75, -2.35, 0.8 * s, 2.35, -2.6, 0.08, 0.08, DARK);
++      pb.add(rb(0.06, 0.42, 0.7, 0.02), { x: 1.1 * s, y: 2.5, z: -2.62, color: P2 });
++    }
++    pb.add(rb(2.2, 0.08, 0.7, 0.03), { y: 2.45, z: -2.62, color: P1 });
++    pb.add(rb(1.9, 0.08, 1.3, 0.03), { y: 2.2, z: -1.9, color: STEEL });
++    for (const s of [1, -1]) for (const z of [-1.4, -2.4]) pb.beam(0.9 * s, 1.75, z, 0.9 * s, 2.2, z, 0.08, 0.08, DARK);
++    // light bar frame, antenna
++    pb.add(rb(2.0, 0.22, 0.28, 0.05), { y: 2.7, z: 0.52, color: P2 });
++    pb.beam(-1.2, 1.8, -2.5, -1.25, 4.2, -2.55, 0.05, 0.05, DARK);
++    pb.add(G.cyl(14), { x: 0.0, y: 1.9, z: -0.55, sx: 0.2, sy: 1.8, sz: 0.2, color: STEEL });
++    // lights: headlights + light bar + tail lights
++    for (const s of [1, -1]) {
++      lb.add(G.sph(10, 8), { x: 0.62 * s, y: 1.48, z: 2.86, sx: 0.2, sy: 0.2, sz: 0.1, color: 0xFFF3C0 });
++      lb.add(G.box1, { x: 0.8 * s, y: 1.8, z: -2.84, sx: 0.34, sy: 0.16, sz: 0.08, color: 0xFF3A22 });
++    }
++    for (let i = -2; i <= 2; i++) lb.add(G.box1, { x: i * 0.36, y: 2.7, z: 0.69, sx: 0.28, sy: 0.14, sz: 0.06, color: 0xFFF3C0 });
++    // windscreen (glass) and hood star
++    gb.add(G.box1, { y: 2.1, z: 0.85, rx: -0.55, sx: 1.9, sy: 0.55, sz: 0.05, color: 0x9CC8F0 });
++    db.add(G.plane1, { y: 1.615, z: 1.95, rx: -Math.PI / 2, sx: 0.8, sy: 0.8, color: WHITE });
++    const plainM = new T.MeshLambertMaterial({ vertexColors: true });
++    return finish(root, bodyG, { pb, lb, gb, db, plainM, paint: P1, flag: [-1.25, 4.2, -2.55], gun: [0, 2.9, -0.55, 0.85], wr: 0.88, ww: 0.72, rim: P1, tread: 12,
++      wheelPos: [[1.6, 1.7, true], [-1.6, 1.7, true], [1.6, -1.65, false], [-1.6, -1.65, false]],
++      bedPos: [[0.5, 2.85, -1.95], [-0.5, 2.85, -1.95], [0, 3.95, -1.95]], seat: [0.52, 1.24, -0.2], bed: { z: -1.95, y: 2.9 } });
++  }
++
++  // ------------------------------------------------------------------------------------------ ARMORED TRUCK
++  function truck() {
++    const root = new T.Group(), bodyG = new T.Group(); root.add(bodyG);
++    const P1 = 0x59636E, P2 = 0x3A424B, P3 = 0x6F7B88;
++    const pb = B(), lb = B(), gb = B(), db = B();
++    // hull + sloped hood + crew tub walls
++    pb.add(rb(3.1, 1.2, 6.2, 0.3), { y: 1.7, z: -0.1, color: P1 });
++    pb.add(rb(2.9, 0.8, 1.9, 0.3), { y: 2.35, z: 2.35, color: P3 });
++    for (let i = 0; i < 4; i++) pb.add(rb(1.6, 0.06, 0.1, 0.02), { y: 2.78, z: 1.85 + i * 0.28, color: DARK });
++    for (const s of [1, -1]) {
++      pb.add(rb(0.32, 1.05, 3.3, 0.1), { x: 1.4 * s, y: 2.85, z: -0.55, color: P1 });
++      pb.add(rb(0.36, 0.14, 3.3, 0.05), { x: 1.4 * s, y: 3.42, z: -0.55, color: P2 });
++      // wheel arches / skirts
++      for (const z of [2.2, -2.1]) {
++        pb.add(rb(0.9, 0.22, 2.1, 0.08), { x: 1.85 * s, y: 2.2, z, color: P2 });
++        pb.add(rb(0.2, 0.7, 1.8, 0.06), { x: 1.6 * s, y: 1.7, z, color: P3 });
++      }
++      // rivets
++      for (let i = 0; i < 9; i++) pb.add(G.cyl(6), { x: 1.58 * s, y: 2.15, z: -2.2 + i * 0.62, rz: Math.PI / 2, sx: 0.07, sy: 0.06, sz: 0.07, color: CHROME });
++      // exhaust stacks + mirrors
++      pb.add(G.cyl(8), { x: 1.62 * s, y: 3.15, z: 0.75, sx: 0.12, sy: 2.0, sz: 0.12, color: STEEL });
++      pb.add(G.cyl(8), { x: 1.62 * s, y: 4.2, z: 0.75, sx: 0.15, sy: 0.12, sz: 0.15, color: CHROME });
++      pb.beam(1.5 * s, 3.1, 1.15, 1.95 * s, 3.3, 1.35, 0.08, 0.08, DARK); pb.add(rb(0.1, 0.4, 0.3, 0.03), { x: 1.98 * s, y: 3.3, z: 1.35, color: DARK });
++    }
++    pb.add(rb(3.0, 1.05, 0.3, 0.1), { y: 2.85, z: -2.35, color: P1 });
++    pb.add(rb(3.0, 1.15, 0.42, 0.1), { y: 2.95, z: 1.15, color: P1 });
++    pb.add(rb(2.5, 0.16, 0.5, 0.05), { y: 3.58, z: 1.2, color: P2 });
++    // seats
++    for (const s of [1, -1]) {
++      pb.add(rb(1.0, 0.3, 1.0, 0.1), { x: 0.75 * s, y: 2.28, z: 0.1, color: 0x23272A });
++      pb.add(rb(1.0, 0.9, 0.22, 0.08), { x: 0.75 * s, y: 2.8, z: -0.45, rx: -0.1, color: 0x23272A });
++    }
++    // heavy bull bar with hazard stripes, ram prongs, tow hook
++    pb.add(rb(3.2, 0.62, 0.4, 0.1), { y: 1.35, z: 3.4, color: DARK });
++    for (let i = 0; i < 8; i++) pb.add(rb(0.38, 0.5, 0.42, 0.03), { x: -1.4 + i * 0.4, y: 1.36, z: 3.43, color: i % 2 ? DARK : YEL });
++    for (const s of [1, -1]) {
++      pb.beam(1.0 * s, 1.0, 3.25, 1.3 * s, 2.35, 3.15, 0.2, 0.2, P2);
++      pb.beam(0.5 * s, 0.9, 3.45, 0.5 * s, 0.9, 3.95, 0.18, 0.18, STEEL);
++      pb.add(G.cyl(8), { x: 0.5 * s, y: 0.9, z: 4.0, rx: Math.PI / 2, sx: 0.14, sy: 0.12, sz: 0.14, color: CHROME });
++    }
++    // top: light bar frame, gun ring, antenna, toolbox
++    pb.add(G.cyl(24), { y: 3.2, z: -1.35, sx: 1.22, sy: 0.12, sz: 1.22, color: P2 });
++    pb.add(G.cyl(10), { y: 2.5, z: -1.35, sx: 0.22, sy: 1.4, sz: 0.22, color: STEEL });
++    pb.add(rb(1.2, 0.5, 0.5, 0.08), { x: -1.25, y: 1.5, z: -3.35, color: P2 });
++    pb.beam(1.3, 3.4, -2.3, 1.35, 5.2, -2.4, 0.06, 0.06, DARK);
++    pb.add(rb(3.0, 0.3, 0.5, 0.1), { y: 1.15, z: -3.35, color: DARK });
++    pb.add(G.box1, { y: 1.0, z: 2.9, sx: 3.0, sy: 0.12, sz: 0.9, color: STEEL });
++    // lights
++    for (const s of [1, -1]) {
++      lb.add(G.sph(10, 8), { x: 1.05 * s, y: 2.2, z: 3.3, sx: 0.3, sy: 0.3, sz: 0.14, color: 0xFFF3C0 });
++      lb.add(G.box1, { x: 1.05 * s, y: 1.7, z: -3.12, sx: 0.5, sy: 0.22, sz: 0.08, color: 0xFF3A22 });
++    }
++    for (let i = -1; i <= 2; i++) lb.add(G.box1, { x: (i - 0.5) * 0.55, y: 3.58, z: 1.47, sx: 0.4, sy: 0.14, sz: 0.06, color: 0xFFF3C0 });
++    // windscreen slit and hood star
++    gb.add(G.box1, { y: 3.3, z: 1.2, sx: 2.4, sy: 0.38, sz: 0.06, color: 0x9CC8F0 });
++    db.add(G.plane1, { y: 2.78, z: 2.5, rx: -Math.PI / 2 + 0.05, sx: 1.2, sy: 1.2, color: WHITE });
++    const plainM = new T.MeshLambertMaterial({ vertexColors: true });
++    return finish(root, bodyG, { pb, lb, gb, db, plainM, paint: P1, flag: [1.35, 5.2, -2.4], gun: [0, 3.32, -1.35, 1.1], wr: 0.98, ww: 0.95, rim: YEL, tread: 14,
++      wheelPos: [[1.85, 2.2, true], [-1.85, 2.2, true], [1.85, -2.1, false], [-1.85, -2.1, false]],
++      bedPos: [[0.7, 3.0, -1.65], [-0.7, 3.0, -1.65], [0, 4.15, -1.65]], seat: [0.75, 2.4, 0.05], bed: { z: -1.65, y: 3.4 } });
++  }
++
++  // ------------------------------------------------------------------------------------------ PLAYER LANDMINE
++  /** shared geometry/material parts for the planted-mine model (used by the Garage showcase and by WZ.Landmines) */
++  function mineParts() {
++    const body = B(), top = B(), lamp = B();
++    body.add(G.cyl(20), { sx: 1.25, sy: 0.34, sz: 1.25, y: 0.17, color: 0x4B5A3A });
++    body.add(G.cyl(20), { sx: 1.05, sy: 0.12, sz: 1.05, y: 0.4, color: 0x2F3A26 });
++    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; body.add(rb(0.22, 0.2, 0.34, 0.04), { x: Math.cos(a) * 1.18, z: Math.sin(a) * 1.18, y: 0.32, ry: -a + Math.PI / 2, color: 0x2B2E31 }); }
++    top.add(G.cyl(12), { sx: 0.55, sy: 0.22, sz: 0.55, y: 0.54, color: 0xB9BDC2 });
++    top.add(G.cyl(6), { sx: 0.18, sy: 0.4, sz: 0.18, y: 0.7, color: 0x23272A });
++    top.add(G.plane1, { y: 0.462, rx: -Math.PI / 2, sx: 1.4, sy: 1.4, color: 0xECE9E1 });
++    lamp.add(G.sph(10, 8), { y: 0.95, sx: 0.2, sy: 0.2, sz: 0.2, color: 0x35C8FF });
++    return { body, top, lamp };
++  }
++  function mineModel() {
++    const g = new T.Group(), p = mineParts();
++    g.add(new T.Mesh(p.body.build(), new T.MeshLambertMaterial({ vertexColors: true })));
++    g.add(new T.Mesh(p.top.build(), new T.MeshLambertMaterial({ vertexColors: true })));
++    g.add(new T.Mesh(p.lamp.build(), new T.MeshBasicMaterial({ vertexColors: true })));
++    return g;
++  }
++
++  // ------------------------------------------------------------------------------------------ registry
++  const MODELS = { jeep: V.jeep, buggy, truck };
++  V.build = (id) => (MODELS[id] || V.jeep)();
++  V.mineParts = mineParts; V.mineModel = mineModel;
++  /** merged stats for a vehicle id (CFG.jeep defaults + CFG.vehicles[id]) */
++  V.stats = (id) => Object.assign({}, WZ.CFG.jeep, WZ.CFG.vehicles[id] || WZ.CFG.vehicles.jeep);
++})(window.WZ = window.WZ || {});
+diff --git a/src/game/audio.js b/src/game/audio.js
+index d2fbd0f..e18907c 100644
+--- a/src/game/audio.js
++++ b/src/game/audio.js
+@@ -86,6 +86,8 @@
+         case 'win': [523, 659, 784, 1046].forEach((f, i) => A.tone('triangle', f, f, 0.22, 0.3 * v, i * 0.12)); A.tone('square', 1046, 1046, 0.5, 0.15 * v, 0.5); break;
+         case 'lose': [440, 370, 311, 220].forEach((f, i) => A.tone('sawtooth', f, f * 0.96, 0.3, 0.2 * v, i * 0.18)); break;
+         case 'boom': A.noiseBurst(0.7, 'lowpass', 1500, 80, 0.7 * v); A.tone('sine', 70, 28, 0.6, 0.6 * v); break;
++        case 'tshot': A.noiseBurst(0.05, 'bandpass', 3200, 1600, 0.13 * v, 0, 1.0); A.tone('square', 420, 140, 0.04, 0.05 * v); break;
++        case 'build': A.tone('sawtooth', 160, 520, 0.28, 0.12 * v); A.tone('sine', 120, 60, 0.16, 0.3 * v, 0.2); A.noiseBurst(0.12, 'lowpass', 900, 250, 0.2 * v, 0.2); break;
+         case 'mine': A.tone('sine', 1250, 1250, 0.05, 0.14 * v); break;
+         case 'siren': for (let i = 0; i < 4; i++) A.tone('sawtooth', i % 2 ? 520 : 760, i % 2 ? 760 : 520, 0.22, 0.17 * v, i * 0.22); break;
+         case 'wind': A.noiseBurst(0.5, 'bandpass', 500, 1500, 0.28 * v, 0, 1.2); break;
+diff --git a/src/game/config.js b/src/game/config.js
+index bd46bc2..11c64c0 100644
+--- a/src/game/config.js
++++ b/src/game/config.js
+@@ -21,8 +21,22 @@
+ 
+     ram: { minSpeed: 10, damageMul: 2, knock: 16 },
+ 
++    // Garage: vehicles (slots 4-5, APC and Tank, are reserved for later). Stats merge over CFG.jeep. Price in coins.
++    vehicles: {
++      jeep:  { name: 'SCOUT JEEP',    tier: 1, price: 0,    topSpeed: 22, boostSpeed: 33, accel: 30, hp: 100, handling: 0.8,  ram: 1.0, wheelR: 0.72, radius: 1.3,  halfLen: 1.45, enemyDamageMul: 0.5, blurb: 'Reliable all-rounder. Light, nimble and cheap to run.' },
++      buggy: { name: 'DUNE BUGGY',    tier: 2, price: 600,  topSpeed: 28, boostSpeed: 40, accel: 36, hp: 70,  handling: 1.05, ram: 0.7, wheelR: 0.88, radius: 1.25, halfLen: 1.4,  enemyDamageMul: 0.6, blurb: 'Built for speed. Slides through corners, but a few hits and she is done.' },
++      truck: { name: 'ARMORED TRUCK', tier: 3, price: 2500, topSpeed: 18, boostSpeed: 27, accel: 24, hp: 220, handling: 0.62, ram: 1.7, wheelR: 0.98, radius: 1.7,  halfLen: 1.9,  enemyDamageMul: 0.3, blurb: 'A rolling fortress. Shrugs off damage and flattens enemies at low speed.' },
++    },
++    vehicleOrder: ['jeep', 'buggy', 'truck'],
++    // Landmines the player buys and plants (inventory persists between missions; used mines are gone for good)
++    shop: { mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3 } },
++    mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45 },
++
++    // DEFENSE turret (T / DEFENSE button): auto-targeting twin gun, ~10 dps each (the jeep gun does ~16, ~30 when stopped)
++    turret: { max: 2, cooldown: 14, life: 32, range: 30, rate: 6, damage: 1.7, knock: 1.2, turnSpeed: 7, aim: 0.14, behind: 3.2, build: 0.7 },
++
+     gun: {
+-      damage: 4, rate: 8, range: 38,
++      damage: 2.3, rate: 7, range: 38,   // nerfed: was damage 4, rate 8 (a grunt now takes ~5 hits instead of 3)
+       stationarySpeed: 3, stationaryRate: 1.5, stationaryDamage: 1.25,
+       turnSpeed: 12, tracerLife: 0.07,
+     },
+diff --git a/src/game/entities/enemy.js b/src/game/entities/enemy.js
+index 29e9f91..4e30df6 100644
+--- a/src/game/entities/enemy.js
++++ b/src/game/entities/enemy.js
+@@ -133,7 +133,7 @@
+               if (e.windup <= 0) {
+                 e.cd = def.cooldown; e.windup = def.windup; e.armT = 0;
+                 if (e.target === 1) nana.hurt(def.damage, e);
+-                else jeep.hurt(def.damage * CFG.jeep.enemyDamageMul);
++                else jeep.hurt(def.damage * (jeep.P ? jeep.P.enemyDamageMul : CFG.jeep.enemyDamageMul));
+                 WZ.Audio.sfx('hit', 0.6);
+               }
+             } else e.armT = Math.max(0, e.armT - dt * 5);
+diff --git a/src/game/entities/jeep.js b/src/game/entities/jeep.js
+index 9a44178..43053b3 100644
+--- a/src/game/entities/jeep.js
++++ b/src/game/entities/jeep.js
+@@ -9,12 +9,13 @@
+   class Jeep {
+     constructor(map, col, scene) {
+       this.map = map; this.col = col; this.scene = scene;
+-      this.model = WZ.Vehicles.jeep(); this.mesh = this.model.root; this.mesh.rotation.order = 'YXZ';
++      const sv = WZ.Save.data, vid = (sv.owned.vehicles.indexOf(sv.equipped.vehicle) >= 0 && CFG.vehicles[sv.equipped.vehicle]) ? sv.equipped.vehicle : 'jeep';
++      this.id = vid; this.P = WZ.Vehicles.stats(vid); this.model = WZ.Vehicles.build(vid); this.mesh = this.model.root; this.mesh.rotation.order = 'YXZ';
+       scene.add(this.mesh);
+       const s = map.start;
+       this.x = s.x; this.z = s.z; this.h = s.heading; this.px = this.x; this.pz = this.z; this.ph = this.h;
+       this.vx = 0; this.vz = 0; this.speed = 0; this.sF = 0; this.sL = 0; this.acc = 0;
+-      this.hp = J.hp; this.maxHp = J.hp; this.alive = true;
++      this.hp = this.P.hp; this.maxHp = this.P.hp; this.alive = true;
+       this.boostT = 0; this.boostCd = 0; this.boosting = false;
+       this.throttle = 0; this.targetH = this.h; this.steer = 0; this.stuckT = 0; this.unstick = 0; this.udx = 0; this.udz = 0;
+       this.impact = 0; this.wheelRot = 0; this.crates = 0; this.hurtT = 0; this.rollV = 0; this.pitchV = 0;
+@@ -30,10 +31,12 @@
+     }
+     bedWorld(v) {
+       const gy = this.map.height(this.x, this.z), c = Math.sin(this.h), s = Math.cos(this.h);
+-      v.set(this.x - c * 1.75, gy + 2.4, this.z - s * 1.75); return v;
++      const bd = this.model.bed, bz = bd ? -bd.z : 1.75, by = bd ? bd.y : 2.4;
++      v.set(this.x - c * bz, gy + by, this.z - s * bz); return v;
+     }
+ 
+     step(dt, inp, camYaw) {
++      const J = this.P;
+       this.px = this.x; this.pz = this.z; this.ph = this.h;
+       if (!this.alive) { this.vx *= Math.exp(-3 * dt); this.vz *= Math.exp(-3 * dt); this.x += this.vx * dt; this.z += this.vz * dt; this.speed = Math.hypot(this.vx, this.vz); return; }
+       let mag = inp.mag;
+@@ -70,7 +73,7 @@
+       this.vx = fx * sF + rx * sL; this.vz = fz * sF + rz * sL;
+       this.sF = sF; this.sL = sL;
+       this.x += this.vx * dt; this.z += this.vz * dt;
+-      this.wheelRot += sF * dt / 0.72;
++      this.wheelRot += sF * dt / J.wheelR;
+ 
+       // collisions: two circles (nose + tail)
+       let hit = false, nx = 0, nz = 0;
+@@ -122,6 +125,7 @@
+ 
+     /** write the (interpolated) pose to the meshes */
+     sync(alpha, dt, t) {
++      const J = this.P;
+       const x = U.lerp(this.px, this.x, alpha), z = U.lerp(this.pz, this.z, alpha), h = this.ph + U.angDiff(this.ph, this.h) * alpha;
+       const hm = this.map.height, gy = hm(x, z);
+       const fx = Math.sin(h), fz = Math.cos(h), lx = Math.cos(h), lz = -Math.sin(h);
+diff --git a/src/game/game.css b/src/game/game.css
+index 7169d4b..3789e10 100644
+--- a/src/game/game.css
++++ b/src/game/game.css
+@@ -170,3 +170,70 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
+   .menu-info { max-width: 92vw; text-align: center; }
+   #hud-hint { bottom: calc(24% + var(--sab)); }
+ }
++
++/* ---------- planted-mine button (HUD) + Garage button (menu) ---------- */
++#btn-mine { position: relative; width: 64px; height: 64px; border-radius: 50%; border: 4px solid #0E0E0E; background: #3b8f46; color: #fff; font: inherit; font-size: 12px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; cursor: pointer; box-shadow: 0 5px 0 #1f5127, 0 8px 14px rgba(0,0,0,0.45); touch-action: none; margin-bottom: 6px; }
++#btn-mine b { font-size: 22px; line-height: 1; color: var(--y); text-shadow: 0 2px 0 #000; }
++#btn-mine small { font-size: 9px; opacity: 0.8; }
++#btn-mine.off { filter: grayscale(0.85) brightness(0.7); }
++.garage-btn { position: absolute; top: calc(10px + var(--sat)); left: calc(10px + var(--sal)); display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px 0 10px; font: inherit; font-size: 22px; letter-spacing: 0.05em; background: rgba(14,14,14,0.78); color: var(--y); border: 3px dashed rgba(236,233,225,0.85); border-radius: 6px; cursor: pointer; pointer-events: auto !important; }
++.garage-btn svg { width: 46px; height: 26px; }
++.garage-btn:hover { background: rgba(32,32,34,0.92); }
++.sum-btns { flex-wrap: wrap; justify-content: center; }
++
++/* ---------- Garage (shop) ---------- */
++.coin { width: 1.05em; height: 1.05em; vertical-align: -0.2em; margin-right: 6px; }
++.screen.shop { display: flex; flex-direction: column; gap: 10px; padding: calc(10px + var(--sat)) calc(14px + var(--sar)) calc(12px + var(--sab)) calc(14px + var(--sal)); background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0) 20%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.55)); }
++.screen.shop > .shop-top, .screen.shop > .shop-main, .screen.shop > .shop-drag { pointer-events: none; }
++.screen.shop button, .screen.shop .shop-list, .screen.shop .shop-detail, .screen.shop .shop-coins { pointer-events: auto; }
++.shop-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
++.shop-title { font-size: clamp(34px, 7vw, 64px); letter-spacing: 0.06em; line-height: 1; color: var(--w); text-shadow: 4px 4px 0 #000; }
++.shop-title::after { content: ''; display: block; height: 6px; margin-top: 4px; background: repeating-linear-gradient(-45deg, var(--y) 0 10px, #0E0E0E 10px 20px); }
++.shop-coins { display: flex; align-items: center; padding: 6px 16px; font-size: 28px; color: var(--y); }
++.shop-main { flex: 1; min-height: 0; display: flex; justify-content: space-between; gap: 14px; }
++.shop-list { width: min(34vw, 360px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 6px 8px 2px; scrollbar-width: thin; }
++.vcard { position: relative; flex: 0 0 auto; display: flex; flex-direction: column; padding: 6px; font: inherit; text-align: left; color: var(--w); background: linear-gradient(160deg, rgba(40,44,50,0.92), rgba(16,18,22,0.92)); border: 3px solid #0E0E0E; border-radius: 8px; box-shadow: 0 0 0 2px rgba(236,233,225,0.25); cursor: pointer; transition: transform 0.1s; }
++.vcard:hover { transform: translateX(3px); }
++.vcard.sel { box-shadow: 0 0 0 3px var(--y), 0 0 22px rgba(255,180,0,0.45); background: linear-gradient(160deg, rgba(62,54,30,0.95), rgba(22,20,14,0.95)); }
++.vcard.locked .vthumb { filter: brightness(0.55) saturate(0.7); }
++.vthumb { width: 100%; aspect-ratio: 440 / 270; object-fit: contain; display: block; background: radial-gradient(ellipse at 50% 80%, rgba(255,180,0,0.18), rgba(0,0,0,0) 65%); }
++.vthumb.noimg { background: rgba(255,255,255,0.05); }
++.vinfo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 2px 6px 4px; }
++.vname { flex: 1 1 100%; font-size: 22px; letter-spacing: 0.04em; }
++.tier { display: inline-flex; gap: 3px; }
++.tier i { width: 14px; height: 8px; background: #3a3d42; transform: skewX(-20deg); }
++.tier i.on { background: var(--y); }
++.tg { margin-left: auto; font-size: 16px; padding: 2px 10px; border-radius: 3px; background: #2a2a2c; color: var(--w); }
++.tg.eq { background: var(--grn); color: #0E0E0E; }
++.tg.price { background: var(--y); color: #0E0E0E; font-size: 18px; }
++.shop-detail { width: min(34vw, 380px); align-self: flex-end; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; max-height: 100%; overflow-y: auto; }
++.dname { font-size: 34px; letter-spacing: 0.05em; color: var(--y); line-height: 1; }
++.dblurb { font: 15px/1.35 Arial, Helvetica, sans-serif; color: #d8d4c8; }
++.st { display: grid; grid-template-columns: 92px 1fr 74px; align-items: center; gap: 8px; font-size: 16px; }
++.st i { height: 12px; background: #2a2d31; border-radius: 3px; overflow: hidden; box-shadow: inset 0 0 0 1px #000; }
++.st b { display: block; height: 100%; background: linear-gradient(90deg, #ffb400, #ffe08a); }
++.st em { font-style: normal; text-align: right; color: var(--y); }
++.dact { display: flex; margin-top: 6px; }
++.dact .btn { flex: 1; font-size: 28px; padding: 12px 10px; }
++.btn:disabled { opacity: 0.55; cursor: default; transform: none; filter: grayscale(0.4); }
++.dstock { font-size: 22px; color: var(--w); }
++.packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
++.packs .btn.buy { display: flex; flex-direction: column; align-items: center; padding: 10px 6px; font-size: 28px; line-height: 1.05; }
++.packs .btn.buy em { font-style: normal; font-size: 18px; }
++.shop-drag { text-align: center; font-size: 13px; letter-spacing: 0.12em; color: rgba(236,233,225,0.6); text-shadow: 0 1px 0 #000; }
++@media (orientation: portrait) {
++  .shop-main { flex-direction: column; justify-content: flex-end; }
++  .shop-list { width: 100%; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 2px 8px; }
++  .vcard { width: 46vw; max-width: 260px; }
++  .shop-detail { width: 100%; align-self: stretch; padding: 12px 14px; }
++  .dname { font-size: 28px; }
++}
++
++/* ---------- DEFENSE (turret) button ---------- */
++#btn-turret { position: relative; width: 74px; height: 74px; border-radius: 50%; border: 4px solid #0E0E0E; background: #d98a1b; color: #fff; font: inherit; font-size: 13px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto; cursor: pointer; box-shadow: 0 5px 0 #7a4a08, 0 8px 14px rgba(0,0,0,0.45); touch-action: none; margin-bottom: 6px; }
++#btn-turret .cd { position: absolute; left: 0; right: 0; top: 0; height: 0; background: rgba(0,0,0,0.6); }
++#btn-turret span, #btn-turret b, #btn-turret small { position: relative; }
++#btn-turret b { font-size: 18px; color: #fff; text-shadow: 0 2px 0 #000; margin: 2px 0; }
++#btn-turret small { font-size: 9px; opacity: 0.85; }
++#btn-turret.ready { background: #f0a026; box-shadow: 0 5px 0 #7a4a08, 0 0 14px rgba(255,180,0,0.55), 0 8px 14px rgba(0,0,0,0.45); }
++@media (max-width: 760px), (max-height: 520px) { #btn-turret { width: 64px; height: 64px; font-size: 11px; } }
+diff --git a/src/game/i18n.js b/src/game/i18n.js
+index 7437e79..43bbf86 100644
+--- a/src/game/i18n.js
++++ b/src/game/i18n.js
+@@ -66,6 +66,14 @@
+       'sum.coins.crates': 'CRATE COINS', 'sum.coins.done': 'MISSION BONUS', 'sum.coins.time': 'TIME BONUS', 'sum.coins.total': 'TOTAL COINS',
+       'sum.newrecord': 'NEW RECORD!',
+       'sum.next': 'NEXT MISSION', 'sum.retry': 'NEW RUN', 'sum.menu': 'MAIN MENU',
++      'hud.turret': 'DEFENSE', 'hud.key.turret': 'T', 'hud.turretCd': 'DEFENSE RECHARGING', 'hud.turretMax': 'DEFENSE LIMIT REACHED', 'hud.turretBlocked': 'NO ROOM HERE', 'hud.turretOn': 'DEFENSE ONLINE',
++      'brief.tip9': 'Press T (or DEFENSE) to drop an automatic gun turret next to you. It guards the spot for 30 seconds.',
++      'hud.mine': 'MINE', 'hud.key.mine': 'F', 'hud.nomines': 'NO MINES - BUY MORE IN THE GARAGE', 'hud.maxmines': 'TOO MANY MINES PLANTED', 'hud.planted': 'MINE PLANTED', 'hud.combo': 'COMBO!',
++      'brief.tip8': 'Buy landmines in the Garage, then press F (or tap MINE) to plant one behind you.',
++      'shop.title': 'GARAGE', 'shop.back': 'BACK', 'shop.buy': 'BUY', 'shop.equip': 'EQUIP', 'shop.equipped': 'EQUIPPED', 'shop.owned': 'OWNED', 'shop.need': 'NEED {n} MORE COINS',
++      'shop.speed': 'SPEED', 'shop.armor': 'ARMOR', 'shop.handling': 'HANDLING', 'shop.ram': 'RAMMING', 'shop.mines': 'LANDMINES', 'shop.stock': 'IN STOCK {n}', 'shop.full': 'STOCK FULL',
++      'shop.mines.how': 'Press F (or tap MINE) to plant one behind your vehicle. Any enemy that steps on it blows up, along with everyone nearby. Used mines are gone for good; unused ones carry over to the next mission.',
++      'shop.drag': 'HOLD AND DRAG TO ROTATE',
+       'sum.keptcoins': 'Coins from delivered crates are kept.',
+ 
+       'load.title': 'LOADING...',
+diff --git a/src/game/index.js b/src/game/index.js
+index 63512bc..7010225 100644
+--- a/src/game/index.js
++++ b/src/game/index.js
+@@ -18,6 +18,7 @@ import './art/textures.js';
+ import './art/props.js';
+ import './art/heroes.js';
+ import './art/vehicles.js';
++import './art/vehicles_extra.js';
+ import './art/enemies.js';
+ 
+ import './world/navgrid.js';
+@@ -34,6 +35,8 @@ import './systems/spawner.js';
+ import './systems/gun.js';
+ import './systems/missions.js';
+ import './systems/hazards.js';
++import './systems/landmines.js';
++import './systems/turrets.js';
+ 
+ import './entities/smallprops.js';
+ import './entities/crate.js';
+@@ -43,5 +46,6 @@ import './entities/nana.js';
+ 
+ import './ui.js';
+ import './scenes/menu.js';
++import './scenes/shop.js';
+ import './scenes/mission.js';
+ import './main.js';
+diff --git a/src/game/main.js b/src/game/main.js
+index d512556..018b098 100644
+--- a/src/game/main.js
++++ b/src/game/main.js
+@@ -22,7 +22,7 @@
+         const m = parseInt(Main.params.get('m') || '', 10); if (m > 0) Main.startIndex = m;
+         if (Main.params.get('debug')) WZ.UI.toggleDebug(true);
+         WZ.Audio.setMuted(!WZ.Save.data.settings.sound);
+-        Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission };
++        Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission, shop: WZ.Scenes.shop };
+ 
+         const q0 = WZ.Save.data.settings.quality, lvlGuess = (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 1 : 2;
+         const lvl = q0 === 'low' ? 0 : q0 === 'med' ? 1 : q0 === 'high' ? 2 : lvlGuess;
+diff --git a/src/game/save.js b/src/game/save.js
+index 79786d7..f6fd886 100644
+--- a/src/game/save.js
++++ b/src/game/save.js
+@@ -14,6 +14,7 @@
+     challenge: { lastDateUTC: '', bestScore: 0 },
+     ach: {},
+     settings: { sound: 1, music: 1, vibration: 1, shake: 1, lang: 'auto', quality: 'auto' },
++    inv: { mines: 3 },
+     flags: { tutorialDone: false, noAds: false },
+     runSeed: 0,
+   });
+diff --git a/src/game/scenes/menu.js b/src/game/scenes/menu.js
+index bd27c9f..9488917 100644
+--- a/src/game/scenes/menu.js
++++ b/src/game/scenes/menu.js
+@@ -59,7 +59,7 @@
+       Menu.view.followLight(st.x, gy, st.z);
+       Menu.cam = WZ.Cam.cam; Menu.cam.fov = 40; Menu.cam.updateProjectionMatrix();
+       WZ.UI.hudShow(false); WZ.UI.clearScreens();
+-      WZ.UI.showMenu({ best: S.best.mission, coins: S.coins }, { play: Menu.play });
++      WZ.UI.showMenu({ best: S.best.mission, coins: S.coins }, { play: Menu.play, garage: () => WZ.Main.go('shop') });
+       void rng;
+     },
+ 
+diff --git a/src/game/scenes/mission.js b/src/game/scenes/mission.js
+index eeb62b1..3e60d09 100644
+--- a/src/game/scenes/mission.js
++++ b/src/game/scenes/mission.js
+@@ -5,7 +5,7 @@
+   const T = THREE, CFG = WZ.CFG, U = WZ.U, Cam = WZ.Cam;
+   const t = (k, v) => WZ.I18n.t(k, v);
+   const v3 = new T.Vector3(), tmp = { x: 0, z: 0 };
+-  const TIPS = ['brief.tip1', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip5', 'brief.tip6', 'brief.tip7'];
++  const TIPS = ['brief.tip1', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip5', 'brief.tip6', 'brief.tip7', 'brief.tip8', 'brief.tip9'];
+ 
+   const M = {
+     name: 'mission', phase: 'none',
+@@ -27,10 +27,11 @@
+       M.ctx = { scene: M.scene, map: M.map, col: M.col, jeep: M.jeep, enemies: WZ.Enemies, crates: M.crates, particles: WZ.Particles, fx: WZ.Fx, nana: null };
+       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
+       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
++      WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx);
+       WZ.Gun.init(M.scene); WZ.Spawner.reset();
+       M.crates.onLanded = M.onCrateLanded;
+       M.inp = { x: 0, y: 0, mag: 0, boost: false };
+-      M.hud = { timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: 1, hpMax: 1, nanaOut: false, nanaHp: 1, nanaMax: 1, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false };
++      M.hud = { timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: 1, hpMax: 1, nanaOut: false, nanaHp: 1, nanaMax: 1, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, mines: 0, turretPct: 1, turretN: 0 };
+ 
+       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
+       M.coinsCrates = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
+@@ -46,7 +47,7 @@
+       M.jeep.sync(1, 0.016, 0); M.nana.render(1, 0.016, 0);
+       Cam.snap(M.jeep.rx, M.jeep.ry, M.jeep.rz);
+       WZ.UI.hudShow(false); WZ.UI.resetHudCache();
+-      WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), pause: () => WZ.Main.togglePause() });
++      WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), mine: () => WZ.Input.press('mine'), turret: () => WZ.Input.press('turret'), pause: () => WZ.Main.togglePause() });
+       WZ.Input.reset();
+       M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, tip: t(TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
+       void Main;
+@@ -65,7 +66,7 @@
+       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
+       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
+       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
+-      WZ.Hazards.dispose();
++      WZ.Hazards.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose();
+       M.scene = null; WZ.Main.renderer.renderLists.dispose();
+     },
+ 
+@@ -113,16 +114,18 @@
+       M.t += dt;
+       const I = WZ.Input, J = M.jeep, N = M.nana;
+       if (I.consume('debug')) WZ.UI.toggleDebug();
+-      if (M.phase === 'briefing') { if (I.consume('deploy') && M.briefEl) M.briefEl._go(); I.consume('boost'); return; }
++      if (M.phase === 'briefing') { if (I.consume('deploy') && M.briefEl) M.briefEl._go(); I.consume('boost'); I.consume('mine'); I.consume('turret'); return; }
+       if (M.flashCd > 0) M.flashCd -= dt;
+       if (M.hintT > 0) M.hintT -= dt;
+ 
+       if (M.phase === 'play') {
+         I.update(); M.inp.x = I.stick.x; M.inp.y = I.stick.y; M.inp.mag = I.stick.mag; M.inp.boost = I.consume('boost');
+         if (I.consume('deploy')) M.doDeploy();
++        if (I.consume('mine')) WZ.Landmines.plant();
++        if (I.consume('turret')) WZ.Turrets.plant();
+         if (I.consume('skip') && WZ.UI.dbgOn) { M.complete(); }
+         M.time += dt;
+-      } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); I.consume('boost'); }
++      } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); I.consume('boost'); I.consume('mine'); I.consume('turret'); }
+ 
+       J.step(dt, M.inp, Cam.yaw);
+       M.afterJeep(dt);
+@@ -131,8 +134,9 @@
+       WZ.Gun.update(dt, M.ctx);
+       M.small.hit(J, WZ.Particles); M.small.update(dt);
+       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
++      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); }
+       M.effects(dt);
+-      WZ.Audio.engineSet(Math.min(1, J.speed / CFG.jeep.boostSpeed), J.throttle, J.boosting);
++      WZ.Audio.engineSet(Math.min(1, J.speed / J.P.boostSpeed), J.throttle, J.boosting);
+ 
+       if (M.phase === 'play') M.rules(dt);
+       else if (M.phase === 'ending') {
+@@ -158,7 +162,7 @@
+           const rad = CFG.enemies[e.type].radius + 1.7;
+           const d1 = Math.hypot(e.x - (J.x + fx * 1.4), e.z - (J.z + fz * 1.4)), d2 = Math.hypot(e.x - J.x, e.z - J.z);
+           if (d1 > rad && d2 > rad) continue;
+-          if (J.speed >= CFG.ram.minSpeed) {
++          if (J.speed * J.P.ram >= CFG.ram.minSpeed) {
+             const dx = e.x - J.x + J.vx * 0.1, dz = e.z - J.z + J.vz * 0.1;
+             E.ko(e, dx, dz, CFG.ram.knock * 0.5, 'ram');
+             WZ.Fx.hitstop(0.045); WZ.Fx.shake(0.22); WZ.Audio.sfx('ram');
+@@ -243,14 +247,16 @@
+       if (kos > S.best.kos) S.best.kos = kos;
+       if ((M.data.runCoins || 0) > S.best.runCoins) S.best.runCoins = M.data.runCoins;
+       WZ.Save.save(); WZ.Save.flush();
++      const goMain = () => {
++        if (win) Main.go('mission', { index: idx + 1, runSeed: M.data.runSeed, runCoins: M.data.runCoins || 0 });
++        else Main.go('mission', { index: Main.startIndex, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
++      };
+       WZ.UI.showSummary({
+         kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft,
+         coinsCrates: M.coinsCrates, coinsDone, coinsTime, wallet: S.coins, record,
+       }, {
+-        main: () => {
+-          if (win) Main.go('mission', { index: idx + 1, runSeed: M.data.runSeed, runCoins: M.data.runCoins || 0 });
+-          else Main.go('mission', { index: Main.startIndex, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+-        },
++        main: goMain,
++        garage: () => Main.go('shop', { ret: goMain }),
+         menu: () => Main.go('menu'),
+       });
+     },
+@@ -310,7 +316,7 @@
+ 
+       if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); }
+       if (WZ.UI.dbgOn) M.debugText();
+-      WZ.Hazards.render(dt, M.t);
++      WZ.Hazards.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
+       Main.renderer.render(M.scene, cam);
+     },
+ 
+@@ -325,7 +331,7 @@
+       hd.boostPct = J.boostPct;
+       hd.prompt = M.promptText(); hd.hint = M.hintText();
+       hd.objective = t(M.allLoaded ? (N.out ? 'hud.obj.nana' : 'hud.obj.extract') : 'hud.obj.find');
+-      hd.gunBoost = WZ.Gun.boosted;
++      hd.gunBoost = WZ.Gun.boosted; hd.mines = WZ.Landmines.count; hd.turretPct = WZ.Turrets.cdPct; hd.turretN = WZ.Turrets.count;
+       WZ.UI.updateHUD(hd);
+     },
+ 
+diff --git a/src/game/scenes/shop.js b/src/game/scenes/shop.js
+new file mode 100644
+index 0000000..7d7cfa4
+--- /dev/null
++++ b/src/game/scenes/shop.js
+@@ -0,0 +1,198 @@
++/* Garage scene — real-time 3D showroom (turntable, studio lights) + DOM panels. Every vehicle card shows a 3D render of the
++ * vehicle (rendered once with the game's own renderer into a texture); the big model on the turntable is live and draggable.
++ * Purchases: vehicles (price in CFG.vehicles) and landmine packs (CFG.shop.mines). No emoji, only real renders and vector icons. */
++(function (WZ) {
++  'use strict';
++  const T = THREE, CFG = WZ.CFG, G = WZ.Geo, t = (k, v) => WZ.I18n.t(k, v);
++  const COIN = '<svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5f00" stroke-width="2"/><path d="M12 7.2l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z" fill="#8a5f00"/></svg>';
++  const STATS = [['shop.speed', 'topSpeed', 32, (v) => Math.round(v * 3.6) + ' KM/H'], ['shop.armor', 'hp', 260, (v) => String(v)], ['shop.handling', 'handling', 1.2, (v) => String(Math.round(v * 100))], ['shop.ram', 'ram', 2, (v) => 'x' + v.toFixed(1)]];
++  const pips = (n) => '<span class="tier">' + [1, 2, 3, 4, 5].map((i) => '<i class="' + (i <= n ? 'on' : '') + '"></i>').join('') + '</span>';
++
++  const Shop = {
++    name: 'shop', t: 0, sel: 'jeep', rot: 0.6, spinV: 0, pop: 0, thumbs: {}, thumbsDone: false, scene: null, holder: null, obj: null, model: null, heroes: null, r: 5,
++
++    // ------------------------------------------------------------------ purchases (pure logic, unit-tested)
++    buyVehicle(id) {
++      const S = WZ.Save.data, v = CFG.vehicles[id];
++      if (!v) return 'invalid'; if (S.owned.vehicles.indexOf(id) >= 0) return 'owned'; if (S.coins < v.price) return 'poor';
++      S.coins -= v.price; S.owned.vehicles.push(id); S.equipped.vehicle = id; WZ.Save.save(); return 'ok';
++    },
++    equip(id) { const S = WZ.Save.data; if (S.owned.vehicles.indexOf(id) < 0) return 'locked'; S.equipped.vehicle = id; WZ.Save.save(); return 'ok'; },
++    buyMines(i) {
++      const S = WZ.Save.data, p = CFG.shop.mines.packs[i];
++      if (!p) return 'invalid'; if (S.inv.mines + p.n > CFG.shop.mines.cap) return 'full'; if (S.coins < p.price) return 'poor';
++      S.coins -= p.price; S.inv.mines += p.n; WZ.Save.save(); return 'ok';
++    },
++
++    // ------------------------------------------------------------------ lifecycle
++    enter(data) {
++      const S = WZ.Save.data; Shop.data = data || {}; Shop.t = 0; Shop.rot = 0.6; Shop.pop = 0;
++      Shop.sel = S.owned.vehicles.indexOf(S.equipped.vehicle) >= 0 ? S.equipped.vehicle : 'jeep';
++      Shop.scene = new T.Scene(); Shop.scene.background = new T.Color(0x101318); Shop.scene.fog = new T.Fog(0x101318, 70, 150);
++      Shop.buildStage();
++      Shop.cam = WZ.Cam.cam; Shop.cam.fov = 32; Shop.cam.updateProjectionMatrix();
++      WZ.UI.hudShow(false); WZ.UI.clearScreens();
++      Shop.ui = WZ.UI._screen('shop', '<div class="shop-top"><button class="btn dark" data-act="back">' + t('shop.back') + '</button><div class="shop-title">' + t('shop.title') + '</div>' +
++        '<div class="shop-coins panel">' + COIN + '<b id="sh-coins">0</b></div></div><div class="shop-main"><div class="shop-list" id="sh-list"></div><div class="shop-detail panel" id="sh-detail"></div></div>' +
++        '<div class="shop-drag">' + t('shop.drag') + '</div>');
++      Shop.ui.onclick = Shop.click;
++      Shop.makeThumbs(); Shop.show(Shop.sel); Shop.paint();
++    },
++
++    exit() {
++      WZ.UI.clearScreens();
++      Shop.disposeObj(); G.disposeTree(Shop.scene); Shop.scene = null; Shop.holder = null;
++      Shop.cam.fov = CFG.camera.fov; Shop.cam.clearViewOffset(); Shop.cam.updateProjectionMatrix();
++      WZ.Main.renderer.renderLists.dispose();
++    },
++
++    canPause() { return false; },
++
++    update(dt) {
++      Shop.t += dt; const I = WZ.Input;
++      I.update(); Shop.spinV = I.stick.mag > 0.1 ? I.stick.x * 2.6 : 0;
++      for (const k of ['pause', 'debug', 'deploy', 'boost', 'skip', 'mine']) I.consume(k);
++    },
++
++    render(alpha, dt) {
++      const Main = WZ.Main, cam = Shop.cam, w = Main.w, h = Main.h, asp = w / h, tm = Shop.t;
++      Shop.rot += (0.32 + Shop.spinV) * dt;
++      Shop.pop = Math.min(1, Shop.pop + dt * 3); const e = 1 - Math.pow(1 - Shop.pop, 3);
++      Shop.holder.rotation.y = Shop.rot; Shop.holder.scale.setScalar(0.86 + 0.14 * e);
++      const m = Shop.model;
++      if (m) { for (const wl of m.wheels) wl.rotation.x = tm * 0.8; m.gunYaw.rotation.y = Math.sin(tm * 0.6) * 0.55; m.flag.rotation.y = Math.sin(tm * 5) * 0.3; }
++      if (Shop.heroes) for (const hr of Shop.heroes) hr.update(dt);
++      const portrait = asp < 1, r = Shop.r, fit = r / (Math.tan(cam.fov * Math.PI / 360) * Math.min(1, asp * 1.15)) * (portrait ? 1.15 : 1.45);
++      cam.position.set(fit * 0.2, r * 0.55 + 1.8, fit); cam.lookAt(0, r * 0.26 + 0.6, 0);
++      cam.setViewOffset(w, h, 0, portrait ? h * 0.13 : 0, w, h);
++      Main.renderer.render(Shop.scene, cam);
++    },
++
++    back() { const d = Shop.data; if (d && d.ret) d.ret(); else WZ.Main.go('menu'); },
++
++    // ------------------------------------------------------------------ 3D stage
++    buildStage() {
++      const sc = Shop.scene, mk = (geo, color, o) => { const m = new T.Mesh(geo, o && o.basic ? new T.MeshBasicMaterial({ color, transparent: !!o.op, opacity: o.op || 1, side: T.DoubleSide }) : new T.MeshLambertMaterial({ color })); return m; };
++      // concrete floor
++      const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
++      x.fillStyle = '#23282e'; x.fillRect(0, 0, 256, 256);
++      for (let i = 0; i < 1500; i++) { x.fillStyle = 'rgba(' + (i % 2 ? '255,255,255' : '0,0,0') + ',' + (0.03 + Math.random() * 0.05) + ')'; x.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 3, 1 + Math.random() * 3); }
++      x.strokeStyle = 'rgba(0,0,0,.45)'; x.lineWidth = 2; x.strokeRect(1, 1, 254, 254);
++      const ft = new T.CanvasTexture(c); ft.wrapS = ft.wrapT = T.RepeatWrapping; ft.repeat.set(14, 14);
++      const floor = new T.Mesh(new T.CircleGeometry(90, 48), new T.MeshLambertMaterial({ map: ft })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; sc.add(floor);
++      // turntable + brand rings
++      const plat = mk(new T.CylinderGeometry(8.2, 8.5, 0.6, 56), 0x2f353c); plat.position.y = 0.3; plat.receiveShadow = true; sc.add(plat);
++      const ring = (r0, r1, col, y) => { const m = mk(new T.RingGeometry(r0, r1, 64), col, { basic: true }); m.rotation.x = -Math.PI / 2; m.position.y = y; sc.add(m); };
++      ring(7.5, 7.9, 0xFFB400, 0.62); ring(6.6, 6.7, 0x0E0E0E, 0.62); ring(8.25, 8.55, 0x0E0E0E, 0.31);
++      // back wall: diagonal hazard band + brand text
++      const wc = document.createElement('canvas'); wc.width = 1024; wc.height = 512; const wx = wc.getContext('2d');
++      const gr = wx.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, '#171b21'); gr.addColorStop(1, '#0c0e12'); wx.fillStyle = gr; wx.fillRect(0, 0, 1024, 512);
++      wx.save(); wx.beginPath(); wx.rect(0, 392, 1024, 56); wx.clip(); wx.fillStyle = '#FFB400'; wx.fillRect(0, 392, 1024, 56); wx.fillStyle = '#0E0E0E';
++      for (let i = -2; i < 40; i++) { wx.beginPath(); wx.moveTo(i * 56, 448); wx.lineTo(i * 56 + 28, 448); wx.lineTo(i * 56 + 56, 392); wx.lineTo(i * 56 + 28, 392); wx.fill(); } wx.restore();
++      wx.font = '900 150px Impact, Haettenschweiler, "Arial Black", sans-serif'; wx.textAlign = 'center'; wx.fillStyle = 'rgba(236,233,225,0.09)'; wx.fillText('WARZAR', 512, 250);
++      wx.font = '900 40px Impact, "Arial Black", sans-serif'; wx.fillStyle = 'rgba(255,180,0,0.55)'; wx.fillText('MOTOR POOL', 512, 320);
++      const wall = new T.Mesh(new T.PlaneGeometry(130, 65), new T.MeshBasicMaterial({ map: new T.CanvasTexture(wc), fog: false })); wall.position.set(0, 24, -34); sc.add(wall);
++      for (const sx of [-1, 1]) { const p = mk(new T.BoxGeometry(0.5, 30, 0.5), 0xFFF0C8, { basic: true }); p.position.set(sx * 26, 15, -31); sc.add(p); }
++      // lights
++      sc.add(new T.HemisphereLight(0xcfdcff, 0x3a2f22, 0.75));
++      const key = new T.DirectionalLight(0xfff1d6, 1.15); key.position.set(-10, 18, 13); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
++      const sh = key.shadow.camera; sh.left = sh.bottom = -13; sh.right = sh.top = 13; sh.near = 1; sh.far = 70; key.shadow.bias = -0.0006; sc.add(key);
++      const rim1 = new T.PointLight(0x6aa8ff, 1.0, 60); rim1.position.set(-14, 9, -12); sc.add(rim1);
++      const rim2 = new T.PointLight(0xffb400, 0.9, 60); rim2.position.set(14, 7, -10); sc.add(rim2);
++      Shop.holder = new T.Group(); Shop.holder.position.y = 0.62; sc.add(Shop.holder);
++    },
++
++    disposeObj() {
++      if (Shop.heroes) Shop.heroes.forEach((h) => h.dispose());
++      if (Shop.obj) { if (Shop.holder) Shop.holder.remove(Shop.obj); G.disposeTree(Shop.obj); }
++      Shop.heroes = null; Shop.model = null; Shop.obj = null;
++    },
++
++    /** build the object for a catalogue id (with the two heroes seated in vehicles) */
++    make(id) {
++      if (id === 'mine') { const m = WZ.Vehicles.mineModel(); m.scale.setScalar(3.6); return { obj: m, model: null, heroes: null, r: 4.6 }; }
++      const mdl = WZ.Vehicles.build(id), c = WZ.Heroes.commander(), n = WZ.Heroes.nana();
++      c.setMode('sit'); n.setMode('sit'); mdl.seatCmdr.add(c.root); mdl.seatNana.add(n.root);
++      for (let i = 0; i < 45; i++) { c.update(1 / 60); n.update(1 / 60); }
++      const s = new T.Box3().setFromObject(mdl.root).getSize(new T.Vector3());
++      return { obj: mdl.root, model: mdl, heroes: [c, n], r: Math.max(s.x, s.z) * 0.6 + s.y * 0.12 };
++    },
++
++    show(id) {
++      Shop.disposeObj(); const o = Shop.make(id);
++      Shop.obj = o.obj; Shop.model = o.model; Shop.heroes = o.heroes; Shop.r = o.r; Shop.holder.add(o.obj); Shop.pop = 0;
++      Shop.obj.traverse((m) => { if (m.isMesh) m.castShadow = true; });
++    },
++
++    // ------------------------------------------------------------------ 3D thumbnails for the cards
++    makeThumbs() {
++      if (Shop.thumbsDone) return; Shop.thumbsDone = true;
++      for (const id of CFG.vehicleOrder.concat(['mine'])) { try { Shop.thumbs[id] = Shop.thumb(id); } catch (e) { Shop.thumbs[id] = ''; } }
++    },
++
++    thumb(id) {
++      const R = WZ.Main.renderer, W = 440, H = 270, rt = new T.WebGLRenderTarget(W, H);
++      const sc = new T.Scene(); sc.add(new T.HemisphereLight(0xdfe9ff, 0x6b5a3a, 1.05));
++      const d = new T.DirectionalLight(0xfff0d0, 0.95); d.position.set(-6, 10, 9); sc.add(d);
++      const o = Shop.make(id); sc.add(o.obj);
++      const box = new T.Box3().setFromObject(o.obj), size = box.getSize(new T.Vector3()), ctr = box.getCenter(new T.Vector3());
++      const cam = new T.PerspectiveCamera(28, W / H, 0.5, 300), dist = (Math.max(size.x, size.z) * 0.62 + size.y * 0.35) / Math.tan(14 * Math.PI / 180) * 1.02;
++      cam.position.set(ctr.x + dist * 0.6, ctr.y + dist * 0.34, ctr.z + dist * 0.74); cam.lookAt(ctr.x, ctr.y - size.y * 0.06, ctr.z);
++      const prev = new T.Color(); R.getClearColor(prev); const pa = R.getClearAlpha();
++      R.setClearColor(0x000000, 0); R.setRenderTarget(rt); R.clear(); R.render(sc, cam);
++      const buf = new Uint8Array(W * H * 4); R.readRenderTargetPixels(rt, 0, 0, W, H, buf);
++      R.setRenderTarget(null); R.setClearColor(prev, pa); rt.dispose();
++      const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d'), img = cx.createImageData(W, H);
++      for (let y = 0; y < H; y++) img.data.set(buf.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4);
++      cx.putImageData(img, 0, 0); const url = cv.toDataURL('image/png');
++      if (o.heroes) o.heroes.forEach((h) => h.dispose()); G.disposeTree(o.obj);
++      return url;
++    },
++
++    // ------------------------------------------------------------------ DOM
++    paint() {
++      const S = WZ.Save.data, el = Shop.ui, eq = S.equipped.vehicle, own = S.owned.vehicles;
++      el.querySelector('#sh-coins').textContent = S.coins;
++      const img = (id) => Shop.thumbs[id] ? '<img class="vthumb" alt="" src="' + Shop.thumbs[id] + '">' : '<div class="vthumb noimg"></div>';
++      let list = CFG.vehicleOrder.map((id) => {
++        const v = CFG.vehicles[id], o = own.indexOf(id) >= 0;
++        const tag = eq === id ? '<span class="tg eq">' + t('shop.equipped') + '</span>' : o ? '<span class="tg own">' + t('shop.owned') + '</span>' : '<span class="tg price">' + COIN + v.price + '</span>';
++        return '<button class="vcard' + (Shop.sel === id ? ' sel' : '') + (o ? '' : ' locked') + '" data-act="sel" data-id="' + id + '">' + img(id) + '<div class="vinfo"><div class="vname">' + v.name + '</div>' + pips(v.tier) + tag + '</div></button>';
++      }).join('');
++      list += '<button class="vcard' + (Shop.sel === 'mine' ? ' sel' : '') + '" data-act="sel" data-id="mine">' + img('mine') + '<div class="vinfo"><div class="vname">' + t('shop.mines') + '</div><span class="tg own">' + t('shop.stock', { n: S.inv.mines }) + '</span></div></button>';
++      el.querySelector('#sh-list').innerHTML = list;
++
++      const d = el.querySelector('#sh-detail');
++      if (Shop.sel === 'mine') {
++        const M = CFG.shop.mines;
++        d.innerHTML = '<div class="dname">' + t('shop.mines') + '</div><div class="dblurb">' + t('shop.mines.how') + '</div>' +
++          '<div class="dstock">' + t('shop.stock', { n: S.inv.mines }) + ' / ' + M.cap + '</div><div class="packs">' +
++          M.packs.map((p, i) => { const full = S.inv.mines + p.n > M.cap, poor = S.coins < p.price; return '<button class="btn buy" data-act="pack" data-i="' + i + '"' + (full || poor ? ' disabled' : '') + '><span>x' + p.n + '</span><em>' + (full ? t('shop.full') : COIN + p.price) + '</em></button>'; }).join('') + '</div>';
++        return;
++      }
++      const v = CFG.vehicles[Shop.sel], o = own.indexOf(Shop.sel) >= 0, equipped = eq === Shop.sel, need = v.price - S.coins;
++      let act;
++      if (equipped) act = '<button class="btn big" disabled>' + t('shop.equipped') + '</button>';
++      else if (o) act = '<button class="btn big" data-act="equip" data-id="' + Shop.sel + '">' + t('shop.equip') + '</button>';
++      else if (need > 0) act = '<button class="btn big" disabled>' + t('shop.need', { n: need }) + '</button>';
++      else act = '<button class="btn big" data-act="buy" data-id="' + Shop.sel + '">' + t('shop.buy') + ' ' + COIN + v.price + '</button>';
++      d.innerHTML = '<div class="dname">' + v.name + '</div>' + pips(v.tier) + '<div class="dblurb">' + v.blurb + '</div>' +
++        STATS.map((s) => { const val = v[s[1]], pct = Math.max(6, Math.min(100, val / s[2] * 100)); return '<div class="st"><span>' + t(s[0]) + '</span><i><b style="width:' + pct.toFixed(0) + '%"></b></i><em>' + s[3](val) + '</em></div>'; }).join('') +
++        '<div class="dact">' + act + '</div>';
++    },
++
++    click(e) {
++      const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
++      const a = b.dataset.act, id = b.dataset.id; WZ.Audio.unlock();
++      if (a === 'back') { WZ.Audio.sfx('click'); Shop.back(); return; }
++      if (a === 'sel') { WZ.Audio.sfx('click'); if (Shop.sel !== id) { Shop.sel = id; Shop.show(id); } }
++      else if (a === 'buy') { const r = Shop.buyVehicle(id); WZ.Audio.sfx(r === 'ok' ? 'win' : 'beep'); if (r === 'ok') { Shop.show(id); WZ.Particles && 0; } }
++      else if (a === 'equip') { WZ.Audio.sfx(Shop.equip(id) === 'ok' ? 'go' : 'beep'); }
++      else if (a === 'pack') { WZ.Audio.sfx(Shop.buyMines(+b.dataset.i) === 'ok' ? 'deliver' : 'beep'); }
++      Shop.paint();
++    },
++  };
++
++  WZ.Scenes = WZ.Scenes || {};
++  WZ.Scenes.shop = Shop;
++})(window.WZ = window.WZ || {});
+diff --git a/src/game/systems/camera.js b/src/game/systems/camera.js
+index 3cb7ba8..230b322 100644
+--- a/src/game/systems/camera.js
++++ b/src/game/systems/camera.js
+@@ -22,7 +22,7 @@
+ 
+     /** j: jeep (rx,rz,ry,h,speed) · n: nana (rx,rz,ry,out,isKO) · amount: shake multiplier from settings */
+     update(dt, j, n, amount) {
+-      const sp = U.clamp(j.speed / CFG.jeep.topSpeed, 0, 1);
++      const sp = U.clamp(j.speed / (j.P ? j.P.topSpeed : CFG.jeep.topSpeed), 0, 1);
+       Cam.yaw = U.damp(Cam.yaw, Cam.baseYaw + 0.25 * Math.sin(j.h - Cam.baseYaw) * sp, 2.2, dt);
+       let tx = j.rx + Math.sin(j.h) * j.speed * C.lookAhead, tz = j.rz + Math.cos(j.h) * j.speed * C.lookAhead;
+       if (n.out) { tx = U.lerp(tx, (j.rx + n.rx) / 2, 0.45); tz = U.lerp(tz, (j.rz + n.rz) / 2, 0.45); }
+diff --git a/src/game/systems/gun.js b/src/game/systems/gun.js
+index 6f55945..4d0a30f 100644
+--- a/src/game/systems/gun.js
++++ b/src/game/systems/gun.js
+@@ -3,7 +3,7 @@
+ (function (WZ) {
+   'use strict';
+   const T = THREE, CFG = WZ.CFG, U = WZ.U, GN = CFG.gun;
+-  const MAXT = 24;
++  const MAXT = 48;
+   const mv = new T.Vector3(), d = new T.Object3D();
+ 
+   const Gun = {
+diff --git a/src/game/systems/input.js b/src/game/systems/input.js
+index 31b6b8a..d57b38c 100644
+--- a/src/game/systems/input.js
++++ b/src/game/systems/input.js
+@@ -3,7 +3,7 @@
+ (function (WZ) {
+   'use strict';
+   const IN = {
+-    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false },
++    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false },
+     boostHeld: false, bot: null, enabled: true, _touchId: -1, _ox: 0, _oy: 0, _tx: 0, _ty: 0, _R: 70, _baseEl: null, _knobEl: null,
+ 
+     init(zone, baseEl, knobEl) {
+@@ -21,6 +21,8 @@
+           case 'Escape': case 'KeyP': IN.pressed.pause = true; break;
+           case 'Backquote': case 'F3': IN.pressed.debug = true; e.preventDefault(); break;
+           case 'KeyN': IN.pressed.skip = true; break;
++          case 'KeyF': case 'KeyM': IN.pressed.mine = true; break;
++          case 'KeyT': IN.pressed.turret = true; break;
+           default: if (e.code.indexOf('Arrow') === 0) e.preventDefault();
+         }
+       });
+diff --git a/src/game/systems/landmines.js b/src/game/systems/landmines.js
+new file mode 100644
+index 0000000..39282fd
+--- /dev/null
++++ b/src/game/systems/landmines.js
+@@ -0,0 +1,83 @@
++/* WZ.Landmines — mines the PLAYER plants (bought in the Garage). Plant with F / M / the MINE button: one mine drops behind the vehicle.
++ * Inventory lives in Save.data.inv.mines: each planted mine is consumed for good and unused mines carry over to the next mission.
++ * A mine arms after C.armDelay s; any enemy that steps on it detonates it (KOs everything within C.blast). Never hurts the jeep or Nana. */
++(function (WZ) {
++  'use strict';
++  const T = THREE, C = WZ.CFG.mine, MAX = C.maxActive;
++  const m4 = new T.Matrix4(), qI = new T.Quaternion(), vp = new T.Vector3(), vs = new T.Vector3();
++  const setM = (mesh, i, x, y, z, s) => { m4.compose(vp.set(x, y, z), qI, vs.set(s, s, s)); mesh.setMatrixAt(i, m4); };
++
++  const L = {
++    ctx: null, list: [], free: [], ms: null, cd: 0, noneT: 0, planted: 0, kills: 0,
++    get count() { return (WZ.Save.data.inv && WZ.Save.data.inv.mines) | 0; },
++
++    init(ctx) {
++      L.dispose(); L.ctx = ctx; L.list = []; L.cd = 0; L.planted = 0; L.kills = 0; L.free = [];
++      for (let i = MAX - 1; i >= 0; i--) L.free.push(i);
++      const p = WZ.Vehicles.mineParts();
++      const parts = [[p.body, new T.MeshLambertMaterial({ vertexColors: true })], [p.top, new T.MeshLambertMaterial({ vertexColors: true })], [p.lamp, new T.MeshBasicMaterial({ vertexColors: true })]];
++      L.ms = parts.map(([b, mat]) => { const im = new T.InstancedMesh(b.build(), mat, MAX); im.frustumCulled = false; im.castShadow = false; ctx.scene.add(im); for (let i = 0; i < MAX; i++) setM(im, i, 0, -50, 0, 0); im.instanceMatrix.needsUpdate = true; return im; });
++    },
++
++    place(m, on) {
++      for (let k = 0; k < 3; k++) setM(L.ms[k], m.i, m.x, m.gy, m.z, on ? 1 : 0);
++      for (const im of L.ms) im.instanceMatrix.needsUpdate = true;
++    },
++
++    /** returns true when a mine was planted */
++    plant() {
++      const c = L.ctx; if (!c) return false;
++      const J = c.jeep, S = WZ.Save.data;
++      if (!J.alive || L.cd > 0) return false;
++      if (L.count <= 0) { L.cd = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.nomines'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
++      if (!L.free.length) { L.cd = 0.8; WZ.Fx.text(WZ.I18n.t('hud.maxmines'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
++      const off = J.P.halfLen + C.behind;
++      let x = J.x - Math.sin(J.h) * off, z = J.z - Math.cos(J.h) * off;
++      if (!c.col.free(x, z, 1.0)) { x = J.x; z = J.z; }
++      const m = { x, z, gy: c.map.height(x, z), i: L.free.pop(), arm: C.armDelay, t: 0 };
++      L.list.push(m); L.place(m, true); L.planted++;
++      S.inv.mines = Math.max(0, S.inv.mines - 1); WZ.Save.save(); L.cd = C.cooldown;
++      WZ.Audio.sfx('thud'); c.particles.dust(x, m.gy, z, 5); WZ.Fx.text(WZ.I18n.t('hud.planted'), x, m.gy + 3.2, z, 'good');
++      return true;
++    },
++
++    update(dt) {
++      const c = L.ctx; if (!c) return;
++      if (L.cd > 0) L.cd -= dt;
++      const E = c.enemies;
++      for (let k = L.list.length - 1; k >= 0; k--) {
++        const m = L.list[k]; m.t += dt;
++        if (m.arm > 0) { m.arm -= dt; continue; }
++        E.hash.query(m.x, m.z, C.trigger + 1.5, E.q);
++        let hit = false;
++        for (let i = 0; i < E.q.length; i++) { const e = E.q[i]; if (e.active && e.state !== 2 && Math.hypot(e.x - m.x, e.z - m.z) < C.trigger) { hit = true; break; } }
++        if (hit) L.boom(k);
++      }
++    },
++
++    boom(k) {
++      const c = L.ctx, m = L.list[k], E = c.enemies, P = c.particles, y = m.gy + 0.6;
++      L.list.splice(k, 1); L.place(m, false); L.free.push(m.i);
++      P.poof(m.x, y, m.z, 16, 2.6); P.sparks(m.x, y + 0.5, m.z, 30, 1, 0.8, 0.3); P.dust(m.x, m.gy, m.z, 10);
++      WZ.Audio.sfx('boom'); WZ.Fx.shake(0.45); WZ.Fx.hitstop(0.05); WZ.Fx.text('BOOM!', m.x, y + 3.5, m.z, 'bonk');
++      E.hash.query(m.x, m.z, C.blast, E.q);
++      let n = 0;
++      for (const e of E.q.slice()) { if (!e.active || e.state === 2 || Math.hypot(e.x - m.x, e.z - m.z) > C.blast) continue; E.ko(e, e.x - m.x, e.z - m.z, C.power, 'mine'); n++; }
++      L.kills += n;
++      if (n >= 3) WZ.Fx.text('x' + n + ' ' + WZ.I18n.t('hud.combo'), m.x, y + 6, m.z, 'coin');
++    },
++
++    render(dt, tm) {
++      if (!L.ms || !L.list.length) return;
++      const lamp = L.ms[2];
++      for (const m of L.list) setM(lamp, m.i, m.x, m.gy, m.z, m.arm > 0 ? 0 : (((tm * 1.6 + m.i * 0.37) % 1) < 0.5 ? 1 : 0.2));
++      lamp.instanceMatrix.needsUpdate = true;
++    },
++
++    dispose() {
++      if (L.ms) for (const im of L.ms) { if (L.ctx) L.ctx.scene.remove(im); im.geometry.dispose(); im.material.dispose(); im.dispose(); }
++      L.ms = null; L.ctx = null; L.list = []; L.free = [];
++    },
++  };
++  WZ.Landmines = L;
++})(window.WZ = window.WZ || {});
+diff --git a/src/game/systems/turrets.js b/src/game/systems/turrets.js
+new file mode 100644
+index 0000000..a26f1b7
+--- /dev/null
++++ b/src/game/systems/turrets.js
+@@ -0,0 +1,138 @@
++/* WZ.Turrets — DEFENSE: press T / the DEFENSE button to deploy an automatic twin-barrel gun turret right next to the vehicle.
++ * It rises out of the ground, tracks and shoots the nearest enemy, and dismantles itself after C.life seconds.
++ * Limits: C.max turrets at once and a C.cooldown recharge between deployments. Invulnerable; never hurts the jeep or Nana. */
++(function (WZ) {
++  'use strict';
++  const T = THREE, CFG = WZ.CFG, C = CFG.turret, G = WZ.Geo, U = WZ.U, rb = G.rbox;
++  const B = () => new G.Builder();
++  const YEL = 0xFFB400, STEEL = 0x2B2E31, DARK = 0x16181A, BODY = 0x4A525A, PLATE = 0x59636E;
++  let parts = null, VM = null, ringGeo = null, shockGeo = null;
++
++  function makeParts() {
++    const base = B(), head = B(), bar = B(), lamp = B();
++    base.add(G.cyl(6), { sx: 1.7, sy: 0.2, sz: 1.7, y: 0.1, color: STEEL });
++    base.add(G.cyl(6), { sx: 1.86, sy: 0.08, sz: 1.86, y: 0.04, color: YEL });
++    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.52; base.add(rb(0.34, 0.12, 0.2, 0.03), { x: Math.cos(a) * 1.5, z: Math.sin(a) * 1.5, y: 0.24, ry: -a, color: i % 2 ? DARK : YEL }); }
++    for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; base.beam(0, 1.05, 0, Math.cos(a) * 1.35, 0.2, Math.sin(a) * 1.35, 0.17, 0.17, 0x3A3F44); }
++    base.add(G.cyl(10), { sx: 0.4, sy: 1.0, sz: 0.4, y: 0.7, color: 0x3A3F44 });
++    base.add(rb(0.62, 0.42, 0.5, 0.06), { x: 1.0, y: 0.42, z: 0.25, ry: 0.3, color: 0x4B5A3A });
++    base.add(rb(0.64, 0.08, 0.52, 0.02), { x: 1.0, y: 0.5, z: 0.25, ry: 0.3, color: YEL });
++    head.add(rb(1.0, 0.64, 1.15, 0.17), { color: BODY });
++    head.add(rb(0.96, 0.1, 1.08, 0.04), { y: 0.37, color: YEL });
++    for (const s of [1, -1]) { head.add(rb(0.12, 0.72, 0.95, 0.05), { x: 0.57 * s, y: 0.02, z: 0.05, color: PLATE }); head.add(rb(0.1, 0.1, 0.5, 0.03), { x: 0.44 * s, y: 0.42, z: -0.25, color: DARK }); }
++    head.add(rb(0.5, 0.36, 0.34, 0.08), { y: -0.02, z: -0.72, color: DARK });
++    head.add(G.cyl(12), { x: -0.28, y: 0.7, z: -0.25, rx: 0.5, sx: 0.24, sy: 0.04, sz: 0.24, color: 0xB9BDC2 });
++    head.add(G.cyl(6), { x: -0.28, y: 0.52, z: -0.25, sx: 0.04, sy: 0.35, sz: 0.04, color: DARK });
++    bar.add(rb(0.62, 0.34, 0.5, 0.06), { z: 0.55, color: DARK });
++    for (const s of [1, -1]) { bar.add(rb(0.15, 0.15, 1.5, 0.05), { x: 0.2 * s, y: 0.06, z: 1.25, color: 0x0E0E0E }); bar.add(rb(0.22, 0.22, 0.24, 0.05), { x: 0.2 * s, y: 0.06, z: 2.0, color: STEEL }); }
++    lamp.add(G.sph(10, 8), { sx: 0.17, sy: 0.17, sz: 0.17, color: 0xFFFFFF });
++    return { base: base.build(), head: head.build(), bar: bar.build(), lamp: lamp.build() };
++  }
++
++  /** a complete turret (also used for offline previews): returns { root, headG, barG, lamp } */
++  function model() {
++    if (!parts) { parts = makeParts(); VM = new T.MeshLambertMaterial({ vertexColors: true }); }
++    const root = new T.Group(), headG = new T.Group(), barG = new T.Group();
++    headG.position.y = 1.45; root.add(headG); headG.add(barG);
++    const meshes = [new T.Mesh(parts.base, VM), new T.Mesh(parts.head, VM), new T.Mesh(parts.bar, VM)];
++    root.add(meshes[0]); headG.add(meshes[1]); barG.add(meshes[2]);
++    for (const m of meshes) m.castShadow = true;
++    const lamp = new T.Mesh(parts.lamp, new T.MeshBasicMaterial({ vertexColors: true, color: 0x4cff6a })); lamp.position.set(0, 0.5, 0.6); headG.add(lamp);
++    return { root, headG, barG, lamp };
++  }
++  const easeBack = (k) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
++
++  const L = {
++    ctx: null, list: [], cd: 0, noteT: 0, planted: 0, kills: 0,
++    get count() { return L.list.length; },
++    get cdPct() { return L.cd <= 0 ? 1 : 1 - L.cd / C.cooldown; },
++    get ready() { return L.cd <= 0 && L.list.length < C.max; },
++
++    init(ctx) {
++      L.dispose(); L.ctx = ctx; L.list = []; L.cd = 0; L.noteT = 0; L.planted = 0; L.kills = 0;
++      if (!ringGeo) { ringGeo = new T.RingGeometry(C.range - 0.3, C.range, 72).rotateX(-Math.PI / 2); shockGeo = new T.RingGeometry(0.85, 1.0, 48).rotateX(-Math.PI / 2); }
++    },
++
++    note(key) {
++      const J = L.ctx.jeep; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t(key), J.rx, J.ry + 6, J.rz, 'warn');
++    },
++
++    /** returns true when a turret was deployed */
++    plant() {
++      const c = L.ctx; if (!c) return false;
++      const J = c.jeep; if (!J.alive) return false;
++      if (L.cd > 0) { if (L.noteT <= 0) { L.note('hud.turretCd'); L.noteT = 0.8; } return false; }
++      if (L.list.length >= C.max) { if (L.noteT <= 0) { L.note('hud.turretMax'); L.noteT = 0.8; } return false; }
++      const sn = Math.sin(J.h), cs = Math.cos(J.h), back = -(J.P.halfLen + C.behind);
++      let spot = null;
++      for (const [d, side] of [[back, 0], [0, -4.8], [0, 4.8], [-back * 0.9, 0], [back, 3.2], [back, -3.2]]) {
++        const x = J.x + sn * d + cs * side, z = J.z + cs * d - sn * side;
++        if (c.col.free(x, z, 1.7)) { spot = { x, z }; break; }
++      }
++      if (!spot) { if (L.noteT <= 0) { L.note('hud.turretBlocked'); L.noteT = 0.8; } return false; }
++      const gy = c.map.height(spot.x, spot.z), m = model(), lampMat = m.lamp.material;
++      const ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ color: YEL, transparent: true, opacity: 0.35, depthWrite: false, fog: false }));
++      const shock = new T.Mesh(shockGeo, new T.MeshBasicMaterial({ color: 0xFFE27A, transparent: true, opacity: 0.7, depthWrite: false, side: T.DoubleSide }));
++      ring.position.set(spot.x, gy + 0.12, spot.z); shock.position.set(spot.x, gy + 0.18, spot.z);
++      m.root.position.set(spot.x, gy, spot.z); m.root.scale.setScalar(0.01);
++      c.scene.add(m.root, ring, shock);
++      L.list.push({ x: spot.x, z: spot.z, gy, life: C.life, age: 0, yaw: J.h, root: m.root, headG: m.headG, barG: m.barG, lamp: m.lamp, lampMat, ring, shock, cdF: 0.3, side: 1, kick: 0, target: null, retarget: 0, sfxN: 0 });
++      L.cd = C.cooldown; L.planted++;
++      WZ.Audio.sfx('build'); c.particles.dust(spot.x, gy, spot.z, 8); c.particles.poof(spot.x, gy + 0.6, spot.z, 8, 1.6);
++      WZ.Fx.shake(0.18); WZ.Fx.text(WZ.I18n.t('hud.turretOn'), spot.x, gy + 4.2, spot.z, 'good');
++      return true;
++    },
++
++    update(dt) {
++      const c = L.ctx; if (!c) return;
++      if (L.cd > 0) L.cd -= dt; if (L.noteT > 0) L.noteT -= dt;
++      const E = c.enemies;
++      for (let k = L.list.length - 1; k >= 0; k--) {
++        const t = L.list[k]; t.age += dt; t.life -= dt;
++        if (t.life <= 0) { c.particles.poof(t.x, t.gy + 1.0, t.z, 10, 1.8); WZ.Audio.sfx('thud'); L.remove(k); continue; }
++        if (t.age < C.build) continue;
++        t.retarget -= dt;
++        if (t.retarget <= 0 || !t.target || !t.target.active || t.target.state === 2) { t.retarget = 0.12; t.target = E.nearest(t.x, t.z, C.range); }
++        const tg = t.target; let err = 9;
++        if (tg) {
++          err = U.angDiff(t.yaw, Math.atan2(tg.x - t.x, tg.z - t.z));
++          t.yaw += U.clamp(err, -C.turnSpeed * dt, C.turnSpeed * dt);
++        } else t.yaw += dt * 0.7;
++        t.cdF -= dt;
++        if (tg && Math.abs(err) < C.aim && t.cdF <= 0) {
++          t.cdF = 1 / C.rate; t.side = -t.side; t.kick = 1;
++          const sn = Math.sin(t.yaw), cs = Math.cos(t.yaw), mx = t.x + sn * 2.1 + cs * 0.2 * t.side, mz = t.z + cs * 2.1 - sn * 0.2 * t.side, my = t.gy + 1.52;
++          const gy = c.map.height(tg.x, tg.z) + 1.8, dx = tg.x - t.x, dz = tg.z - t.z, dl = Math.hypot(dx, dz) || 1;
++          WZ.Gun._tracer(mx, my, mz, tg.x + (Math.random() - 0.5) * 0.6, gy, tg.z + (Math.random() - 0.5) * 0.6);
++          c.particles.muzzle(mx, my, mz);
++          if (E.damage(tg, C.damage, dx / dl * C.knock, dz / dl * C.knock, 'turret')) L.kills++;
++          if ((t.sfxN++ & 1) === 0) WZ.Audio.sfx('tshot', 0.6);
++        }
++      }
++    },
++
++    remove(k) {
++      const t = L.list[k], sc = L.ctx.scene; sc.remove(t.root, t.ring, t.shock);
++      t.ring.material.dispose(); t.shock.material.dispose(); t.lampMat.dispose(); L.list.splice(k, 1);
++    },
++
++    render(dt, tm) {
++      for (const t of L.list) {
++        const k = Math.min(1, t.age / C.build), e = k < 1 ? easeBack(k) : 1;
++        t.root.scale.setScalar(Math.max(0.01, e)); t.headG.rotation.y = t.yaw + (1 - k) * 3.2;
++        t.kick = Math.max(0, t.kick - dt * 9); t.barG.position.z = -0.28 * t.kick;
++        const low = t.life < 4, on = !low || ((tm * 6) % 1) < 0.55;
++        t.lampMat.color.setHex(t.life > 10 ? 0x4cff6a : t.life > 4 ? 0xFFC83A : (on ? 0xFF3A22 : 0x3a0f0a));
++        t.ring.material.opacity = Math.max(0, 0.35 * (1 - t.age / 2.2)); t.ring.visible = t.ring.material.opacity > 0.01;
++        const sk = t.age / 0.45; t.shock.visible = sk < 1; if (sk < 1) { t.shock.scale.setScalar(1 + sk * 7); t.shock.material.opacity = 0.7 * (1 - sk); }
++      }
++    },
++
++    dispose() {
++      if (L.ctx) for (let k = L.list.length - 1; k >= 0; k--) L.remove(k);
++      L.list = []; L.ctx = null;
++    },
++    model,
++  };
++  WZ.Turrets = L;
++})(window.WZ = window.WZ || {});
+diff --git a/src/game/ui.js b/src/game/ui.js
+index 09ec96c..ebeef72 100644
+--- a/src/game/ui.js
++++ b/src/game/ui.js
+@@ -29,14 +29,14 @@
+         '  <div id="hud-obj"></div><div id="hud-prompt" class="hidden"></div><div id="hud-hint" class="hidden"></div>' +
+         '  <div id="hud-gun" class="hidden">' + BOLT_ICO + 'GUN BOOST</div>' +
+         '  <div id="hud-arrows"></div>' +
+-        '  <div id="hud-buttons"><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
++        '  <div id="hud-buttons"><button id="btn-turret" class="ready"><i class="cd"></i><span>' + t('hud.turret') + '</span><b id="turret-n">0/2</b><small class="k-keys">' + t('hud.key.turret') + '</small></button><button id="btn-mine" class="off"><span>' + t('hud.mine') + '</span><b id="mine-n">0</b><small class="k-keys">' + t('hud.key.mine') + '</small></button><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
+         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div>' +
+         '</div>' +
+         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
+         '<div id="wz-load"><div class="load-in"><div class="load-title">WARZAR</div><div class="load-bar"><i id="load-fill"></i></div><div class="load-sub">' + t('load.title') + '</div></div></div>';
+ 
+-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
+-      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd');
++      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-mine', 'mine-n', 'btn-turret', 'turret-n', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
++      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.tcd = UI.h['btn-turret'].querySelector('.cd');
+       UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
+       // arrows
+       for (let i = 0; i < 12; i++) {
+@@ -68,6 +68,8 @@
+       const dep = UI.h['btn-deploy'], bst = UI.h['btn-boost'], pz = UI.h['btn-pause'];
+       const press = (el, fn) => { el.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); fn(true); }; };
+       press(dep, () => handlers.deploy());
++      press(UI.h['btn-mine'], () => handlers.mine());
++      press(UI.h['btn-turret'], () => handlers.turret());
+       bst.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); WZ.Input.setBoost(true); };
+       bst.onpointerup = bst.onpointercancel = bst.onpointerleave = () => WZ.Input.setBoost(false);
+       pz.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); handlers.pause(); };
+@@ -93,6 +95,8 @@
+       if (c.prompt !== s.prompt) { c.prompt = s.prompt; h['hud-prompt'].textContent = s.prompt || ''; h['hud-prompt'].classList.toggle('hidden', !s.prompt); }
+       if (c.hint !== s.hint) { c.hint = s.hint; h['hud-hint'].textContent = s.hint || ''; h['hud-hint'].classList.toggle('hidden', !s.hint); }
+       if (c.obj !== s.objective) { c.obj = s.objective; h['hud-obj'].textContent = s.objective || ''; }
++      if (c.tp !== Math.round(s.turretPct * 20) || c.tn !== s.turretN) { c.tp = Math.round(s.turretPct * 20); c.tn = s.turretN; h.tcd.style.height = (100 - s.turretPct * 100) + '%'; h['turret-n'].textContent = s.turretN + '/' + WZ.CFG.turret.max; h['btn-turret'].classList.toggle('ready', s.turretPct >= 1 && s.turretN < WZ.CFG.turret.max); }
++      if (c.mines !== s.mines) { c.mines = s.mines; h['mine-n'].textContent = s.mines; h['btn-mine'].classList.toggle('off', !(s.mines > 0)); }
+       if (c.gun !== s.gunBoost) { c.gun = s.gunBoost; h['hud-gun'].classList.toggle('hidden', !s.gunBoost); }
+     },
+     resetHudCache() { UI.c = {}; },
+@@ -120,6 +124,7 @@
+         '<div class="menu-bottom"><div class="menu-info"><div class="info-line">' + (data.best ? t('menu.best', { n: data.best }) : '') + '</div>' +
+         '<div class="info-line sub k-touch">' + t('menu.hint.touch') + '</div><div class="info-line sub k-keys">' + t('menu.hint.keys') + '</div></div>' +
+         '<button class="play-btn" id="btn-play"><span>' + t('menu.play') + '</span></button></div>' +
++        '<button class="garage-btn" id="btn-garage"><svg viewBox="0 0 48 28"><path d="M3 20l3-8 8-4h14l8 4 8 2 2 6z" fill="#FFB400" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><circle cx="14" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/><circle cx="37" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/></svg><span>' + t('shop.title') + '</span></button>' +
+         '<button class="mute-btn" id="btn-mute"></button>');
+       UI.drawLogo($('logo-canvas'));
+       const mute = $('btn-mute');
+@@ -127,6 +132,7 @@
+       paintMute();
+       mute.onclick = () => { WZ.Audio.unlock(); WZ.Audio.setMuted(!WZ.Audio.muted); WZ.Save.data.settings.sound = WZ.Audio.muted ? 0 : 1; WZ.Save.save(); WZ.Audio.sfx('click'); paintMute(); };
+       $('btn-play').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.play(); };
++      $('btn-garage').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.garage(); };
+       return el;
+     },
+ 
+@@ -162,9 +168,10 @@
+         (win ? '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div>' : '') + '</div>' +
+         '<div class="sum-coins">' + rows + '<div class="sum-row total"><span>' + t('sum.coins.total') + '</span><b>' + r.wallet + '</b></div></div>' +
+         (win ? '' : '<div class="sum-note">' + t('sum.keptcoins') + '</div>') +
+-        '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + (win ? t('sum.next') : t('sum.retry')) + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
++        '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + (win ? t('sum.next') : t('sum.retry')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+       $('btn-sum-main').onclick = () => { WZ.Audio.sfx('click'); h.main(); };
+       $('btn-sum-menu').onclick = () => { WZ.Audio.sfx('click'); h.menu(); };
++      $('btn-sum-shop').onclick = () => { WZ.Audio.sfx('click'); h.garage(); };
+       return el;
+     },
+ 
+diff --git a/tools/test-garage.cjs b/tools/test-garage.cjs
+new file mode 100644
+index 0000000..ae5df43
+--- /dev/null
++++ b/tools/test-garage.cjs
+@@ -0,0 +1,62 @@
++// Headless test of the Garage logic, vehicle stats/models and player landmines (no browser needed).
++const fs = require('fs'), vm = require('vm'), path = require('path');
++const base = path.join(__dirname, '../src/game/');
++global.window = global; global.THREE = require(path.join(__dirname, '../node_modules/three/build/three.cjs'));
++const store = {}; global.localStorage = { getItem: (k) => store[k] || null, setItem: (k, v) => { store[k] = v; } };
++global.document = { createElement: () => ({ width: 0, height: 0, getContext: () => new Proxy({}, { get: () => () => {}, set: () => true }) }), addEventListener() {} };
++global.WZ = { Assets: { tex: () => null, modelOverride: () => null }, Props: { crateMeshShared: () => new THREE.Group() }, I18n: { t: (k, v) => k + (v ? JSON.stringify(v) : '') } };
++for (const f of ['config.js', 'rng.js', 'events.js', 'util.js', 'save.js', 'art/geo.js', 'art/vehicles.js', 'art/vehicles_extra.js', 'systems/landmines.js', 'scenes/shop.js']) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
++const issues = []; const ok = (c, m) => { if (!c) issues.push(m); };
++const Shop = WZ.Scenes.shop, CFG = WZ.CFG;
++
++// --- Save: old save without "inv" must get the starter mines, vehicles default to the jeep
++store['wz_save'] = JSON.stringify({ coins: 700 }); WZ.Save.save = WZ.Save.save || (() => {});
++const key = Object.keys(store)[0]; WZ.Save.load();
++ok(WZ.Save.data.inv && WZ.Save.data.inv.mines === 3, 'old save should get inv.mines = 3, got ' + JSON.stringify(WZ.Save.data.inv));
++ok(WZ.Save.data.owned.vehicles.indexOf('jeep') >= 0 && WZ.Save.data.equipped.vehicle === 'jeep', 'jeep must be owned and equipped by default');
++
++// --- vehicles: interface and stats
++for (const id of CFG.vehicleOrder) {
++  const m = WZ.Vehicles.build(id), st = WZ.Vehicles.stats(id);
++  for (const k of ['root', 'bodyG', 'wheels', 'front', 'gunYaw', 'muzzle', 'seatCmdr', 'seatNana', 'bedCrates', 'flag', 'lights']) ok(m[k], id + ' model missing ' + k);
++  ok(m.wheels.length === 4 && m.front.length === 2, id + ' needs 4 wheels / 2 steering');
++  ok(m.bedCrates.length >= 3, id + ' needs 3 bed crates');
++  ok(st.topSpeed > 0 && st.hp > 0 && st.wheelR > 0 && st.halfLen > 0 && st.ram > 0, id + ' stats incomplete');
++}
++const P = CFG.vehicleOrder.map((i) => CFG.vehicles[i]);
++ok(P[0].price === 0 && P[1].price > P[0].price && P[2].price > P[1].price, 'prices must increase with tier');
++ok(P[1].topSpeed > P[0].topSpeed && P[2].hp > P[0].hp && P[2].ram > P[0].ram, 'tier stats should differ in character');
++
++// --- purchases
++const S = WZ.Save.data; S.coins = 500;
++ok(Shop.buyVehicle('buggy') === 'poor' && S.coins === 500, 'buggy must be refused with 500 coins');
++S.coins = 650; ok(Shop.buyVehicle('buggy') === 'ok' && S.coins === 50 && S.equipped.vehicle === 'buggy' && S.owned.vehicles.indexOf('buggy') >= 0, 'buggy purchase');
++ok(Shop.buyVehicle('buggy') === 'owned', 'cannot buy twice'); ok(Shop.equip('truck') === 'locked', 'cannot equip unowned');
++ok(Shop.equip('jeep') === 'ok' && S.equipped.vehicle === 'jeep', 'equip jeep');
++S.coins = 1000; S.inv.mines = 0; ok(Shop.buyMines(1) === 'ok' && S.inv.mines === 5 && S.coins === 1000 - CFG.shop.mines.packs[1].price, 'buy 5 mines');
++S.inv.mines = 38; ok(Shop.buyMines(1) === 'full', 'stock cap'); S.coins = 5; S.inv.mines = 0; ok(Shop.buyMines(0) === 'poor', 'poor for mines');
++
++// --- landmines
++const L = WZ.Landmines, enemies = []; let fxText = [];
++WZ.Audio = { sfx() {} }; WZ.Fx = { shake() {}, hitstop() {}, text(s) { fxText.push(s); } };
++const noop = () => {}; const kos = [];
++const ctx = { scene: new THREE.Scene(), col: { free: () => true }, map: { height: () => 0 }, particles: { poof: noop, sparks: noop, dust: noop },
++  jeep: { x: 0, z: 0, h: 0, alive: true, hp: 100, rx: 0, ry: 0, rz: 0, P: { halfLen: 1.45 } },
++  enemies: { q: [], hash: { query(x, z, r, out) { out.length = 0; for (const e of enemies) if (Math.hypot(e.x - x, e.z - z) <= r) out.push(e); } }, ko(e) { e.state = 2; kos.push(e); } } };
++S.inv.mines = 2; L.init(ctx);
++ok(L.plant() === true && S.inv.mines === 1 && L.list.length === 1, 'plant 1');
++const m = L.list[0]; ok(m.z < -3, 'mine must be planted BEHIND the vehicle (z=' + m.z.toFixed(1) + ')');
++ok(L.plant() === false, 'cooldown blocks instant second plant'); L.update(1); ctx.jeep.z = 30;
++ok(L.plant() === true && S.inv.mines === 0 && L.list.length === 2, 'plant 2'); L.update(1);
++ok(L.plant() === false && fxText.some((s) => s.indexOf('nomines') >= 0), 'no mines left message');
++// unarmed mine must not trigger
++const fresh = L.list[1]; fresh.arm = 0.5; enemies.push({ x: fresh.x, z: fresh.z, active: true, state: 0 }); L.update(0.1);
++ok(L.list.length === 2 && kos.length === 0, 'unarmed mine must not explode'); enemies.length = 0;
++// armed: one enemy on the mine, one inside blast, one outside; the jeep must stay safe
++L.update(1);
++enemies.push({ x: m.x, z: m.z, active: true, state: 0 }, { x: m.x + 5, z: m.z, active: true, state: 0 }, { x: m.x + 30, z: m.z, active: true, state: 0 });
++const hp0 = ctx.jeep.hp; L.update(0.1);
++ok(L.list.length === 1, 'exactly the triggered mine explodes'); ok(kos.length === 2, 'enemy on the mine and the one inside the blast are KO\'d (got ' + kos.length + ')');
++ok(!kos.includes(enemies[enemies.length - 1]), 'enemy far away must survive'); ok(ctx.jeep.hp === hp0, 'jeep must not be hurt by own mines');
++L.dispose(); ok(L.ms === null, 'dispose');
++console.log(issues.length ? 'ISSUES (' + issues.length + '):\n' + issues.join('\n') : 'NO ISSUES  (save defaults, 3 vehicle models, prices/stats, purchases, planted mines)');
+diff --git a/tools/test-turrets.cjs b/tools/test-turrets.cjs
+new file mode 100644
+index 0000000..826ccb2
+--- /dev/null
++++ b/tools/test-turrets.cjs
+@@ -0,0 +1,36 @@
++// Headless test of the DEFENSE turret and the gun nerf (no browser needed).
++const fs = require('fs'), vm = require('vm'), path = require('path'); const base = path.join(__dirname, '../src/game/');
++global.window = global; global.THREE = require(path.join(__dirname, '../node_modules/three/build/three.cjs'));
++global.document = { createElement: () => ({ width: 0, height: 0, getContext: () => new Proxy({}, { get: () => () => {}, set: () => true }) }), addEventListener() {} };
++const sfx = [], texts = [], tracers = [];
++global.WZ = { Assets: { tex: () => null }, I18n: { t: (k) => k }, Audio: { sfx: (n) => sfx.push(n) }, Fx: { shake() {}, text: (s) => texts.push(s), flash() {} }, Gun: { _tracer: (...a) => tracers.push(a) } };
++for (const f of ['config.js', 'rng.js', 'events.js', 'util.js', 'art/geo.js', 'systems/turrets.js']) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
++const issues = [], ok = (c, m) => { if (!c) issues.push(m); }, Tu = WZ.Turrets, C = WZ.CFG.turret, enemies = [], hits = [];
++const noop = () => {}; let freeFn = () => true;
++const ctx = { scene: new THREE.Scene(), col: { free: (x, z, r) => freeFn(x, z, r) }, map: { height: () => 0 }, particles: { dust: noop, poof: noop, muzzle: noop },
++  jeep: { x: 0, z: 0, h: 0, alive: true, rx: 0, ry: 0, rz: 0, P: { halfLen: 1.45 } },
++  enemies: { nearest(x, z, r) { let b = null, bd = r * r; for (const e of enemies) { if (!e.active || e.state === 2) continue; const d = (e.x - x) ** 2 + (e.z - z) ** 2; if (d < bd) { bd = d; b = e; } } return b; },
++    damage(e, amt) { hits.push([e, amt]); e.hp -= amt; if (e.hp <= 0) { e.state = 2; return true; } return false; } } };
++// gun nerf: grunt (10 hp) should need >= 4 hits and the jeep dps should be below the old 32
++const G = WZ.CFG.gun; ok(10 / G.damage >= 4, 'grunt should need at least 4 gun hits, needs ' + (10 / G.damage).toFixed(1)); ok(G.damage * G.rate < 32 * 0.6, 'jeep gun dps should be well below the old 32 (now ' + G.damage * G.rate + ')');
++// plant: behind the vehicle, cooldown, max
++Tu.init(ctx); ok(Tu.ready && Tu.cdPct === 1, 'ready at start');
++ok(Tu.plant() === true && Tu.count === 1, 'plant 1'); ok(Tu.list[0].z < -3, 'planted behind the vehicle (z=' + Tu.list[0].z.toFixed(1) + ')');
++ok(Tu.plant() === false && texts.includes('hud.turretCd'), 'cooldown blocks the second one'); ok(!Tu.ready && Tu.cdPct < 0.05, 'cdPct low right after planting');
++Tu.update(C.cooldown + 0.1); ctx.jeep.x = 20; ok(Tu.plant() === true && Tu.count === 2, 'plant 2 after cooldown'); Tu.update(C.cooldown + 0.1);
++ok(Tu.plant() === false && texts.includes('hud.turretMax'), 'max active reached');
++// blocked terrain
++Tu.dispose(); Tu.init(ctx); freeFn = () => false; ok(Tu.plant() === false && texts.includes('hud.turretBlocked'), 'no room message'); freeFn = () => true;
++// combat: no shooting while building, shoots after, only inside range, KOs, tracers and sound
++ctx.jeep.x = 0; Tu.plant(); const t = Tu.list[0]; enemies.push({ x: t.x + 12, z: t.z + 4, hp: 10, active: true, state: 0 }, { x: t.x + 80, z: t.z, hp: 10, active: true, state: 0 });
++Tu.update(0.3); ok(hits.length === 0, 'must not shoot while still building');
++for (let i = 0; i < 600 && enemies[0].state !== 2; i++) { Tu.update(1 / 60); Tu.render(1 / 60, i / 60); }
++ok(enemies[0].state === 2, 'turret should kill the enemy in range'); ok(enemies[1].hp === 10, 'enemy out of range untouched'); ok(tracers.length >= 5 && sfx.includes('tshot') && sfx.includes('build'), 'tracers + sounds');
++const shots = hits.length, dps = shots * C.damage; ok(shots >= 6 && shots <= 9, 'about 6 shots needed for a 10 hp grunt at 1.7 dmg (got ' + shots + ')');
++// lifetime: dismantles itself and cleans the scene
++const before = ctx.scene.children.length; for (let i = 0; i < C.life * 60 + 10; i++) Tu.update(1 / 60);
++ok(Tu.count === 0, 'turret expires after its lifetime'); ok(ctx.scene.children.length < before, 'meshes removed from the scene on expiry');
++// dead jeep cannot plant
++ctx.jeep.alive = false; Tu.update(C.cooldown + 1); ok(Tu.plant() === false, 'dead vehicle cannot plant');
++Tu.dispose(); ok(Tu.ctx === null, 'dispose');
++console.log(issues.length ? 'ISSUES (' + issues.length + '):\n' + issues.join('\n') : 'NO ISSUES  (nerf, plant/cooldown/max, placement, targeting, range, lifetime, cleanup)');

@@ -29,14 +29,14 @@
         '  <div id="hud-obj"></div><div id="hud-prompt" class="hidden"></div><div id="hud-hint" class="hidden"></div>' +
         '  <div id="hud-gun" class="hidden">' + BOLT_ICO + 'GUN BOOST</div>' +
         '  <div id="hud-arrows"></div>' +
-        '  <div id="hud-buttons"><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
+        '  <div id="hud-buttons"><button id="btn-turret" class="ready"><i class="cd"></i><span>' + t('hud.turret') + '</span><b id="turret-n">0/2</b><small class="k-keys">' + t('hud.key.turret') + '</small></button><button id="btn-mine" class="off"><span>' + t('hud.mine') + '</span><b id="mine-n">0</b><small class="k-keys">' + t('hud.key.mine') + '</small></button><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div>' +
         '</div>' +
         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
         '<div id="wz-load"><div class="load-in"><div class="load-title">WARZAR</div><div class="load-bar"><i id="load-fill"></i></div><div class="load-sub">' + t('load.title') + '</div></div></div>';
 
-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
-      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd');
+      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-mine', 'mine-n', 'btn-turret', 'turret-n', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
+      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.tcd = UI.h['btn-turret'].querySelector('.cd');
       UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
       // arrows
       for (let i = 0; i < 12; i++) {
@@ -68,6 +68,8 @@
       const dep = UI.h['btn-deploy'], bst = UI.h['btn-boost'], pz = UI.h['btn-pause'];
       const press = (el, fn) => { el.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); fn(true); }; };
       press(dep, () => handlers.deploy());
+      press(UI.h['btn-mine'], () => handlers.mine());
+      press(UI.h['btn-turret'], () => handlers.turret());
       bst.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); WZ.Input.setBoost(true); };
       bst.onpointerup = bst.onpointercancel = bst.onpointerleave = () => WZ.Input.setBoost(false);
       pz.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); handlers.pause(); };
@@ -93,6 +95,8 @@
       if (c.prompt !== s.prompt) { c.prompt = s.prompt; h['hud-prompt'].textContent = s.prompt || ''; h['hud-prompt'].classList.toggle('hidden', !s.prompt); }
       if (c.hint !== s.hint) { c.hint = s.hint; h['hud-hint'].textContent = s.hint || ''; h['hud-hint'].classList.toggle('hidden', !s.hint); }
       if (c.obj !== s.objective) { c.obj = s.objective; h['hud-obj'].textContent = s.objective || ''; }
+      if (c.tp !== Math.round(s.turretPct * 20) || c.tn !== s.turretN) { c.tp = Math.round(s.turretPct * 20); c.tn = s.turretN; h.tcd.style.height = (100 - s.turretPct * 100) + '%'; h['turret-n'].textContent = s.turretN + '/' + WZ.CFG.turret.max; h['btn-turret'].classList.toggle('ready', s.turretPct >= 1 && s.turretN < WZ.CFG.turret.max); }
+      if (c.mines !== s.mines) { c.mines = s.mines; h['mine-n'].textContent = s.mines; h['btn-mine'].classList.toggle('off', !(s.mines > 0)); }
       if (c.gun !== s.gunBoost) { c.gun = s.gunBoost; h['hud-gun'].classList.toggle('hidden', !s.gunBoost); }
     },
     resetHudCache() { UI.c = {}; },
@@ -120,6 +124,7 @@
         '<div class="menu-bottom"><div class="menu-info"><div class="info-line">' + (data.best ? t('menu.best', { n: data.best }) : '') + '</div>' +
         '<div class="info-line sub k-touch">' + t('menu.hint.touch') + '</div><div class="info-line sub k-keys">' + t('menu.hint.keys') + '</div></div>' +
         '<button class="play-btn" id="btn-play"><span>' + t('menu.play') + '</span></button></div>' +
+        '<button class="garage-btn" id="btn-garage"><svg viewBox="0 0 48 28"><path d="M3 20l3-8 8-4h14l8 4 8 2 2 6z" fill="#FFB400" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><circle cx="14" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/><circle cx="37" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/></svg><span>' + t('shop.title') + '</span></button>' +
         '<button class="mute-btn" id="btn-mute"></button>');
       UI.drawLogo($('logo-canvas'));
       const mute = $('btn-mute');
@@ -127,6 +132,7 @@
       paintMute();
       mute.onclick = () => { WZ.Audio.unlock(); WZ.Audio.setMuted(!WZ.Audio.muted); WZ.Save.data.settings.sound = WZ.Audio.muted ? 0 : 1; WZ.Save.save(); WZ.Audio.sfx('click'); paintMute(); };
       $('btn-play').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.play(); };
+      $('btn-garage').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.garage(); };
       return el;
     },
 
@@ -162,9 +168,10 @@
         (win ? '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div>' : '') + '</div>' +
         '<div class="sum-coins">' + rows + '<div class="sum-row total"><span>' + t('sum.coins.total') + '</span><b>' + r.wallet + '</b></div></div>' +
         (win ? '' : '<div class="sum-note">' + t('sum.keptcoins') + '</div>') +
-        '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + (win ? t('sum.next') : t('sum.retry')) + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+        '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + (win ? t('sum.next') : t('sum.retry')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
       $('btn-sum-main').onclick = () => { WZ.Audio.sfx('click'); h.main(); };
       $('btn-sum-menu').onclick = () => { WZ.Audio.sfx('click'); h.menu(); };
+      $('btn-sum-shop').onclick = () => { WZ.Audio.sfx('click'); h.garage(); };
       return el;
     },
 

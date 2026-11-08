@@ -133,7 +133,7 @@
               if (e.windup <= 0) {
                 e.cd = def.cooldown; e.windup = def.windup; e.armT = 0;
                 if (e.target === 1) nana.hurt(def.damage, e);
-                else jeep.hurt(def.damage * CFG.jeep.enemyDamageMul);
+                else jeep.hurt(def.damage * (jeep.P ? jeep.P.enemyDamageMul : CFG.jeep.enemyDamageMul));
                 WZ.Audio.sfx('hit', 0.6);
               }
             } else e.armT = Math.max(0, e.armT - dt * 5);

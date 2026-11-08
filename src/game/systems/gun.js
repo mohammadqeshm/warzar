@@ -3,7 +3,7 @@
 (function (WZ) {
   'use strict';
   const T = THREE, CFG = WZ.CFG, U = WZ.U, GN = CFG.gun;
-  const MAXT = 24;
+  const MAXT = 48;
   const mv = new T.Vector3(), d = new T.Object3D();
 
   const Gun = {

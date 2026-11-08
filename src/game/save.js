@@ -14,6 +14,7 @@
     challenge: { lastDateUTC: '', bestScore: 0 },
     ach: {},
     settings: { sound: 1, music: 1, vibration: 1, shake: 1, lang: 'auto', quality: 'auto' },
+    inv: { mines: 3 },
     flags: { tutorialDone: false, noAds: false },
     runSeed: 0,
   });

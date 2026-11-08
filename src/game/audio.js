@@ -86,6 +86,8 @@
         case 'win': [523, 659, 784, 1046].forEach((f, i) => A.tone('triangle', f, f, 0.22, 0.3 * v, i * 0.12)); A.tone('square', 1046, 1046, 0.5, 0.15 * v, 0.5); break;
         case 'lose': [440, 370, 311, 220].forEach((f, i) => A.tone('sawtooth', f, f * 0.96, 0.3, 0.2 * v, i * 0.18)); break;
         case 'boom': A.noiseBurst(0.7, 'lowpass', 1500, 80, 0.7 * v); A.tone('sine', 70, 28, 0.6, 0.6 * v); break;
+        case 'tshot': A.noiseBurst(0.05, 'bandpass', 3200, 1600, 0.13 * v, 0, 1.0); A.tone('square', 420, 140, 0.04, 0.05 * v); break;
+        case 'build': A.tone('sawtooth', 160, 520, 0.28, 0.12 * v); A.tone('sine', 120, 60, 0.16, 0.3 * v, 0.2); A.noiseBurst(0.12, 'lowpass', 900, 250, 0.2 * v, 0.2); break;
         case 'mine': A.tone('sine', 1250, 1250, 0.05, 0.14 * v); break;
         case 'siren': for (let i = 0; i < 4; i++) A.tone('sawtooth', i % 2 ? 520 : 760, i % 2 ? 760 : 520, 0.22, 0.17 * v, i * 0.22); break;
         case 'wind': A.noiseBurst(0.5, 'bandpass', 500, 1500, 0.28 * v, 0, 1.2); break;

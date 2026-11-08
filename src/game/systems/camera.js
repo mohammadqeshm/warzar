@@ -22,7 +22,7 @@
 
     /** j: jeep (rx,rz,ry,h,speed) · n: nana (rx,rz,ry,out,isKO) · amount: shake multiplier from settings */
     update(dt, j, n, amount) {
-      const sp = U.clamp(j.speed / CFG.jeep.topSpeed, 0, 1);
+      const sp = U.clamp(j.speed / (j.P ? j.P.topSpeed : CFG.jeep.topSpeed), 0, 1);
       Cam.yaw = U.damp(Cam.yaw, Cam.baseYaw + 0.25 * Math.sin(j.h - Cam.baseYaw) * sp, 2.2, dt);
       let tx = j.rx + Math.sin(j.h) * j.speed * C.lookAhead, tz = j.rz + Math.cos(j.h) * j.speed * C.lookAhead;
       if (n.out) { tx = U.lerp(tx, (j.rx + n.rx) / 2, 0.45); tz = U.lerp(tz, (j.rz + n.rz) / 2, 0.45); }

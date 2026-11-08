@@ -1,0 +1,454 @@
+diff --git a/PROJECT_MEMORY.md b/PROJECT_MEMORY.md
+index 2038481..3c28baf 100644
+--- a/PROJECT_MEMORY.md
++++ b/PROJECT_MEMORY.md
+@@ -201,3 +201,12 @@ Open questions for the human: confirm single-file `dist/index.html` is acceptabl
+ - Tests (Node, no browser): `npm run test:garage` (save defaults, 3 models' interface, prices/stats, purchases, planted mines) - NO ISSUES. The real `Jeep` entity was also driven for each vehicle (top speeds 22 / 28 / 18). Garage DOM clicks were checked in jsdom (outside the repo).
+ - **Untested in a real browser:** WebGL thumbnails, showroom look/FPS on phones, mine button placement. Vehicle previews were rasterised offline and looked right.
+ - Pending idea from earlier: swap Nana's model with the Meshy GLB (T-pose, 10.4k tris, no skeleton; plan = own 7-bone rig with the same bone names/pivots as the procedural rig so `animate()` is reused).
++
++---
++## Update — DEFENSE turret + gun nerf · 2026-11-05
++- **Gun nerf:** `CFG.gun` damage 4 -> **2.3**, rate 8 -> **7** (dps ~32 -> ~16, ~30 while stopped; a grunt now takes ~5 hits, was 3). Tune in `config.js`.
++- **DEFENSE** (`systems/turrets.js`, `WZ.Turrets`): press **T** or the amber DEFENSE button (cooldown sweep + `active/max` counter). A twin-barrel auto turret rises out of the ground next to the vehicle (behind first, then sides/front if blocked), tracks the nearest enemy (range 30 u, 6 shots/s, 1.7 dmg + a small knockback, ~10 dps), uses the shared tracers (`WZ.Gun._tracer`, tracer pool raised to 48), dismantles itself after 32 s (lamp green -> amber -> blinking red). Max 2 at once, 14 s recharge. Invulnerable, harmless to friends. Numbers: `CFG.turret`.
++- Wiring: input `pressed.turret` (KeyT), HUD ids `btn-turret` / `turret-n`, mission enter/update/render/exit, i18n `hud.turret*` + `brief.tip9`, SFX `build` and `tshot`.
++- Tests: `npm run test:turrets` (nerf, plant/cooldown/max, placement, targeting, range, lifetime, cleanup) - NO ISSUES. The model was rasterised offline (`WZ.Turrets.model()`); looks right.
++- Ideas not done: sell turrets/upgrades in the Garage (more turrets, longer life, faster fire), enemies attacking turrets.
++- GitHub: push from the container is impossible (no credentials); deliver as `garage-update.patch` / zip, or commit locally.
+diff --git a/package.json b/package.json
+index 91f9220..3c30806 100644
+--- a/package.json
++++ b/package.json
+@@ -9,7 +9,8 @@
+     "preview": "vite preview",
+     "test:hazards": "node tools/test-hazards.cjs",
+     "test:stick": "node tools/test-stick.cjs",
+-    "test:garage": "node tools/test-garage.cjs"
++    "test:garage": "node tools/test-garage.cjs",
++    "test:turrets": "node tools/test-turrets.cjs"
+   },
+   "dependencies": {
+     "clsx": "2.1.1",
+diff --git a/src/game/audio.js b/src/game/audio.js
+index d2fbd0f..e18907c 100644
+--- a/src/game/audio.js
++++ b/src/game/audio.js
+@@ -86,6 +86,8 @@
+         case 'win': [523, 659, 784, 1046].forEach((f, i) => A.tone('triangle', f, f, 0.22, 0.3 * v, i * 0.12)); A.tone('square', 1046, 1046, 0.5, 0.15 * v, 0.5); break;
+         case 'lose': [440, 370, 311, 220].forEach((f, i) => A.tone('sawtooth', f, f * 0.96, 0.3, 0.2 * v, i * 0.18)); break;
+         case 'boom': A.noiseBurst(0.7, 'lowpass', 1500, 80, 0.7 * v); A.tone('sine', 70, 28, 0.6, 0.6 * v); break;
++        case 'tshot': A.noiseBurst(0.05, 'bandpass', 3200, 1600, 0.13 * v, 0, 1.0); A.tone('square', 420, 140, 0.04, 0.05 * v); break;
++        case 'build': A.tone('sawtooth', 160, 520, 0.28, 0.12 * v); A.tone('sine', 120, 60, 0.16, 0.3 * v, 0.2); A.noiseBurst(0.12, 'lowpass', 900, 250, 0.2 * v, 0.2); break;
+         case 'mine': A.tone('sine', 1250, 1250, 0.05, 0.14 * v); break;
+         case 'siren': for (let i = 0; i < 4; i++) A.tone('sawtooth', i % 2 ? 520 : 760, i % 2 ? 760 : 520, 0.22, 0.17 * v, i * 0.22); break;
+         case 'wind': A.noiseBurst(0.5, 'bandpass', 500, 1500, 0.28 * v, 0, 1.2); break;
+diff --git a/src/game/config.js b/src/game/config.js
+index 5b9fa81..11c64c0 100644
+--- a/src/game/config.js
++++ b/src/game/config.js
+@@ -32,8 +32,11 @@
+     shop: { mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3 } },
+     mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45 },
+ 
++    // DEFENSE turret (T / DEFENSE button): auto-targeting twin gun, ~10 dps each (the jeep gun does ~16, ~30 when stopped)
++    turret: { max: 2, cooldown: 14, life: 32, range: 30, rate: 6, damage: 1.7, knock: 1.2, turnSpeed: 7, aim: 0.14, behind: 3.2, build: 0.7 },
++
+     gun: {
+-      damage: 4, rate: 8, range: 38,
++      damage: 2.3, rate: 7, range: 38,   // nerfed: was damage 4, rate 8 (a grunt now takes ~5 hits instead of 3)
+       stationarySpeed: 3, stationaryRate: 1.5, stationaryDamage: 1.25,
+       turnSpeed: 12, tracerLife: 0.07,
+     },
+diff --git a/src/game/game.css b/src/game/game.css
+index 9ad0340..3789e10 100644
+--- a/src/game/game.css
++++ b/src/game/game.css
+@@ -228,3 +228,12 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
+   .shop-detail { width: 100%; align-self: stretch; padding: 12px 14px; }
+   .dname { font-size: 28px; }
+ }
++
++/* ---------- DEFENSE (turret) button ---------- */
++#btn-turret { position: relative; width: 74px; height: 74px; border-radius: 50%; border: 4px solid #0E0E0E; background: #d98a1b; color: #fff; font: inherit; font-size: 13px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto; cursor: pointer; box-shadow: 0 5px 0 #7a4a08, 0 8px 14px rgba(0,0,0,0.45); touch-action: none; margin-bottom: 6px; }
++#btn-turret .cd { position: absolute; left: 0; right: 0; top: 0; height: 0; background: rgba(0,0,0,0.6); }
++#btn-turret span, #btn-turret b, #btn-turret small { position: relative; }
++#btn-turret b { font-size: 18px; color: #fff; text-shadow: 0 2px 0 #000; margin: 2px 0; }
++#btn-turret small { font-size: 9px; opacity: 0.85; }
++#btn-turret.ready { background: #f0a026; box-shadow: 0 5px 0 #7a4a08, 0 0 14px rgba(255,180,0,0.55), 0 8px 14px rgba(0,0,0,0.45); }
++@media (max-width: 760px), (max-height: 520px) { #btn-turret { width: 64px; height: 64px; font-size: 11px; } }
+diff --git a/src/game/i18n.js b/src/game/i18n.js
+index e139461..43bbf86 100644
+--- a/src/game/i18n.js
++++ b/src/game/i18n.js
+@@ -66,6 +66,8 @@
+       'sum.coins.crates': 'CRATE COINS', 'sum.coins.done': 'MISSION BONUS', 'sum.coins.time': 'TIME BONUS', 'sum.coins.total': 'TOTAL COINS',
+       'sum.newrecord': 'NEW RECORD!',
+       'sum.next': 'NEXT MISSION', 'sum.retry': 'NEW RUN', 'sum.menu': 'MAIN MENU',
++      'hud.turret': 'DEFENSE', 'hud.key.turret': 'T', 'hud.turretCd': 'DEFENSE RECHARGING', 'hud.turretMax': 'DEFENSE LIMIT REACHED', 'hud.turretBlocked': 'NO ROOM HERE', 'hud.turretOn': 'DEFENSE ONLINE',
++      'brief.tip9': 'Press T (or DEFENSE) to drop an automatic gun turret next to you. It guards the spot for 30 seconds.',
+       'hud.mine': 'MINE', 'hud.key.mine': 'F', 'hud.nomines': 'NO MINES - BUY MORE IN THE GARAGE', 'hud.maxmines': 'TOO MANY MINES PLANTED', 'hud.planted': 'MINE PLANTED', 'hud.combo': 'COMBO!',
+       'brief.tip8': 'Buy landmines in the Garage, then press F (or tap MINE) to plant one behind you.',
+       'shop.title': 'GARAGE', 'shop.back': 'BACK', 'shop.buy': 'BUY', 'shop.equip': 'EQUIP', 'shop.equipped': 'EQUIPPED', 'shop.owned': 'OWNED', 'shop.need': 'NEED {n} MORE COINS',
+diff --git a/src/game/index.js b/src/game/index.js
+index b75ca33..7010225 100644
+--- a/src/game/index.js
++++ b/src/game/index.js
+@@ -36,6 +36,7 @@ import './systems/gun.js';
+ import './systems/missions.js';
+ import './systems/hazards.js';
+ import './systems/landmines.js';
++import './systems/turrets.js';
+ 
+ import './entities/smallprops.js';
+ import './entities/crate.js';
+diff --git a/src/game/scenes/mission.js b/src/game/scenes/mission.js
+index d03361b..3e60d09 100644
+--- a/src/game/scenes/mission.js
++++ b/src/game/scenes/mission.js
+@@ -5,7 +5,7 @@
+   const T = THREE, CFG = WZ.CFG, U = WZ.U, Cam = WZ.Cam;
+   const t = (k, v) => WZ.I18n.t(k, v);
+   const v3 = new T.Vector3(), tmp = { x: 0, z: 0 };
+-  const TIPS = ['brief.tip1', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip5', 'brief.tip6', 'brief.tip7', 'brief.tip8'];
++  const TIPS = ['brief.tip1', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip5', 'brief.tip6', 'brief.tip7', 'brief.tip8', 'brief.tip9'];
+ 
+   const M = {
+     name: 'mission', phase: 'none',
+@@ -27,11 +27,11 @@
+       M.ctx = { scene: M.scene, map: M.map, col: M.col, jeep: M.jeep, enemies: WZ.Enemies, crates: M.crates, particles: WZ.Particles, fx: WZ.Fx, nana: null };
+       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
+       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
+-      WZ.Landmines.init(M.ctx);
++      WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx);
+       WZ.Gun.init(M.scene); WZ.Spawner.reset();
+       M.crates.onLanded = M.onCrateLanded;
+       M.inp = { x: 0, y: 0, mag: 0, boost: false };
+-      M.hud = { timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: 1, hpMax: 1, nanaOut: false, nanaHp: 1, nanaMax: 1, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, mines: 0 };
++      M.hud = { timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: 1, hpMax: 1, nanaOut: false, nanaHp: 1, nanaMax: 1, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, mines: 0, turretPct: 1, turretN: 0 };
+ 
+       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
+       M.coinsCrates = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
+@@ -47,7 +47,7 @@
+       M.jeep.sync(1, 0.016, 0); M.nana.render(1, 0.016, 0);
+       Cam.snap(M.jeep.rx, M.jeep.ry, M.jeep.rz);
+       WZ.UI.hudShow(false); WZ.UI.resetHudCache();
+-      WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), mine: () => WZ.Input.press('mine'), pause: () => WZ.Main.togglePause() });
++      WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), mine: () => WZ.Input.press('mine'), turret: () => WZ.Input.press('turret'), pause: () => WZ.Main.togglePause() });
+       WZ.Input.reset();
+       M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, tip: t(TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
+       void Main;
+@@ -66,7 +66,7 @@
+       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
+       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
+       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
+-      WZ.Hazards.dispose(); WZ.Landmines.dispose();
++      WZ.Hazards.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose();
+       M.scene = null; WZ.Main.renderer.renderLists.dispose();
+     },
+ 
+@@ -114,7 +114,7 @@
+       M.t += dt;
+       const I = WZ.Input, J = M.jeep, N = M.nana;
+       if (I.consume('debug')) WZ.UI.toggleDebug();
+-      if (M.phase === 'briefing') { if (I.consume('deploy') && M.briefEl) M.briefEl._go(); I.consume('boost'); I.consume('mine'); return; }
++      if (M.phase === 'briefing') { if (I.consume('deploy') && M.briefEl) M.briefEl._go(); I.consume('boost'); I.consume('mine'); I.consume('turret'); return; }
+       if (M.flashCd > 0) M.flashCd -= dt;
+       if (M.hintT > 0) M.hintT -= dt;
+ 
+@@ -122,9 +122,10 @@
+         I.update(); M.inp.x = I.stick.x; M.inp.y = I.stick.y; M.inp.mag = I.stick.mag; M.inp.boost = I.consume('boost');
+         if (I.consume('deploy')) M.doDeploy();
+         if (I.consume('mine')) WZ.Landmines.plant();
++        if (I.consume('turret')) WZ.Turrets.plant();
+         if (I.consume('skip') && WZ.UI.dbgOn) { M.complete(); }
+         M.time += dt;
+-      } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); I.consume('boost'); I.consume('mine'); }
++      } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); I.consume('boost'); I.consume('mine'); I.consume('turret'); }
+ 
+       J.step(dt, M.inp, Cam.yaw);
+       M.afterJeep(dt);
+@@ -133,7 +134,7 @@
+       WZ.Gun.update(dt, M.ctx);
+       M.small.hit(J, WZ.Particles); M.small.update(dt);
+       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
+-      if (M.phase === 'play') WZ.Landmines.update(dt);
++      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); }
+       M.effects(dt);
+       WZ.Audio.engineSet(Math.min(1, J.speed / J.P.boostSpeed), J.throttle, J.boosting);
+ 
+@@ -315,7 +316,7 @@
+ 
+       if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); }
+       if (WZ.UI.dbgOn) M.debugText();
+-      WZ.Hazards.render(dt, M.t); WZ.Landmines.render(dt, M.t);
++      WZ.Hazards.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
+       Main.renderer.render(M.scene, cam);
+     },
+ 
+@@ -330,7 +331,7 @@
+       hd.boostPct = J.boostPct;
+       hd.prompt = M.promptText(); hd.hint = M.hintText();
+       hd.objective = t(M.allLoaded ? (N.out ? 'hud.obj.nana' : 'hud.obj.extract') : 'hud.obj.find');
+-      hd.gunBoost = WZ.Gun.boosted; hd.mines = WZ.Landmines.count;
++      hd.gunBoost = WZ.Gun.boosted; hd.mines = WZ.Landmines.count; hd.turretPct = WZ.Turrets.cdPct; hd.turretN = WZ.Turrets.count;
+       WZ.UI.updateHUD(hd);
+     },
+ 
+diff --git a/src/game/systems/gun.js b/src/game/systems/gun.js
+index 6f55945..4d0a30f 100644
+--- a/src/game/systems/gun.js
++++ b/src/game/systems/gun.js
+@@ -3,7 +3,7 @@
+ (function (WZ) {
+   'use strict';
+   const T = THREE, CFG = WZ.CFG, U = WZ.U, GN = CFG.gun;
+-  const MAXT = 24;
++  const MAXT = 48;
+   const mv = new T.Vector3(), d = new T.Object3D();
+ 
+   const Gun = {
+diff --git a/src/game/systems/input.js b/src/game/systems/input.js
+index c58dde1..d57b38c 100644
+--- a/src/game/systems/input.js
++++ b/src/game/systems/input.js
+@@ -3,7 +3,7 @@
+ (function (WZ) {
+   'use strict';
+   const IN = {
+-    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false },
++    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false },
+     boostHeld: false, bot: null, enabled: true, _touchId: -1, _ox: 0, _oy: 0, _tx: 0, _ty: 0, _R: 70, _baseEl: null, _knobEl: null,
+ 
+     init(zone, baseEl, knobEl) {
+@@ -22,6 +22,7 @@
+           case 'Backquote': case 'F3': IN.pressed.debug = true; e.preventDefault(); break;
+           case 'KeyN': IN.pressed.skip = true; break;
+           case 'KeyF': case 'KeyM': IN.pressed.mine = true; break;
++          case 'KeyT': IN.pressed.turret = true; break;
+           default: if (e.code.indexOf('Arrow') === 0) e.preventDefault();
+         }
+       });
+diff --git a/src/game/systems/turrets.js b/src/game/systems/turrets.js
+new file mode 100644
+index 0000000..a26f1b7
+--- /dev/null
++++ b/src/game/systems/turrets.js
+@@ -0,0 +1,138 @@
++/* WZ.Turrets — DEFENSE: press T / the DEFENSE button to deploy an automatic twin-barrel gun turret right next to the vehicle.
++ * It rises out of the ground, tracks and shoots the nearest enemy, and dismantles itself after C.life seconds.
++ * Limits: C.max turrets at once and a C.cooldown recharge between deployments. Invulnerable; never hurts the jeep or Nana. */
++(function (WZ) {
++  'use strict';
++  const T = THREE, CFG = WZ.CFG, C = CFG.turret, G = WZ.Geo, U = WZ.U, rb = G.rbox;
++  const B = () => new G.Builder();
++  const YEL = 0xFFB400, STEEL = 0x2B2E31, DARK = 0x16181A, BODY = 0x4A525A, PLATE = 0x59636E;
++  let parts = null, VM = null, ringGeo = null, shockGeo = null;
++
++  function makeParts() {
++    const base = B(), head = B(), bar = B(), lamp = B();
++    base.add(G.cyl(6), { sx: 1.7, sy: 0.2, sz: 1.7, y: 0.1, color: STEEL });
++    base.add(G.cyl(6), { sx: 1.86, sy: 0.08, sz: 1.86, y: 0.04, color: YEL });
++    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.52; base.add(rb(0.34, 0.12, 0.2, 0.03), { x: Math.cos(a) * 1.5, z: Math.sin(a) * 1.5, y: 0.24, ry: -a, color: i % 2 ? DARK : YEL }); }
++    for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; base.beam(0, 1.05, 0, Math.cos(a) * 1.35, 0.2, Math.sin(a) * 1.35, 0.17, 0.17, 0x3A3F44); }
++    base.add(G.cyl(10), { sx: 0.4, sy: 1.0, sz: 0.4, y: 0.7, color: 0x3A3F44 });
++    base.add(rb(0.62, 0.42, 0.5, 0.06), { x: 1.0, y: 0.42, z: 0.25, ry: 0.3, color: 0x4B5A3A });
++    base.add(rb(0.64, 0.08, 0.52, 0.02), { x: 1.0, y: 0.5, z: 0.25, ry: 0.3, color: YEL });
++    head.add(rb(1.0, 0.64, 1.15, 0.17), { color: BODY });
++    head.add(rb(0.96, 0.1, 1.08, 0.04), { y: 0.37, color: YEL });
++    for (const s of [1, -1]) { head.add(rb(0.12, 0.72, 0.95, 0.05), { x: 0.57 * s, y: 0.02, z: 0.05, color: PLATE }); head.add(rb(0.1, 0.1, 0.5, 0.03), { x: 0.44 * s, y: 0.42, z: -0.25, color: DARK }); }
++    head.add(rb(0.5, 0.36, 0.34, 0.08), { y: -0.02, z: -0.72, color: DARK });
++    head.add(G.cyl(12), { x: -0.28, y: 0.7, z: -0.25, rx: 0.5, sx: 0.24, sy: 0.04, sz: 0.24, color: 0xB9BDC2 });
++    head.add(G.cyl(6), { x: -0.28, y: 0.52, z: -0.25, sx: 0.04, sy: 0.35, sz: 0.04, color: DARK });
++    bar.add(rb(0.62, 0.34, 0.5, 0.06), { z: 0.55, color: DARK });
++    for (const s of [1, -1]) { bar.add(rb(0.15, 0.15, 1.5, 0.05), { x: 0.2 * s, y: 0.06, z: 1.25, color: 0x0E0E0E }); bar.add(rb(0.22, 0.22, 0.24, 0.05), { x: 0.2 * s, y: 0.06, z: 2.0, color: STEEL }); }
++    lamp.add(G.sph(10, 8), { sx: 0.17, sy: 0.17, sz: 0.17, color: 0xFFFFFF });
++    return { base: base.build(), head: head.build(), bar: bar.build(), lamp: lamp.build() };
++  }
++
++  /** a complete turret (also used for offline previews): returns { root, headG, barG, lamp } */
++  function model() {
++    if (!parts) { parts = makeParts(); VM = new T.MeshLambertMaterial({ vertexColors: true }); }
++    const root = new T.Group(), headG = new T.Group(), barG = new T.Group();
++    headG.position.y = 1.45; root.add(headG); headG.add(barG);
++    const meshes = [new T.Mesh(parts.base, VM), new T.Mesh(parts.head, VM), new T.Mesh(parts.bar, VM)];
++    root.add(meshes[0]); headG.add(meshes[1]); barG.add(meshes[2]);
++    for (const m of meshes) m.castShadow = true;
++    const lamp = new T.Mesh(parts.lamp, new T.MeshBasicMaterial({ vertexColors: true, color: 0x4cff6a })); lamp.position.set(0, 0.5, 0.6); headG.add(lamp);
++    return { root, headG, barG, lamp };
++  }
++  const easeBack = (k) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
++
++  const L = {
++    ctx: null, list: [], cd: 0, noteT: 0, planted: 0, kills: 0,
++    get count() { return L.list.length; },
++    get cdPct() { return L.cd <= 0 ? 1 : 1 - L.cd / C.cooldown; },
++    get ready() { return L.cd <= 0 && L.list.length < C.max; },
++
++    init(ctx) {
++      L.dispose(); L.ctx = ctx; L.list = []; L.cd = 0; L.noteT = 0; L.planted = 0; L.kills = 0;
++      if (!ringGeo) { ringGeo = new T.RingGeometry(C.range - 0.3, C.range, 72).rotateX(-Math.PI / 2); shockGeo = new T.RingGeometry(0.85, 1.0, 48).rotateX(-Math.PI / 2); }
++    },
++
++    note(key) {
++      const J = L.ctx.jeep; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t(key), J.rx, J.ry + 6, J.rz, 'warn');
++    },
++
++    /** returns true when a turret was deployed */
++    plant() {
++      const c = L.ctx; if (!c) return false;
++      const J = c.jeep; if (!J.alive) return false;
++      if (L.cd > 0) { if (L.noteT <= 0) { L.note('hud.turretCd'); L.noteT = 0.8; } return false; }
++      if (L.list.length >= C.max) { if (L.noteT <= 0) { L.note('hud.turretMax'); L.noteT = 0.8; } return false; }
++      const sn = Math.sin(J.h), cs = Math.cos(J.h), back = -(J.P.halfLen + C.behind);
++      let spot = null;
++      for (const [d, side] of [[back, 0], [0, -4.8], [0, 4.8], [-back * 0.9, 0], [back, 3.2], [back, -3.2]]) {
++        const x = J.x + sn * d + cs * side, z = J.z + cs * d - sn * side;
++        if (c.col.free(x, z, 1.7)) { spot = { x, z }; break; }
++      }
++      if (!spot) { if (L.noteT <= 0) { L.note('hud.turretBlocked'); L.noteT = 0.8; } return false; }
++      const gy = c.map.height(spot.x, spot.z), m = model(), lampMat = m.lamp.material;
++      const ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ color: YEL, transparent: true, opacity: 0.35, depthWrite: false, fog: false }));
++      const shock = new T.Mesh(shockGeo, new T.MeshBasicMaterial({ color: 0xFFE27A, transparent: true, opacity: 0.7, depthWrite: false, side: T.DoubleSide }));
++      ring.position.set(spot.x, gy + 0.12, spot.z); shock.position.set(spot.x, gy + 0.18, spot.z);
++      m.root.position.set(spot.x, gy, spot.z); m.root.scale.setScalar(0.01);
++      c.scene.add(m.root, ring, shock);
++      L.list.push({ x: spot.x, z: spot.z, gy, life: C.life, age: 0, yaw: J.h, root: m.root, headG: m.headG, barG: m.barG, lamp: m.lamp, lampMat, ring, shock, cdF: 0.3, side: 1, kick: 0, target: null, retarget: 0, sfxN: 0 });
++      L.cd = C.cooldown; L.planted++;
++      WZ.Audio.sfx('build'); c.particles.dust(spot.x, gy, spot.z, 8); c.particles.poof(spot.x, gy + 0.6, spot.z, 8, 1.6);
++      WZ.Fx.shake(0.18); WZ.Fx.text(WZ.I18n.t('hud.turretOn'), spot.x, gy + 4.2, spot.z, 'good');
++      return true;
++    },
++
++    update(dt) {
++      const c = L.ctx; if (!c) return;
++      if (L.cd > 0) L.cd -= dt; if (L.noteT > 0) L.noteT -= dt;
++      const E = c.enemies;
++      for (let k = L.list.length - 1; k >= 0; k--) {
++        const t = L.list[k]; t.age += dt; t.life -= dt;
++        if (t.life <= 0) { c.particles.poof(t.x, t.gy + 1.0, t.z, 10, 1.8); WZ.Audio.sfx('thud'); L.remove(k); continue; }
++        if (t.age < C.build) continue;
++        t.retarget -= dt;
++        if (t.retarget <= 0 || !t.target || !t.target.active || t.target.state === 2) { t.retarget = 0.12; t.target = E.nearest(t.x, t.z, C.range); }
++        const tg = t.target; let err = 9;
++        if (tg) {
++          err = U.angDiff(t.yaw, Math.atan2(tg.x - t.x, tg.z - t.z));
++          t.yaw += U.clamp(err, -C.turnSpeed * dt, C.turnSpeed * dt);
++        } else t.yaw += dt * 0.7;
++        t.cdF -= dt;
++        if (tg && Math.abs(err) < C.aim && t.cdF <= 0) {
++          t.cdF = 1 / C.rate; t.side = -t.side; t.kick = 1;
++          const sn = Math.sin(t.yaw), cs = Math.cos(t.yaw), mx = t.x + sn * 2.1 + cs * 0.2 * t.side, mz = t.z + cs * 2.1 - sn * 0.2 * t.side, my = t.gy + 1.52;
++          const gy = c.map.height(tg.x, tg.z) + 1.8, dx = tg.x - t.x, dz = tg.z - t.z, dl = Math.hypot(dx, dz) || 1;
++          WZ.Gun._tracer(mx, my, mz, tg.x + (Math.random() - 0.5) * 0.6, gy, tg.z + (Math.random() - 0.5) * 0.6);
++          c.particles.muzzle(mx, my, mz);
++          if (E.damage(tg, C.damage, dx / dl * C.knock, dz / dl * C.knock, 'turret')) L.kills++;
++          if ((t.sfxN++ & 1) === 0) WZ.Audio.sfx('tshot', 0.6);
++        }
++      }
++    },
++
++    remove(k) {
++      const t = L.list[k], sc = L.ctx.scene; sc.remove(t.root, t.ring, t.shock);
++      t.ring.material.dispose(); t.shock.material.dispose(); t.lampMat.dispose(); L.list.splice(k, 1);
++    },
++
++    render(dt, tm) {
++      for (const t of L.list) {
++        const k = Math.min(1, t.age / C.build), e = k < 1 ? easeBack(k) : 1;
++        t.root.scale.setScalar(Math.max(0.01, e)); t.headG.rotation.y = t.yaw + (1 - k) * 3.2;
++        t.kick = Math.max(0, t.kick - dt * 9); t.barG.position.z = -0.28 * t.kick;
++        const low = t.life < 4, on = !low || ((tm * 6) % 1) < 0.55;
++        t.lampMat.color.setHex(t.life > 10 ? 0x4cff6a : t.life > 4 ? 0xFFC83A : (on ? 0xFF3A22 : 0x3a0f0a));
++        t.ring.material.opacity = Math.max(0, 0.35 * (1 - t.age / 2.2)); t.ring.visible = t.ring.material.opacity > 0.01;
++        const sk = t.age / 0.45; t.shock.visible = sk < 1; if (sk < 1) { t.shock.scale.setScalar(1 + sk * 7); t.shock.material.opacity = 0.7 * (1 - sk); }
++      }
++    },
++
++    dispose() {
++      if (L.ctx) for (let k = L.list.length - 1; k >= 0; k--) L.remove(k);
++      L.list = []; L.ctx = null;
++    },
++    model,
++  };
++  WZ.Turrets = L;
++})(window.WZ = window.WZ || {});
+diff --git a/src/game/ui.js b/src/game/ui.js
+index 5f77960..ebeef72 100644
+--- a/src/game/ui.js
++++ b/src/game/ui.js
+@@ -29,14 +29,14 @@
+         '  <div id="hud-obj"></div><div id="hud-prompt" class="hidden"></div><div id="hud-hint" class="hidden"></div>' +
+         '  <div id="hud-gun" class="hidden">' + BOLT_ICO + 'GUN BOOST</div>' +
+         '  <div id="hud-arrows"></div>' +
+-        '  <div id="hud-buttons"><button id="btn-mine" class="off"><span>' + t('hud.mine') + '</span><b id="mine-n">0</b><small class="k-keys">' + t('hud.key.mine') + '</small></button><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
++        '  <div id="hud-buttons"><button id="btn-turret" class="ready"><i class="cd"></i><span>' + t('hud.turret') + '</span><b id="turret-n">0/2</b><small class="k-keys">' + t('hud.key.turret') + '</small></button><button id="btn-mine" class="off"><span>' + t('hud.mine') + '</span><b id="mine-n">0</b><small class="k-keys">' + t('hud.key.mine') + '</small></button><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
+         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div>' +
+         '</div>' +
+         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
+         '<div id="wz-load"><div class="load-in"><div class="load-title">WARZAR</div><div class="load-bar"><i id="load-fill"></i></div><div class="load-sub">' + t('load.title') + '</div></div></div>';
+ 
+-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-mine', 'mine-n', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
+-      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd');
++      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-mine', 'mine-n', 'btn-turret', 'turret-n', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
++      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.tcd = UI.h['btn-turret'].querySelector('.cd');
+       UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
+       // arrows
+       for (let i = 0; i < 12; i++) {
+@@ -69,6 +69,7 @@
+       const press = (el, fn) => { el.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); fn(true); }; };
+       press(dep, () => handlers.deploy());
+       press(UI.h['btn-mine'], () => handlers.mine());
++      press(UI.h['btn-turret'], () => handlers.turret());
+       bst.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); WZ.Input.setBoost(true); };
+       bst.onpointerup = bst.onpointercancel = bst.onpointerleave = () => WZ.Input.setBoost(false);
+       pz.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); handlers.pause(); };
+@@ -94,6 +95,7 @@
+       if (c.prompt !== s.prompt) { c.prompt = s.prompt; h['hud-prompt'].textContent = s.prompt || ''; h['hud-prompt'].classList.toggle('hidden', !s.prompt); }
+       if (c.hint !== s.hint) { c.hint = s.hint; h['hud-hint'].textContent = s.hint || ''; h['hud-hint'].classList.toggle('hidden', !s.hint); }
+       if (c.obj !== s.objective) { c.obj = s.objective; h['hud-obj'].textContent = s.objective || ''; }
++      if (c.tp !== Math.round(s.turretPct * 20) || c.tn !== s.turretN) { c.tp = Math.round(s.turretPct * 20); c.tn = s.turretN; h.tcd.style.height = (100 - s.turretPct * 100) + '%'; h['turret-n'].textContent = s.turretN + '/' + WZ.CFG.turret.max; h['btn-turret'].classList.toggle('ready', s.turretPct >= 1 && s.turretN < WZ.CFG.turret.max); }
+       if (c.mines !== s.mines) { c.mines = s.mines; h['mine-n'].textContent = s.mines; h['btn-mine'].classList.toggle('off', !(s.mines > 0)); }
+       if (c.gun !== s.gunBoost) { c.gun = s.gunBoost; h['hud-gun'].classList.toggle('hidden', !s.gunBoost); }
+     },
+diff --git a/tools/test-turrets.cjs b/tools/test-turrets.cjs
+new file mode 100644
+index 0000000..826ccb2
+--- /dev/null
++++ b/tools/test-turrets.cjs
+@@ -0,0 +1,36 @@
++// Headless test of the DEFENSE turret and the gun nerf (no browser needed).
++const fs = require('fs'), vm = require('vm'), path = require('path'); const base = path.join(__dirname, '../src/game/');
++global.window = global; global.THREE = require(path.join(__dirname, '../node_modules/three/build/three.cjs'));
++global.document = { createElement: () => ({ width: 0, height: 0, getContext: () => new Proxy({}, { get: () => () => {}, set: () => true }) }), addEventListener() {} };
++const sfx = [], texts = [], tracers = [];
++global.WZ = { Assets: { tex: () => null }, I18n: { t: (k) => k }, Audio: { sfx: (n) => sfx.push(n) }, Fx: { shake() {}, text: (s) => texts.push(s), flash() {} }, Gun: { _tracer: (...a) => tracers.push(a) } };
++for (const f of ['config.js', 'rng.js', 'events.js', 'util.js', 'art/geo.js', 'systems/turrets.js']) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
++const issues = [], ok = (c, m) => { if (!c) issues.push(m); }, Tu = WZ.Turrets, C = WZ.CFG.turret, enemies = [], hits = [];
++const noop = () => {}; let freeFn = () => true;
++const ctx = { scene: new THREE.Scene(), col: { free: (x, z, r) => freeFn(x, z, r) }, map: { height: () => 0 }, particles: { dust: noop, poof: noop, muzzle: noop },
++  jeep: { x: 0, z: 0, h: 0, alive: true, rx: 0, ry: 0, rz: 0, P: { halfLen: 1.45 } },
++  enemies: { nearest(x, z, r) { let b = null, bd = r * r; for (const e of enemies) { if (!e.active || e.state === 2) continue; const d = (e.x - x) ** 2 + (e.z - z) ** 2; if (d < bd) { bd = d; b = e; } } return b; },
++    damage(e, amt) { hits.push([e, amt]); e.hp -= amt; if (e.hp <= 0) { e.state = 2; return true; } return false; } } };
++// gun nerf: grunt (10 hp) should need >= 4 hits and the jeep dps should be below the old 32
++const G = WZ.CFG.gun; ok(10 / G.damage >= 4, 'grunt should need at least 4 gun hits, needs ' + (10 / G.damage).toFixed(1)); ok(G.damage * G.rate < 32 * 0.6, 'jeep gun dps should be well below the old 32 (now ' + G.damage * G.rate + ')');
++// plant: behind the vehicle, cooldown, max
++Tu.init(ctx); ok(Tu.ready && Tu.cdPct === 1, 'ready at start');
++ok(Tu.plant() === true && Tu.count === 1, 'plant 1'); ok(Tu.list[0].z < -3, 'planted behind the vehicle (z=' + Tu.list[0].z.toFixed(1) + ')');
++ok(Tu.plant() === false && texts.includes('hud.turretCd'), 'cooldown blocks the second one'); ok(!Tu.ready && Tu.cdPct < 0.05, 'cdPct low right after planting');
++Tu.update(C.cooldown + 0.1); ctx.jeep.x = 20; ok(Tu.plant() === true && Tu.count === 2, 'plant 2 after cooldown'); Tu.update(C.cooldown + 0.1);
++ok(Tu.plant() === false && texts.includes('hud.turretMax'), 'max active reached');
++// blocked terrain
++Tu.dispose(); Tu.init(ctx); freeFn = () => false; ok(Tu.plant() === false && texts.includes('hud.turretBlocked'), 'no room message'); freeFn = () => true;
++// combat: no shooting while building, shoots after, only inside range, KOs, tracers and sound
++ctx.jeep.x = 0; Tu.plant(); const t = Tu.list[0]; enemies.push({ x: t.x + 12, z: t.z + 4, hp: 10, active: true, state: 0 }, { x: t.x + 80, z: t.z, hp: 10, active: true, state: 0 });
++Tu.update(0.3); ok(hits.length === 0, 'must not shoot while still building');
++for (let i = 0; i < 600 && enemies[0].state !== 2; i++) { Tu.update(1 / 60); Tu.render(1 / 60, i / 60); }
++ok(enemies[0].state === 2, 'turret should kill the enemy in range'); ok(enemies[1].hp === 10, 'enemy out of range untouched'); ok(tracers.length >= 5 && sfx.includes('tshot') && sfx.includes('build'), 'tracers + sounds');
++const shots = hits.length, dps = shots * C.damage; ok(shots >= 6 && shots <= 9, 'about 6 shots needed for a 10 hp grunt at 1.7 dmg (got ' + shots + ')');
++// lifetime: dismantles itself and cleans the scene
++const before = ctx.scene.children.length; for (let i = 0; i < C.life * 60 + 10; i++) Tu.update(1 / 60);
++ok(Tu.count === 0, 'turret expires after its lifetime'); ok(ctx.scene.children.length < before, 'meshes removed from the scene on expiry');
++// dead jeep cannot plant
++ctx.jeep.alive = false; Tu.update(C.cooldown + 1); ok(Tu.plant() === false, 'dead vehicle cannot plant');
++Tu.dispose(); ok(Tu.ctx === null, 'dispose');
++console.log(issues.length ? 'ISSUES (' + issues.length + '):\n' + issues.join('\n') : 'NO ISSUES  (nerf, plant/cooldown/max, placement, targeting, range, lifetime, cleanup)');

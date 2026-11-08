@@ -191,3 +191,22 @@ Open questions for the human: confirm single-file `dist/index.html` is acceptabl
 
 ### Fix — touch stick drift (2026-11-05)
 - `systems/input.js`: the stick base used to follow the thumb once dragged past the ring, so deflection shrank and the jeep slowed. Now the origin is **fixed** where you touch, the knob is clamped visually, dead zone 6 px, and **full throttle is reached at 60% of the ring** so a creeping thumb never slows the jeep. Test: `npm run test:stick`.
+
+---
+## Update — Garage (3D shop), 3 vehicles, buyable landmines · 2026-11-05
+- **Scene `shop`** (`scenes/shop.js`, reached from the menu's GARAGE button and from the mission summary; summary passes `ret` so Back resumes the run): live 3D showroom (turntable, studio lights, hold+drag to rotate, heroes seated), **3D-rendered thumbnails** per card (WebGLRenderTarget -> dataURL, cached), stat bars, BUY/EQUIP. No emoji anywhere; coin icon is SVG. Purchase logic is pure: `Shop.buyVehicle/equip/buyMines`.
+- **Vehicles** (`art/vehicles_extra.js`, `WZ.Vehicles.build(id)`, `WZ.Vehicles.stats(id)`): `jeep` (free), `buggy` (600), `truck` (2500). Stats live in `CFG.vehicles` and merge over `CFG.jeep`. `entities/jeep.js` now reads `this.P` (per-vehicle) instead of the module constant; camera, enemy damage, ram (`speed * P.ram >= CFG.ram.minSpeed`), engine pitch and wheel radius use it. Models expose `bed:{z,y}` for the crate stack. Slots 4-5 (APC, Tank) are reserved in `CFG.vehicleOrder`: add a builder + a `CFG.vehicles` entry + the id in `vehicleOrder`.
+- **Landmines** (`systems/landmines.js`, `WZ.Landmines`): inventory `Save.data.inv.mines` (new saves/old saves start with `CFG.shop.mines.starter` = 3). Plant with **F / M / MINE button** (behind the vehicle); each plant consumes one for good, unused ones carry to the next mission. Arms after 0.9 s, any enemy stepping on it detonates it (blast 8 u, KOs everyone inside); never hurts the jeep/Nana. Packs: 1/5/15 for 30/130/360 coins, stock cap 40 (`CFG.shop.mines`, `CFG.mine`).
+- Save defaults added: `inv:{mines:3}`; `equipped.vehicle` / `owned.vehicles` already existed.
+- Tests (Node, no browser): `npm run test:garage` (save defaults, 3 models' interface, prices/stats, purchases, planted mines) - NO ISSUES. The real `Jeep` entity was also driven for each vehicle (top speeds 22 / 28 / 18). Garage DOM clicks were checked in jsdom (outside the repo).
+- **Untested in a real browser:** WebGL thumbnails, showroom look/FPS on phones, mine button placement. Vehicle previews were rasterised offline and looked right.
+- Pending idea from earlier: swap Nana's model with the Meshy GLB (T-pose, 10.4k tris, no skeleton; plan = own 7-bone rig with the same bone names/pivots as the procedural rig so `animate()` is reused).
+
+---
+## Update — DEFENSE turret + gun nerf · 2026-11-05
+- **Gun nerf:** `CFG.gun` damage 4 -> **2.3**, rate 8 -> **7** (dps ~32 -> ~16, ~30 while stopped; a grunt now takes ~5 hits, was 3). Tune in `config.js`.
+- **DEFENSE** (`systems/turrets.js`, `WZ.Turrets`): press **T** or the amber DEFENSE button (cooldown sweep + `active/max` counter). A twin-barrel auto turret rises out of the ground next to the vehicle (behind first, then sides/front if blocked), tracks the nearest enemy (range 30 u, 6 shots/s, 1.7 dmg + a small knockback, ~10 dps), uses the shared tracers (`WZ.Gun._tracer`, tracer pool raised to 48), dismantles itself after 32 s (lamp green -> amber -> blinking red). Max 2 at once, 14 s recharge. Invulnerable, harmless to friends. Numbers: `CFG.turret`.
+- Wiring: input `pressed.turret` (KeyT), HUD ids `btn-turret` / `turret-n`, mission enter/update/render/exit, i18n `hud.turret*` + `brief.tip9`, SFX `build` and `tshot`.
+- Tests: `npm run test:turrets` (nerf, plant/cooldown/max, placement, targeting, range, lifetime, cleanup) - NO ISSUES. The model was rasterised offline (`WZ.Turrets.model()`); looks right.
+- Ideas not done: sell turrets/upgrades in the Garage (more turrets, longer life, faster fire), enemies attacking turrets.
+- GitHub: push from the container is impossible (no credentials); deliver as `garage-update.patch` / zip, or commit locally.

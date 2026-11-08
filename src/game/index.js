@@ -18,6 +18,7 @@ import './art/textures.js';
 import './art/props.js';
 import './art/heroes.js';
 import './art/vehicles.js';
+import './art/vehicles_extra.js';
 import './art/enemies.js';
 
 import './world/navgrid.js';
@@ -34,6 +35,8 @@ import './systems/spawner.js';
 import './systems/gun.js';
 import './systems/missions.js';
 import './systems/hazards.js';
+import './systems/landmines.js';
+import './systems/turrets.js';
 
 import './entities/smallprops.js';
 import './entities/crate.js';
@@ -43,5 +46,6 @@ import './entities/nana.js';
 
 import './ui.js';
 import './scenes/menu.js';
+import './scenes/shop.js';
 import './scenes/mission.js';
 import './main.js';

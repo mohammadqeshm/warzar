@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:hazards": "node tools/test-hazards.cjs",
-    "test:stick": "node tools/test-stick.cjs"
+    "test:stick": "node tools/test-stick.cjs",
+    "test:garage": "node tools/test-garage.cjs",
+    "test:turrets": "node tools/test-turrets.cjs"
   },
   "dependencies": {
     "clsx": "2.1.1",

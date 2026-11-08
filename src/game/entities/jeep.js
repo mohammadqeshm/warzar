@@ -9,12 +9,13 @@
   class Jeep {
     constructor(map, col, scene) {
       this.map = map; this.col = col; this.scene = scene;
-      this.model = WZ.Vehicles.jeep(); this.mesh = this.model.root; this.mesh.rotation.order = 'YXZ';
+      const sv = WZ.Save.data, vid = (sv.owned.vehicles.indexOf(sv.equipped.vehicle) >= 0 && CFG.vehicles[sv.equipped.vehicle]) ? sv.equipped.vehicle : 'jeep';
+      this.id = vid; this.P = WZ.Vehicles.stats(vid); this.model = WZ.Vehicles.build(vid); this.mesh = this.model.root; this.mesh.rotation.order = 'YXZ';
       scene.add(this.mesh);
       const s = map.start;
       this.x = s.x; this.z = s.z; this.h = s.heading; this.px = this.x; this.pz = this.z; this.ph = this.h;
       this.vx = 0; this.vz = 0; this.speed = 0; this.sF = 0; this.sL = 0; this.acc = 0;
-      this.hp = J.hp; this.maxHp = J.hp; this.alive = true;
+      this.hp = this.P.hp; this.maxHp = this.P.hp; this.alive = true;
       this.boostT = 0; this.boostCd = 0; this.boosting = false;
       this.throttle = 0; this.targetH = this.h; this.steer = 0; this.stuckT = 0; this.unstick = 0; this.udx = 0; this.udz = 0;
       this.impact = 0; this.wheelRot = 0; this.crates = 0; this.hurtT = 0; this.rollV = 0; this.pitchV = 0;
@@ -30,10 +31,12 @@
     }
     bedWorld(v) {
       const gy = this.map.height(this.x, this.z), c = Math.sin(this.h), s = Math.cos(this.h);
-      v.set(this.x - c * 1.75, gy + 2.4, this.z - s * 1.75); return v;
+      const bd = this.model.bed, bz = bd ? -bd.z : 1.75, by = bd ? bd.y : 2.4;
+      v.set(this.x - c * bz, gy + by, this.z - s * bz); return v;
     }
 
     step(dt, inp, camYaw) {
+      const J = this.P;
       this.px = this.x; this.pz = this.z; this.ph = this.h;
       if (!this.alive) { this.vx *= Math.exp(-3 * dt); this.vz *= Math.exp(-3 * dt); this.x += this.vx * dt; this.z += this.vz * dt; this.speed = Math.hypot(this.vx, this.vz); return; }
       let mag = inp.mag;
@@ -70,7 +73,7 @@
       this.vx = fx * sF + rx * sL; this.vz = fz * sF + rz * sL;
       this.sF = sF; this.sL = sL;
       this.x += this.vx * dt; this.z += this.vz * dt;
-      this.wheelRot += sF * dt / 0.72;
+      this.wheelRot += sF * dt / J.wheelR;
 
       // collisions: two circles (nose + tail)
       let hit = false, nx = 0, nz = 0;
@@ -122,6 +125,7 @@
 
     /** write the (interpolated) pose to the meshes */
     sync(alpha, dt, t) {
+      const J = this.P;
       const x = U.lerp(this.px, this.x, alpha), z = U.lerp(this.pz, this.z, alpha), h = this.ph + U.angDiff(this.ph, this.h) * alpha;
       const hm = this.map.height, gy = hm(x, z);
       const fx = Math.sin(h), fz = Math.cos(h), lx = Math.cos(h), lz = -Math.sin(h);

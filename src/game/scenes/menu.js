@@ -59,7 +59,7 @@
       Menu.view.followLight(st.x, gy, st.z);
       Menu.cam = WZ.Cam.cam; Menu.cam.fov = 40; Menu.cam.updateProjectionMatrix();
       WZ.UI.hudShow(false); WZ.UI.clearScreens();
-      WZ.UI.showMenu({ best: S.best.mission, coins: S.coins }, { play: Menu.play });
+      WZ.UI.showMenu({ best: S.best.mission, coins: S.coins }, { play: Menu.play, garage: () => WZ.Main.go('shop') });
       void rng;
     },
 

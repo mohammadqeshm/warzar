@@ -22,7 +22,7 @@
         const m = parseInt(Main.params.get('m') || '', 10); if (m > 0) Main.startIndex = m;
         if (Main.params.get('debug')) WZ.UI.toggleDebug(true);
         WZ.Audio.setMuted(!WZ.Save.data.settings.sound);
-        Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission };
+        Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission, shop: WZ.Scenes.shop };
 
         const q0 = WZ.Save.data.settings.quality, lvlGuess = (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 1 : 2;
         const lvl = q0 === 'low' ? 0 : q0 === 'med' ? 1 : q0 === 'high' ? 2 : lvlGuess;
