@@ -115,9 +115,13 @@
       E.hash.query(mn.x, mn.z, MC.blast, E.q);
       for (const e of E.q.slice()) { if (!e.active || e.state === 2) continue; E.ko(e, e.x - mn.x, e.z - mn.z, 12, 'mine'); }
       if (who === 'jeep') {
-        const dmg = Z.mission.tutorial ? MC.tutorialDamage : Math.round(Math.min(MC.damageMax, MC.damageBase + MC.damagePerMission * Z.mission.index));
+        // TWO-STRIKE RULE: the first mine costs half of the jeep's max HP, the second one destroys it
+        J.mineHits = (J.mineHits || 0) + 1;
+        const dmg = J.mineHits >= 2 ? Math.ceil(J.hp) + 1 : Math.round(J.maxHp * MC.jeepFirstHit);
+        if (dmg >= J.hp) J.deathCause = 'mine';
         J.hurt(dmg); J.vx *= MC.slow; J.vz *= MC.slow; J.hop = 0.6;
-        WZ.Fx.text('-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt');
+        WZ.Fx.text(J.mineHits >= 2 ? 'MINE #2!' : '-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt');
+        WZ.Events.emit('jeep:mine', { hits: J.mineHits });
       } else { N.hurt(MC.nanaDamage); WZ.Fx.text('-' + MC.nanaDamage, N.rx, N.ry + 4, N.rz, 'warn'); }
     },
 

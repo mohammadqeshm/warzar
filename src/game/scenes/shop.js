@@ -1,6 +1,6 @@
-/* Garage scene — real-time 3D showroom (turntable, studio lights) + DOM panels. Every vehicle card shows a 3D render of the
+/* Shop scene (vehicles + DEFENSE: turrets, heavy cannons, defense tech) — real-time 3D showroom (turntable, studio lights) + DOM panels. Every vehicle card shows a 3D render of the
  * vehicle (rendered once with the game's own renderer into a texture); the big model on the turntable is live and draggable.
- * Purchases: vehicles (price in CFG.vehicles) and landmine packs (CFG.shop.mines). No emoji, only real renders and vector icons. */
+ * Purchases: vehicles (price in CFG.vehicles), landmine packs (CFG.shop.mines), turret / cannon packs (CFG.shop.turrets / .heavy) and defense tech levels (CFG.defenseTech). No emoji, only real renders and vector icons. */
 (function (WZ) {
   'use strict';
   const T = THREE, CFG = WZ.CFG, G = WZ.Geo, t = (k, v) => WZ.I18n.t(k, v);
@@ -22,6 +22,18 @@
       const S = WZ.Save.data, p = CFG.shop.mines.packs[i];
       if (!p) return 'invalid'; if (S.inv.mines + p.n > CFG.shop.mines.cap) return 'full'; if (S.coins < p.price) return 'poor';
       S.coins -= p.price; S.inv.mines += p.n; WZ.Save.save(); return 'ok';
+    },
+
+    /** kind: 'gun' | 'heavy'; i = pack index */
+    buyTurrets(kind, i) {
+      const S = WZ.Save.data, cf = kind === 'heavy' ? CFG.shop.heavy : CFG.shop.turrets, key = kind === 'heavy' ? 'heavy' : 'turrets', p = cf.packs[i];
+      if (!p) return 'invalid'; if (S.inv[key] + p.n > cf.cap) return 'full'; if (S.coins < p.price) return 'poor';
+      S.coins -= p.price; S.inv[key] += p.n; WZ.Save.save(); return 'ok';
+    },
+    buyTech() {
+      const S = WZ.Save.data, D = CFG.defenseTech, lvl = S.upgrades.defense | 0;
+      if (lvl >= D.max) return 'max'; const price = D.prices[lvl]; if (S.coins < price) return 'poor';
+      S.coins -= price; S.upgrades.defense = lvl + 1; WZ.Save.save(); return 'ok';
     },
 
     // ------------------------------------------------------------------ lifecycle
@@ -51,7 +63,7 @@
     update(dt) {
       Shop.t += dt; const I = WZ.Input;
       I.update(); Shop.spinV = I.stick.mag > 0.1 ? I.stick.x * 2.6 : 0;
-      for (const k of ['pause', 'debug', 'deploy', 'boost', 'skip', 'mine']) I.consume(k);
+      for (const k of ['pause', 'debug', 'deploy', 'boost', 'skip', 'mine', 'turret', 'heavy']) I.consume(k);
     },
 
     render(alpha, dt) {
@@ -61,6 +73,7 @@
       Shop.holder.rotation.y = Shop.rot; Shop.holder.scale.setScalar(0.86 + 0.14 * e);
       const m = Shop.model;
       if (m) { for (const wl of m.wheels) wl.rotation.x = tm * 0.8; m.gunYaw.rotation.y = Math.sin(tm * 0.6) * 0.55; m.flag.rotation.y = Math.sin(tm * 5) * 0.3; }
+      if (Shop.rig) Shop.rig.headG.rotation.y = Math.sin(tm * 0.8) * 0.9;
       if (Shop.heroes) for (const hr of Shop.heroes) hr.update(dt);
       const portrait = asp < 1, r = Shop.r, fit = r / (Math.tan(cam.fov * Math.PI / 360) * Math.min(1, asp * 1.15)) * (portrait ? 1.15 : 1.45);
       cam.position.set(fit * 0.2, r * 0.55 + 1.8, fit); cam.lookAt(0, r * 0.26 + 0.6, 0);
@@ -105,12 +118,17 @@
     disposeObj() {
       if (Shop.heroes) Shop.heroes.forEach((h) => h.dispose());
       if (Shop.obj) { if (Shop.holder) Shop.holder.remove(Shop.obj); G.disposeTree(Shop.obj); }
-      Shop.heroes = null; Shop.model = null; Shop.obj = null;
+      Shop.heroes = null; Shop.model = null; Shop.obj = null; Shop.rig = null;
     },
 
     /** build the object for a catalogue id (with the two heroes seated in vehicles) */
     make(id) {
       if (id === 'mine') { const m = WZ.Vehicles.mineModel(); m.scale.setScalar(3.6); return { obj: m, model: null, heroes: null, r: 4.6 }; }
+      if (id === 'turret' || id === 'heavy') {
+        const kind = id === 'heavy' ? 'heavy' : 'gun', m = WZ.Turrets.model(kind), g = new T.Group(); m.root.scale.setScalar(m.scale * 2.1); g.add(m.root);
+        const sz = new T.Box3().setFromObject(g).getSize(new T.Vector3());
+        return { obj: g, model: null, heroes: null, rig: m, r: Math.max(sz.x, sz.z) * 0.6 + sz.y * 0.12 };
+      }
       const mdl = WZ.Vehicles.build(id), c = WZ.Heroes.commander(), n = WZ.Heroes.nana();
       c.setMode('sit'); n.setMode('sit'); mdl.seatCmdr.add(c.root); mdl.seatNana.add(n.root);
       for (let i = 0; i < 45; i++) { c.update(1 / 60); n.update(1 / 60); }
@@ -120,14 +138,14 @@
 
     show(id) {
       Shop.disposeObj(); const o = Shop.make(id);
-      Shop.obj = o.obj; Shop.model = o.model; Shop.heroes = o.heroes; Shop.r = o.r; Shop.holder.add(o.obj); Shop.pop = 0;
+      Shop.obj = o.obj; Shop.model = o.model; Shop.heroes = o.heroes; Shop.rig = o.rig || null; Shop.r = o.r; Shop.holder.add(o.obj); Shop.pop = 0;
       Shop.obj.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     },
 
     // ------------------------------------------------------------------ 3D thumbnails for the cards
     makeThumbs() {
       if (Shop.thumbsDone) return; Shop.thumbsDone = true;
-      for (const id of CFG.vehicleOrder.concat(['mine'])) { try { Shop.thumbs[id] = Shop.thumb(id); } catch (e) { Shop.thumbs[id] = ''; } }
+      for (const id of CFG.vehicleOrder.concat(['mine', 'turret', 'heavy'])) { try { Shop.thumbs[id] = Shop.thumb(id); } catch (e) { Shop.thumbs[id] = ''; } }
     },
 
     thumb(id) {
@@ -160,6 +178,10 @@
         return '<button class="vcard' + (Shop.sel === id ? ' sel' : '') + (o ? '' : ' locked') + '" data-act="sel" data-id="' + id + '">' + img(id) + '<div class="vinfo"><div class="vname">' + v.name + '</div>' + pips(v.tier) + tag + '</div></button>';
       }).join('');
       list += '<button class="vcard' + (Shop.sel === 'mine' ? ' sel' : '') + '" data-act="sel" data-id="mine">' + img('mine') + '<div class="vinfo"><div class="vname">' + t('shop.mines') + '</div><span class="tg own">' + t('shop.stock', { n: S.inv.mines }) + '</span></div></button>';
+      const sect = (txt) => '<div class="sh-sect">' + txt + '</div>';
+      list += sect(t('shop.defense'));
+      list += '<button class="vcard' + (Shop.sel === 'turret' ? ' sel' : '') + '" data-act="sel" data-id="turret">' + img('turret') + '<div class="vinfo"><div class="vname">' + t('shop.turret') + '</div><span class="tg own">' + t('shop.stock', { n: S.inv.turrets }) + '</span></div></button>';
+      list += '<button class="vcard' + (Shop.sel === 'heavy' ? ' sel' : '') + '" data-act="sel" data-id="heavy">' + img('heavy') + '<div class="vinfo"><div class="vname">' + t('shop.heavy') + '</div><span class="tg own">' + t('shop.stock', { n: S.inv.heavy }) + '</span></div></button>';
       el.querySelector('#sh-list').innerHTML = list;
 
       const d = el.querySelector('#sh-detail');
@@ -170,6 +192,7 @@
           M.packs.map((p, i) => { const full = S.inv.mines + p.n > M.cap, poor = S.coins < p.price; return '<button class="btn buy" data-act="pack" data-i="' + i + '"' + (full || poor ? ' disabled' : '') + '><span>x' + p.n + '</span><em>' + (full ? t('shop.full') : COIN + p.price) + '</em></button>'; }).join('') + '</div>';
         return;
       }
+      if (Shop.sel === 'turret' || Shop.sel === 'heavy') { d.innerHTML = Shop.defenseHtml(Shop.sel); return; }
       const v = CFG.vehicles[Shop.sel], o = own.indexOf(Shop.sel) >= 0, equipped = eq === Shop.sel, need = v.price - S.coins;
       let act;
       if (equipped) act = '<button class="btn big" disabled>' + t('shop.equipped') + '</button>';
@@ -181,6 +204,24 @@
         '<div class="dact">' + act + '</div>';
     },
 
+    defenseHtml(id) {
+      const S = WZ.Save.data, heavy = id === 'heavy', C = heavy ? CFG.heavy : CFG.turret, SH = heavy ? CFG.shop.heavy : CFG.shop.turrets, D = CFG.defenseTech;
+      const lvl = S.upgrades.defense | 0, stock = heavy ? S.inv.heavy : S.inv.turrets;
+      const dmg = C.damage * (1 + lvl * D.dmg), rate = C.rate * (1 + lvl * D.rate), life = C.life * (1 + lvl * D.life);
+      const bar = (lab, val, max, txt) => '<div class="st"><span>' + t(lab) + '</span><i><b style="width:' + Math.max(6, Math.min(100, val / max * 100)).toFixed(0) + '%"></b></i><em>' + txt + '</em></div>';
+      let h = '<div class="dname">' + t(heavy ? 'shop.heavy' : 'shop.turret') + '</div><div class="dblurb">' + t(heavy ? 'shop.heavy.how' : 'shop.turret.how') + '</div>' +
+        bar('shop.dmg', dmg, 12, dmg.toFixed(1) + (heavy ? ' AOE' : '')) + bar('shop.rate', rate, 8, rate.toFixed(1) + '/s') + bar('shop.range', C.range, 40, C.range + ' M') + bar('shop.life', life, 50, Math.round(life) + ' S') +
+        (heavy ? bar('shop.splash', C.splash, 6, C.splash + ' M') : '') +
+        '<div class="dstock">' + t('shop.stock', { n: stock }) + ' / ' + SH.cap + '</div><div class="packs">' +
+        SH.packs.map((p, i) => { const full = stock + p.n > SH.cap, poor = S.coins < p.price; return '<button class="btn buy" data-act="tpack" data-kind="' + (heavy ? 'heavy' : 'gun') + '" data-i="' + i + '"' + (full || poor ? ' disabled' : '') + '><span>x' + p.n + '</span><em>' + (full ? t('shop.full') : COIN + p.price) + '</em></button>'; }).join('') + '</div>';
+      const maxed = lvl >= D.max, price = maxed ? 0 : D.prices[lvl];
+      h += '<div class="tech"><div class="tech-h"><b>' + t('shop.tech') + '</b><span>' + (maxed ? t('shop.tech.max') : t('shop.tech.lvl', { n: lvl, m: D.max })) + '</span></div>' +
+        '<div class="tech-pips">' + Array.from({ length: D.max }, (_, i) => '<i class="' + (i < lvl ? 'on' : '') + '"></i>').join('') + '</div>' +
+        '<div class="dblurb sm">' + t('shop.tech.how') + '</div>' +
+        '<button class="btn buy" data-act="tech"' + (maxed || S.coins < price ? ' disabled' : '') + '><span>' + t('shop.upgrade') + '</span><em>' + (maxed ? t('shop.tech.max') : COIN + price) + '</em></button></div>';
+      return h;
+    },
+
     click(e) {
       const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
       const a = b.dataset.act, id = b.dataset.id; WZ.Audio.unlock();
@@ -188,6 +229,8 @@
       if (a === 'sel') { WZ.Audio.sfx('click'); if (Shop.sel !== id) { Shop.sel = id; Shop.show(id); } }
       else if (a === 'buy') { const r = Shop.buyVehicle(id); WZ.Audio.sfx(r === 'ok' ? 'win' : 'beep'); if (r === 'ok') { Shop.show(id); WZ.Particles && 0; } }
       else if (a === 'equip') { WZ.Audio.sfx(Shop.equip(id) === 'ok' ? 'go' : 'beep'); }
+      else if (a === 'tpack') { WZ.Audio.sfx(Shop.buyTurrets(b.dataset.kind, +b.dataset.i) === 'ok' ? 'deliver' : 'beep'); }
+      else if (a === 'tech') { WZ.Audio.sfx(Shop.buyTech() === 'ok' ? 'win' : 'beep'); }
       else if (a === 'pack') { WZ.Audio.sfx(Shop.buyMines(+b.dataset.i) === 'ok' ? 'deliver' : 'beep'); }
       Shop.paint();
     },

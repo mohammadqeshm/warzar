@@ -72,7 +72,7 @@
       this.hp = 0; this.state = S.KO; this.reviveT = 0; this.koCount++;
       if (this.carry) { ctx.crates.drop(this.carry, this.x, this.z); this.carry = null; }
       if (this.target) { this.target.reserved = false; this.target = null; }
-      this.rig.setMode('ko'); this.marker.visible = true;
+      this.rig.setMode('ko'); this.marker.visible = !N.permaDeath;
       WZ.Audio.sfx('nanako'); WZ.Events.emit('nana:ko', { count: this.koCount });
     }
 
@@ -142,6 +142,7 @@
         case S.KO: {
           this.starT -= dt;
           if (this.starT <= 0 && WZ.Particles) { this.starT = 0.18; WZ.Particles.stars(this.x, this.ry + 3.4, this.z, 1); }
+          if (N.permaDeath) break;   // dead for good: the mission scene ends the run
           const near = Math.hypot(jeep.x - this.x, jeep.z - this.z) < N.reviveRadius && jeep.speed < CFG.heat.stillSpeed;
           this.reviveT = near ? this.reviveT + dt : Math.max(0, this.reviveT - dt * 1.5);
           if (this.reviveT >= N.reviveTime) {

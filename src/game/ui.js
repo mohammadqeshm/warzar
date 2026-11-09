@@ -23,20 +23,24 @@
         '  <div id="hud-top"><div id="hud-timer-box" class="panel"><div id="hud-timer">0:00</div></div>' +
         '    <div id="hud-heat" class="panel"><div class="flames">' + flameSvg(0) + flameSvg(1) + flameSvg(2) + '</div><div class="lbl">' + t('hud.heat') + '</div></div></div>' +
         '  <div id="hud-left"><div id="hud-crates" class="panel">' + CRATE_ICO + '<span id="hud-crates-n">0/0</span></div>' +
-        '    <div id="hud-hp" class="bar"><i></i><span>' + t('hud.jeep') + '</span></div>' +
+        '    <div id="hud-hp" class="bar"><i></i><span>' + t('hud.jeep') + '</span><em class="strikes" title="mines"><u></u><u></u></em></div>' +
         '    <div id="hud-nana" class="bar nana hidden"><i></i><span>' + t('hud.nana') + '</span></div></div>' +
         '  <button id="btn-pause" aria-label="pause"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1" fill="#ECE9E1"/><rect x="14" y="4" width="5" height="16" rx="1" fill="#ECE9E1"/></svg></button>' +
         '  <div id="hud-obj"></div><div id="hud-prompt" class="hidden"></div><div id="hud-hint" class="hidden"></div>' +
         '  <div id="hud-gun" class="hidden">' + BOLT_ICO + 'GUN BOOST</div>' +
         '  <div id="hud-arrows"></div>' +
-        '  <div id="hud-buttons"><button id="btn-turret" class="ready"><i class="cd"></i><span>' + t('hud.turret') + '</span><b id="turret-n">0/2</b><small class="k-keys">' + t('hud.key.turret') + '</small></button><button id="btn-mine" class="off"><span>' + t('hud.mine') + '</span><b id="mine-n">0</b><small class="k-keys">' + t('hud.key.mine') + '</small></button><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
-        '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div>' +
+        '  <div id="hud-buttons"><div id="hud-defs">' +
+        '<button id="btn-turret" class="ready"><i class="cd"></i><span>' + t('hud.turret') + '</span><b id="turret-n">0</b><small class="k-keys">' + t('hud.key.turret') + '</small></button>' +
+        '<button id="btn-heavy" class="ready"><i class="cd"></i><span>' + t('hud.heavy') + '</span><b id="heavy-n">0</b><small class="k-keys">' + t('hud.key.heavy') + '</small></button>' +
+        '<button id="btn-mine" class="off"><span>' + t('hud.mine') + '</span><b id="mine-n">0</b><small class="k-keys">' + t('hud.key.mine') + '</small></button></div>' +
+        '<div id="hud-main"><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
+        '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div></div>' +
         '</div>' +
         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
         '<div id="wz-load"><div class="load-in"><div class="load-title">WARZAR</div><div class="load-bar"><i id="load-fill"></i></div><div class="load-sub">' + t('load.title') + '</div></div></div>';
 
-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-mine', 'mine-n', 'btn-turret', 'turret-n', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
-      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.tcd = UI.h['btn-turret'].querySelector('.cd');
+      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-mine', 'mine-n', 'btn-turret', 'turret-n', 'btn-heavy', 'heavy-n', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
+      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.tcd = UI.h['btn-turret'].querySelector('.cd'); UI.h.hcd = UI.h['btn-heavy'].querySelector('.cd'); UI.h.strikes = UI.h['hud-hp'].querySelectorAll('.strikes u');
       UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
       // arrows
       for (let i = 0; i < 12; i++) {
@@ -70,6 +74,7 @@
       press(dep, () => handlers.deploy());
       press(UI.h['btn-mine'], () => handlers.mine());
       press(UI.h['btn-turret'], () => handlers.turret());
+      press(UI.h['btn-heavy'], () => handlers.heavy());
       bst.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); WZ.Input.setBoost(true); };
       bst.onpointerup = bst.onpointercancel = bst.onpointerleave = () => WZ.Input.setBoost(false);
       pz.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); handlers.pause(); };
@@ -95,7 +100,10 @@
       if (c.prompt !== s.prompt) { c.prompt = s.prompt; h['hud-prompt'].textContent = s.prompt || ''; h['hud-prompt'].classList.toggle('hidden', !s.prompt); }
       if (c.hint !== s.hint) { c.hint = s.hint; h['hud-hint'].textContent = s.hint || ''; h['hud-hint'].classList.toggle('hidden', !s.hint); }
       if (c.obj !== s.objective) { c.obj = s.objective; h['hud-obj'].textContent = s.objective || ''; }
-      if (c.tp !== Math.round(s.turretPct * 20) || c.tn !== s.turretN) { c.tp = Math.round(s.turretPct * 20); c.tn = s.turretN; h.tcd.style.height = (100 - s.turretPct * 100) + '%'; h['turret-n'].textContent = s.turretN + '/' + WZ.CFG.turret.max; h['btn-turret'].classList.toggle('ready', s.turretPct >= 1 && s.turretN < WZ.CFG.turret.max); }
+      if (c.tp !== Math.round(s.turretPct * 20) || c.tn !== s.turretN) { c.tp = Math.round(s.turretPct * 20); c.tn = s.turretN; h.tcd.style.height = (100 - s.turretPct * 100) + '%'; h['turret-n'].textContent = s.turretN; h['btn-turret'].classList.toggle('ready', s.turretPct >= 1 && s.turretN > 0); h['btn-turret'].classList.toggle('off', !(s.turretN > 0)); }
+      if (c.hp2 !== Math.round(s.heavyPct * 20) || c.hn !== s.heavyN) { c.hp2 = Math.round(s.heavyPct * 20); c.hn = s.heavyN; h.hcd.style.height = (100 - s.heavyPct * 100) + '%'; h['heavy-n'].textContent = s.heavyN; h['btn-heavy'].classList.toggle('ready', s.heavyPct >= 1 && s.heavyN > 0); h['btn-heavy'].classList.toggle('off', !(s.heavyN > 0)); }
+      if (c.strikes !== s.strikes) { c.strikes = s.strikes; h.strikes.forEach((u, i) => u.classList.toggle('on', i < s.strikes)); }
+      const rk = s.rush > 0.5; if (c.rk !== rk) { c.rk = rk; h['hud-nana'].classList.toggle('danger', rk); h['wz-hud'].classList.toggle('rush', rk); }
       if (c.mines !== s.mines) { c.mines = s.mines; h['mine-n'].textContent = s.mines; h['btn-mine'].classList.toggle('off', !(s.mines > 0)); }
       if (c.gun !== s.gunBoost) { c.gun = s.gunBoost; h['hud-gun'].classList.toggle('hidden', !s.gunBoost); }
     },
@@ -162,7 +170,7 @@
       const el = UI._screen('summary',
         '<div class="sum panel ' + (win ? 'win' : 'fail') + '">' +
         '<div class="sum-title">' + (win ? t('sum.complete') : t('sum.failed')) + '</div>' +
-        (win ? '' : '<div class="sum-sub">' + t(r.reason === 'time' ? 'sum.fail.time' : 'sum.fail.jeep') + '</div><div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>') +
+        (win ? '' : '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine' })[r.reason] || 'sum.fail.jeep') + '</div><div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>') +
         (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') +
         '<div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
         (win ? '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div>' : '') + '</div>' +

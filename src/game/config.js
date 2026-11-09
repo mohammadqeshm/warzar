@@ -29,11 +29,20 @@
     },
     vehicleOrder: ['jeep', 'buggy', 'truck'],
     // Landmines the player buys and plants (inventory persists between missions; used mines are gone for good)
-    shop: { mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3 } },
+    shop: {
+      mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3 },
+      turrets: { packs: [{ n: 1, price: 90 }, { n: 3, price: 240 }, { n: 6, price: 450 }], cap: 15, starter: 2 },
+      heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 8, starter: 0 },
+    },
     mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45 },
 
-    // DEFENSE turret (T / DEFENSE button): auto-targeting twin gun, ~10 dps each (the jeep gun does ~16, ~30 when stopped)
-    turret: { max: 2, cooldown: 14, life: 32, range: 30, rate: 6, damage: 1.7, knock: 1.2, turnSpeed: 7, aim: 0.14, behind: 3.2, build: 0.7 },
+    // DEFENSE turrets. Bought with coins in the Shop (inventory in Save.inv); every deployment consumes one.
+    // GUN turret: auto-targeting twin gun, ~10 dps (the jeep gun does ~16, ~30 when stopped).
+    turret: { max: 2, cooldown: 6, life: 32, range: 30, rate: 6, damage: 1.7, knock: 1.2, turnSpeed: 7, aim: 0.14, behind: 3.2, build: 0.7 },
+    // HEAVY cannon: slow, big splash damage, longer reach. Only one at a time.
+    heavy: { max: 1, cooldown: 10, life: 28, range: 36, rate: 1.1, damage: 7, splash: 4.6, knock: 9, turnSpeed: 4, aim: 0.1, behind: 3.9, build: 0.9, scale: 1.4 },
+    // Permanent defense tech (Shop): each level boosts every turret
+    defenseTech: { max: 4, prices: [250, 550, 950, 1500], dmg: 0.2, life: 0.12, rate: 0.08 },
 
     gun: {
       damage: 2.3, rate: 7, range: 38,   // nerfed: was damage 4, rate 8 (a grunt now takes ~5 hits instead of 3)
@@ -46,6 +55,7 @@
       grabTime: 0.8, deployRadius: 35, boardSpeed: 8, boardRadius: 4,
       reviveRadius: 6, reviveTime: 1.5, reviveHpPct: 0.6, koTimePenalty: 5,
       damageMul: 0.7, iFrames: 0.35, stuckTeleport: 3,
+      permaDeath: true,                           // Nana's HP reaching 0 ends the run (no revive)
       chaosInterval: 25, chaosChance: 0.15,       // used in M2
     },
 
@@ -65,7 +75,14 @@
       tutorialRate: 0.4, tutorialCap: 6, tutorialDelay: 2.5,
     },
 
-    enemy: { hpPerMission: 0.06 },
+    // Enemies grow stronger every mission AND while a mission drags on (every `every` seconds, up to `max` steps)
+    enemy: {
+      hpPerMission: 0.09, dmgPerMission: 0.06, speedPerMission: 0.012, speedMax: 1.35,
+      ramp: { every: 28, max: 8, hp: 0.08, dmg: 0.06, speed: 0.022 },
+      bruteChance: 0.1, bruteChancePerMission: 0.02, bruteChanceMax: 0.3,
+    },
+    // While Nana is outside the jeep the whole battlefield turns on her: more spawns, faster enemies, spawns around her
+    rush: { spawnMul: 2.2, rampPerSec: 0.03, rampMax: 1.4, speedMul: 1.3, capBonus: 9, nanaShare: 0.7, ring: [34, 48], blend: 3 },
 
     // Hazards (M2): off in the tutorial. Mines from mission 2, tornado from mission 3.
     hazards: {
@@ -73,6 +90,7 @@
         fromMission: 1, tutorialCount: 4, tutorialDamage: 8, baseCount: 5, perMission: 1.3, maxCount: 30, roadBias: 0.55, patchChance: 0.55,
         trigger: 2.1, nanaTrigger: 1.3, blast: 6.5, detectRange: 17, slow: 0.35,
         damageBase: 14, damagePerMission: 0.8, damageMax: 30, nanaDamage: 14,
+        jeepFirstHit: 0.5,          // 1st mine: the jeep loses this fraction of its MAX hp; 2nd mine: destroyed
         minFromStart: 28, minFromCrate: 14, minFromExtract: 22,
       },
       tornado: {
@@ -83,7 +101,11 @@
     },
 
     enemies: {
-      grunt: { hp: 10, speed: 6, damage: 6, cooldown: 0.8, windup: 0.3, fromMission: 1, radius: 0.75, jeepRange: 3.1, nanaRange: 1.7, scale: 1 },
+      // shootRange > 0: the enemy fires bullets at Nana when she is in range (and holds position at shootStop)
+      grunt: { hp: 10, speed: 6, damage: 6, cooldown: 0.8, windup: 0.3, fromMission: 1, radius: 0.75, jeepRange: 3.1, nanaRange: 1.7, scale: 1,
+        shootRange: 17, shootStop: 6.5, shootCd: 1.4, shootDamage: 5, bulletSpeed: 22 },
+      brute: { hp: 30, speed: 4.8, damage: 11, cooldown: 1.0, windup: 0.4, fromMission: 4, radius: 1.0, jeepRange: 3.7, nanaRange: 2.2, scale: 1.4,
+        shootRange: 13, shootStop: 5.5, shootCd: 2.3, shootDamage: 9, bulletSpeed: 19 },
     },
 
     crates: {
@@ -98,7 +120,7 @@
     },
 
     ads: { firstDelay: 60, minGap: 90 },
-    perf: { maxDrawCalls: 150, dprCap: 2, aliveCap: 35 },
+    perf: { maxDrawCalls: 150, dprCap: 2, aliveCap: 46 },
     quality: {
       // level: 0 low, 1 medium, 2 high
       dpr: [1, 1.5, 2], shadow: [0, 1024, 2048], grass: [250, 520, 800], particles: [0.5, 0.8, 1], aa: [false, true, true],
@@ -112,6 +134,9 @@
     timeLimit: (m, n, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.timer.tutorial : (CFG.timer.base + CFG.timer.perCrate * n) * Math.max(CFG.timer.decayMin, 1 - CFG.timer.decayPerMission * m)),
     spawnRate: (m, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.spawn.tutorialRate : CFG.spawn.base + CFG.spawn.perMission * m),
     enemyHpMul: (m) => 1 + CFG.enemy.hpPerMission * m,
+    enemyDmgMul: (m) => 1 + CFG.enemy.dmgPerMission * m,
+    enemySpeedMul: (m) => Math.min(CFG.enemy.speedMax, 1 + CFG.enemy.speedPerMission * m),
+    bruteChance: (m) => (m < CFG.enemies.brute.fromMission ? 0 : Math.min(CFG.enemy.bruteChanceMax, CFG.enemy.bruteChance + CFG.enemy.bruteChancePerMission * (m - CFG.enemies.brute.fromMission))),
     coinCrate: (m) => CFG.economy.coinBase + CFG.economy.coinPerMission * m,
     completion: (m) => CFG.economy.completionBase + CFG.economy.completionPerMission * m,
     timeBonus: (sec) => Math.floor(sec) * CFG.economy.timeBonusPerSec,

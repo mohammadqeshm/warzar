@@ -9,7 +9,7 @@
       return {
         index, tutorial: !!tutorial, crateCount: n,
         timeLimit: C.timeLimit(index, n, tutorial), spawnRate: C.spawnRate(index, tutorial),
-        hpMul: tutorial ? 1 : C.enemyHpMul(index), heatOn: !tutorial,
+        hpMul: tutorial ? 1 : C.enemyHpMul(index), dmgMul: tutorial ? 1 : C.enemyDmgMul(index), speedMul: tutorial ? 1 : C.enemySpeedMul(index), heatOn: !tutorial,
       };
     },
   };

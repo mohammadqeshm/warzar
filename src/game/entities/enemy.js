@@ -10,16 +10,16 @@
     return {
       id: i, active: false, type: 'grunt', x: 0, z: 0, px: 0, pz: 0, vx: 0, vz: 0, h: 0, ph: 0, hp: 0, maxHp: 0, state: CHASE, target: 0,
       cd: 0, windup: 0, walk: 0, koT: 0, flash: 0, spin: 0, scale: 1, variant: 0, tgtT: 0, speedMul: 1, armT: 0,
-      hitWall: 0, wnx: 0, wnz: 0, slide: 1, stT: 0, sx: 0, sz: 0, stN: 0, moving: false, _qs: 0,
+      hitWall: 0, wnx: 0, wnz: 0, slide: 1, stT: 0, sx: 0, sz: 0, stN: 0, moving: false, _qs: 0, shootCd: 0, holder: false,
       cCloth: new T.Color(), cSkin: new T.Color(), cHelm: new T.Color(),
     };
   }
 
   const E = {
-    list: [], alive: 0, kos: 0, hash: null, view: null, scene: null, map: null, col: null, rnd: null, q: [], tmpTarget: { x: 0, z: 0 },
+    list: [], alive: 0, kos: 0, mods: { dmg: 1, speed: 1, rush: 1 }, hash: null, view: null, scene: null, map: null, col: null, rnd: null, q: [], tmpTarget: { x: 0, z: 0 },
 
     init(scene, map, col) {
-      E.scene = scene; E.map = map; E.col = col; E.kos = 0; E.alive = 0;
+      E.scene = scene; E.map = map; E.col = col; E.kos = 0; E.alive = 0; E.mods.dmg = E.mods.speed = E.mods.rush = 1;
       E.hash = new WZ.SpatialHash(6, map.half + 40);
       E.view = WZ.EnemyArt.build(MAX); scene.add(E.view.group);
       E.list = []; for (let i = 0; i < MAX; i++) E.list.push(make(i));
@@ -36,6 +36,8 @@
       e.speedMul = 0.88 + E.rnd() * 0.24; e.tgtT = E.rnd() * 0.25; e.armT = 0; e.hitWall = 0; e.slide = E.rnd() < 0.5 ? 1 : -1;
       e.sx = x; e.sz = z; e.stT = 0; e.stN = 0; e.h = e.ph = E.rnd() * 6.28;
       E.view.style(e, E.rnd);
+      e.shootCd = 0.8 + E.rnd() * 1.4; e.holder = E.rnd() < 0.5;
+      if (type === 'brute') { e.cCloth.setRGB(0.5, 0.52, 0.66); e.cSkin.setRGB(0.72, 0.62, 0.58); e.cHelm.setRGB(0.95, 0.14, 0.1); e.variant = 0; e.holder = true; }
       E.alive++;
       return e;
     },
@@ -112,6 +114,7 @@
 
         if (e.state === CHASE) {
           if (d <= range) { e.state = ATTACK; e.windup = def.windup; e.cd = Math.max(e.cd, 0.15); }
+          else if (e.holder && def.shootRange > 0 && e.target === 1 && d < def.shootStop) { e.armT = Math.max(0, e.armT - dt * 4); } // stands off and shoots
           else {
             let mx = dx / d, mz = dz / d;
             if (e.hitWall > 0) {
@@ -120,7 +123,7 @@
               mx = mx * 0.3 + tx2 * 0.95; mz = mz * 0.3 + tz2 * 0.95;
               const l = Math.hypot(mx, mz) || 1; mx /= l; mz /= l;
             }
-            const sp = def.speed * e.speedMul;
+            const sp = def.speed * e.speedMul * E.mods.speed * E.mods.rush;
             e.x += mx * sp * dt; e.z += mz * sp * dt; e.walk += sp * dt * 0.62; e.moving = true;
           }
         }
@@ -132,11 +135,24 @@
               e.windup -= dt; e.armT = 1 - Math.max(0, e.windup) / def.windup;
               if (e.windup <= 0) {
                 e.cd = def.cooldown; e.windup = def.windup; e.armT = 0;
-                if (e.target === 1) nana.hurt(def.damage, e);
-                else jeep.hurt(def.damage * (jeep.P ? jeep.P.enemyDamageMul : CFG.jeep.enemyDamageMul));
+                if (e.target === 1) nana.hurt(def.damage * E.mods.dmg, e);
+                else jeep.hurt(def.damage * E.mods.dmg * (jeep.P ? jeep.P.enemyDamageMul : CFG.jeep.enemyDamageMul));
                 WZ.Audio.sfx('hit', 0.6);
               }
             } else e.armT = Math.max(0, e.armT - dt * 5);
+          }
+        }
+        // ranged attack: shoot at Nana when she is within range (never while meleeing)
+        if (def.shootRange > 0 && nanaTarget && e.state === CHASE && WZ.Bullets) {
+          e.shootCd -= dt;
+          if (e.armT > 0) e.armT = Math.max(0, e.armT - dt * 3.5);
+          const nd = Math.hypot(e.x - nana.x, e.z - nana.z);
+          if (e.shootCd <= 0 && nd < def.shootRange) {
+            e.shootCd = def.shootCd * (0.8 + Math.random() * 0.5) / (1 + (E.mods.rush - 1) * 0.6);
+            const bs = def.bulletSpeed, lead = nd / bs * 0.6 / Math.max(dt, 1e-3);
+            e.h = Math.atan2(nana.x - e.x, nana.z - e.z); e.armT = 1;
+            WZ.Bullets.fire(e.x + Math.sin(e.h) * 0.9, 1.9 * e.scale + 0.1, e.z + Math.cos(e.h) * 0.9, nana.x + (nana.x - nana.px) * lead, nana.z + (nana.z - nana.pz) * lead, bs, def.shootDamage * E.mods.dmg, e.type === 'brute');
+            if (nd < 24) WZ.Audio.sfx('tshot', 0.5);
           }
         }
         if (col.resolve(e, def.radius)) { e.hitWall = 0.35; e.wnx = col.nx; e.wnz = col.nz; }

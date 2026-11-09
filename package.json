@@ -6,18 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test:hazards": "node tools/test-hazards.cjs",
-    "test:stick": "node tools/test-stick.cjs",
-    "test:garage": "node tools/test-garage.cjs",
-    "test:turrets": "node tools/test-turrets.cjs"
+    "preview": "vite preview"
   },
   "dependencies": {
     "clsx": "2.1.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwind-merge": "3.4.0",
-    "three": "0.150.1"
+    "three": "^0.150.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.17",

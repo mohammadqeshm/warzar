@@ -230,10 +230,44 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 }
 
 /* ---------- DEFENSE (turret) button ---------- */
-#btn-turret { position: relative; width: 74px; height: 74px; border-radius: 50%; border: 4px solid #0E0E0E; background: #d98a1b; color: #fff; font: inherit; font-size: 13px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto; cursor: pointer; box-shadow: 0 5px 0 #7a4a08, 0 8px 14px rgba(0,0,0,0.45); touch-action: none; margin-bottom: 6px; }
-#btn-turret .cd { position: absolute; left: 0; right: 0; top: 0; height: 0; background: rgba(0,0,0,0.6); }
-#btn-turret span, #btn-turret b, #btn-turret small { position: relative; }
-#btn-turret b { font-size: 18px; color: #fff; text-shadow: 0 2px 0 #000; margin: 2px 0; }
-#btn-turret small { font-size: 9px; opacity: 0.85; }
-#btn-turret.ready { background: #f0a026; box-shadow: 0 5px 0 #7a4a08, 0 0 14px rgba(255,180,0,0.55), 0 8px 14px rgba(0,0,0,0.45); }
-@media (max-width: 760px), (max-height: 520px) { #btn-turret { width: 64px; height: 64px; font-size: 11px; } }
+#btn-turret, #btn-heavy { position: relative; width: 74px; height: 74px; border-radius: 50%; border: 4px solid #0E0E0E; background: #d98a1b; color: #fff; font: inherit; font-size: 13px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto; cursor: pointer; box-shadow: 0 5px 0 #7a4a08, 0 8px 14px rgba(0,0,0,0.45); touch-action: none; margin-bottom: 6px; }
+#btn-turret .cd, #btn-heavy .cd { position: absolute; left: 0; right: 0; top: 0; height: 0; background: rgba(0,0,0,0.6); }
+#btn-turret span, #btn-turret b, #btn-turret small, #btn-heavy span, #btn-heavy b, #btn-heavy small { position: relative; }
+#btn-turret b, #btn-heavy b { font-size: 18px; color: #fff; text-shadow: 0 2px 0 #000; margin: 2px 0; }
+#btn-turret small, #btn-heavy small { font-size: 9px; opacity: 0.85; }
+#btn-turret.ready, #btn-heavy.ready { background: #f0a026; box-shadow: 0 5px 0 #7a4a08, 0 0 14px rgba(255,180,0,0.55), 0 8px 14px rgba(0,0,0,0.45); }
+@media (max-width: 760px), (max-height: 520px) { #btn-turret, #btn-heavy { width: 64px; height: 64px; font-size: 11px; } }
+
+#btn-heavy { background: #c4452b; box-shadow: 0 5px 0 #6e2012, 0 8px 14px rgba(0,0,0,0.45); }
+#btn-heavy.ready { background: #e85a38; box-shadow: 0 5px 0 #6e2012, 0 0 14px rgba(255,100,60,0.55), 0 8px 14px rgba(0,0,0,0.45); }
+#btn-turret.off, #btn-heavy.off { filter: grayscale(0.85) brightness(0.7); }
+
+/* ---------- HUD button layout: defenses row above the main row ---------- */
+#hud-buttons { flex-direction: column; align-items: flex-end; gap: 8px; }
+#hud-defs, #hud-main { display: flex; align-items: flex-end; gap: 12px; pointer-events: none; }
+@media (max-width: 760px), (max-height: 520px) {
+  #hud-defs { gap: 8px; } #btn-mine { width: 56px; height: 56px; font-size: 10px; } #btn-mine b { font-size: 18px; }
+  #btn-turret, #btn-heavy { width: 58px; height: 58px; font-size: 10px; } #btn-turret b, #btn-heavy b { font-size: 16px; }
+}
+
+/* ---------- mine strikes (2 = destroyed) + Nana danger state ---------- */
+.bar .strikes { position: absolute; right: 4px; top: 3px; display: flex; gap: 3px; font-style: normal; }
+.bar .strikes u { width: 11px; height: 11px; border-radius: 50%; background: rgba(0,0,0,0.55); border: 2px solid rgba(236,233,225,0.55); box-sizing: border-box; }
+.bar .strikes u.on { background: #FF3A22; border-color: #fff; box-shadow: 0 0 6px #FF3A22; }
+.bar.nana.danger { animation: dangerPulse 0.5s infinite alternate; outline-color: #FF3A22; }
+.bar.nana.danger::after { content: '!'; position: absolute; right: 6px; top: 0; font-size: 16px; line-height: 16px; color: #fff; text-shadow: 0 0 4px #E0301A, 0 1px 0 #000; }
+#wz-hud.rush::before { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 90px 10px rgba(255, 40, 20, 0.28); animation: dangerPulse 0.7s infinite alternate; z-index: -1; }
+@keyframes dangerPulse { from { opacity: 0.55; } to { opacity: 1; } }
+
+/* ---------- Shop: defense section ---------- */
+.sh-sect { flex: 0 0 auto; font-size: 15px; letter-spacing: 0.18em; color: var(--y); padding: 4px 2px 0; text-shadow: 2px 2px 0 #000; display: flex; align-items: center; gap: 8px; }
+.sh-sect::after { content: ''; flex: 1; height: 4px; background: repeating-linear-gradient(-45deg, var(--y) 0 6px, #0E0E0E 6px 12px); }
+.tech { margin-top: 6px; padding-top: 10px; border-top: 3px dashed rgba(236,233,225,0.35); display: flex; flex-direction: column; gap: 8px; }
+.tech-h { display: flex; justify-content: space-between; align-items: baseline; color: var(--y); font-size: 18px; letter-spacing: 0.06em; }
+.tech-h span { font-size: 13px; color: var(--w); opacity: 0.85; }
+.tech-pips { display: flex; gap: 6px; }
+.tech-pips i { flex: 1; height: 10px; border-radius: 2px; background: rgba(255,255,255,0.12); border: 2px solid #0E0E0E; }
+.tech-pips i.on { background: linear-gradient(#FFD84A, #FF9A00); }
+.dblurb.sm { font-size: 12px; opacity: 0.8; }
+@media (orientation: portrait) { .sh-sect { display: none; } }
+#btn-turret span, #btn-heavy span, #btn-mine span { font-size: 9.5px; letter-spacing: -0.02em; }

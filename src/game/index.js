@@ -37,6 +37,7 @@ import './systems/missions.js';
 import './systems/hazards.js';
 import './systems/landmines.js';
 import './systems/turrets.js';
+import './systems/bullets.js';
 
 import './entities/smallprops.js';
 import './entities/crate.js';
