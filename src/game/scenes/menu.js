@@ -58,14 +58,18 @@
 
       Menu.view.followLight(st.x, gy, st.z);
       Menu.cam = WZ.Cam.cam; Menu.cam.fov = 40; Menu.cam.updateProjectionMatrix();
+      const lvl = Math.max(1, S.level || S.best.mission || 1);
+      S.level = lvl; WZ.Main.startIndex = lvl;
       WZ.UI.hudShow(false); WZ.UI.clearScreens();
-      WZ.UI.showMenu({ best: S.best.mission, coins: S.coins }, { play: Menu.play, garage: () => WZ.Main.go('shop') });
+      WZ.UI.showMenu({ level: lvl, coins: S.coins }, { play: Menu.play, garage: () => WZ.Main.go('shop') });
       void rng;
     },
 
     play() {
-      const Main = WZ.Main;
-      Main.go('mission', { index: Main.startIndex, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+      const Main = WZ.Main, S = WZ.Save.data;
+      const lvl = Math.max(1, (S && S.level) || Main.startIndex || 1);
+      Main.startIndex = lvl;
+      Main.go('mission', { index: lvl, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
     },
 
     exit() {

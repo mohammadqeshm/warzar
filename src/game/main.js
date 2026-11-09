@@ -19,7 +19,8 @@
       try {
         WZ.Save.load(); WZ.I18n.init();
         const els = WZ.UI.mount(host);
-        const m = parseInt(Main.params.get('m') || '', 10); if (m > 0) Main.startIndex = m;
+        const m = parseInt(Main.params.get('m') || '', 10);
+        Main.startIndex = m > 0 ? m : Math.max(1, WZ.Save.data.level || 1);
         if (Main.params.get('debug')) WZ.UI.toggleDebug(true);
         WZ.Audio.setMuted(!WZ.Save.data.settings.sound);
         Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission, shop: WZ.Scenes.shop };
@@ -41,7 +42,13 @@
         WZ.Quality.init(r);
         WZ.Quality.onChange = (lv) => { Main.applyQualityRuntime(lv); };
         Main.resize();
-        window.addEventListener('resize', Main.resize); window.addEventListener('orientationchange', () => setTimeout(Main.resize, 120));
+        window.addEventListener('resize', Main.resize);
+        window.addEventListener('orientationchange', () => {
+          Main.resize();
+          setTimeout(Main.resize, 80);
+          setTimeout(Main.resize, 220);
+          setTimeout(Main.resize, 420);
+        });
         if (window.visualViewport) window.visualViewport.addEventListener('resize', Main.resize);
         WZ.Events.on('quality:resize', Main.resize);
 
@@ -87,7 +94,11 @@
         WZ.Audio.suspend(); WZ.Input.reset();
         WZ.UI.showPause({
           resume: () => Main.setUserPause(false),
-          restart: () => { Main.userPaused = false; WZ.Audio.resume(); Main.go('mission', { index: Main.startIndex, runSeed: WZ.Save.newRunSeed(), runCoins: 0 }); },
+          restart: () => {
+            Main.userPaused = false; WZ.Audio.resume();
+            const lvl = Math.max(1, (WZ.Save.data && WZ.Save.data.level) || Main.startIndex || 1);
+            Main.go('mission', { index: lvl, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+          },
           menu: () => { Main.userPaused = false; WZ.Audio.resume(); Main.go('menu'); },
         });
       } else {

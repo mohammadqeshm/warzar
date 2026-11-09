@@ -45,9 +45,20 @@
       Shop.cam = WZ.Cam.cam; Shop.cam.fov = 32; Shop.cam.updateProjectionMatrix();
       WZ.UI.hudShow(false); WZ.UI.clearScreens();
       Shop.ui = WZ.UI._screen('shop', '<div class="shop-top"><button class="btn dark" data-act="back">' + t('shop.back') + '</button><div class="shop-title">' + t('shop.title') + '</div>' +
-        '<div class="shop-coins panel">' + COIN + '<b id="sh-coins">0</b></div></div><div class="shop-main"><div class="shop-list" id="sh-list"></div><div class="shop-detail panel" id="sh-detail"></div></div>' +
+        '<div class="shop-coins panel">' + COIN + '<b id="sh-coins">0</b></div></div><div class="shop-stage-spacer"></div><div class="shop-main"><div class="shop-list" id="sh-list"></div><div class="shop-detail panel" id="sh-detail"></div></div>' +
         '<div class="shop-drag">' + t('shop.drag') + '</div>');
       Shop.ui.onclick = Shop.click;
+      let dragId = -1, dragX = 0;
+      Shop.ui.onpointerdown = (e) => {
+        if (e.target.closest('button, .shop-list, .shop-detail')) return;
+        dragId = e.pointerId; dragX = e.clientX;
+      };
+      Shop.ui.onpointermove = (e) => {
+        if (e.pointerId !== dragId) return;
+        const dx = e.clientX - dragX; dragX = e.clientX;
+        Shop.rot += dx * 0.012;
+      };
+      Shop.ui.onpointerup = Shop.ui.onpointercancel = (e) => { if (e.pointerId === dragId) dragId = -1; };
       Shop.makeThumbs(); Shop.show(Shop.sel); Shop.paint();
     },
 
@@ -75,9 +86,9 @@
       if (m) { for (const wl of m.wheels) wl.rotation.x = tm * 0.8; m.gunYaw.rotation.y = Math.sin(tm * 0.6) * 0.55; m.flag.rotation.y = Math.sin(tm * 5) * 0.3; }
       if (Shop.rig) Shop.rig.headG.rotation.y = Math.sin(tm * 0.8) * 0.9;
       if (Shop.heroes) for (const hr of Shop.heroes) hr.update(dt);
-      const portrait = asp < 1, r = Shop.r, fit = r / (Math.tan(cam.fov * Math.PI / 360) * Math.min(1, asp * 1.15)) * (portrait ? 1.15 : 1.45);
+      const portrait = asp < 1, r = Shop.r, fit = r / (Math.tan(cam.fov * Math.PI / 360) * Math.min(1, asp * 1.15)) * (portrait ? 1.28 : 1.45);
       cam.position.set(fit * 0.2, r * 0.55 + 1.8, fit); cam.lookAt(0, r * 0.26 + 0.6, 0);
-      cam.setViewOffset(w, h, 0, portrait ? h * 0.13 : 0, w, h);
+      cam.setViewOffset(w, h, 0, portrait ? h * 0.25 : 0, w, h);
       Main.renderer.render(Shop.scene, cam);
     },
 

@@ -31,15 +31,18 @@
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
       M.inp = { x: 0, y: 0, mag: 0, boost: false };
-      M.hud = { timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: 1, hpMax: 1, nanaOut: false, nanaHp: 1, nanaMax: 1, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, mines: 0, turretPct: 1, turretN: 0, heavyPct: 1, heavyN: 0, strikes: 0, rush: 0 };
+      M.hud = { level: data.index, timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, mines: 0, turretPct: 1, turretN: 0, heavyPct: 1, heavyN: 0, strikes: 0, rush: 0 };
 
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
       M.coinsCrates = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
       M.nanaOutT = 0; M.rushK = 0; M.rampStep = 0; M.failReason = '';
       M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.resultShown = false;
       M.camBlend = 0; M.fromPos = new T.Vector3(); M.fromLook = new T.Vector3();
-      const b = WZ.Save.data.best; M.prevBest = b.mission;
-      if (data.index > b.mission) { b.mission = data.index; WZ.Save.save(); }
+      const sv = WZ.Save.data, b = sv.best; M.prevBest = b.mission;
+      if (data.index > (sv.level || 1)) sv.level = data.index;
+      if (data.index > b.mission) b.mission = data.index;
+      if (WZ.Main) WZ.Main.startIndex = sv.level || data.index;
+      WZ.Save.save();
 
       M.unsub.push(
         WZ.Events.on('nana:ko', M.onNanaKO), WZ.Events.on('jeep:damaged', M.onJeepHurt),
@@ -58,7 +61,7 @@
       if (M.phase !== 'briefing') return;
       M.phase = 'play'; M.briefEl = null;
       M.fromPos.copy(Cam.cam.position); M.fromLook.set(M.jeep.rx, M.jeep.ry + 1.5, M.jeep.rz); M.camBlend = 1;
-      WZ.UI.clearScreens(); WZ.UI.hudShow(true); WZ.UI.resetHudCache();
+      WZ.UI.clearScreens(); WZ.UI.hudShow(true); WZ.UI.resetHudCache(); M.updateHud();
       WZ.Audio.engineStart(); WZ.Input.reset();
     },
 
@@ -90,7 +93,7 @@
       if (M.flashCd <= 0) { M.flashCd = 0.35; WZ.Fx.flash('hurt'); WZ.Fx.shake(0.1); }
     },
     onJeepMine(e) {
-      if (e.hits === 1) { M.hintKey = 'hud.mine1'; M.hintT = 4; }
+      void e;
     },
     onJeepHurt() {
       if (M.flashCd <= 0) { M.flashCd = 0.35; WZ.Fx.flash('hurt'); WZ.Fx.shake(0.12); }
@@ -100,12 +103,11 @@
       WZ.Audio.sfx('boom'); WZ.Fx.shake(0.9);
       P.poof(j.x, j.ry + 2, j.z, 18, 2.2); P.sparks(j.x, j.ry + 2, j.z, 30, 1, 0.6, 0.2);
       j.cmdr.setMode('ko'); M.nana.cheer = false;
-      if (M.failT < 0) { M.failT = 1.1; M.failReason = j.deathCause || 'jeep'; }
+      if (M.failT < 0) { M.failT = j.deathCause === 'pit' ? 0.85 : 1.1; M.failReason = j.deathCause || 'jeep'; }
     },
     onEnemyKO() { M.kosThisMission = (M.kosThisMission || 0); },
     onDeploy() {
       M.deployedOnce = true;
-      if (!M.mission.tutorial) { M.hintKey = 'hud.rush'; M.hintT = 2.2; }
       if (M.mission.tutorial) M.spawnAt = M.time + CFG.spawn.tutorialDelay;
       WZ.Particles.dust(M.jeep.x, M.jeep.ry, M.jeep.z, 5);
     },
@@ -223,7 +225,7 @@
       M.nanaOutT = out ? M.nanaOutT + dt : Math.max(0, M.nanaOutT - dt * 2);
       // Escalation: enemies also get tougher as the mission drags on
       const R = CFG.enemy.ramp, step = M.mission.tutorial ? 0 : Math.min(R.max, Math.floor(M.time / R.every));
-      if (step > M.rampStep) { M.rampStep = step; M.hintKey = 'hud.stronger'; M.hintT = 2.4; WZ.Audio.sfx('siren'); }
+      if (step > M.rampStep) { M.rampStep = step; WZ.Audio.sfx('siren'); }
       const hpMul = M.mission.hpMul * (1 + step * R.hp);
       E.mods.dmg = M.mission.dmgMul * (1 + step * R.dmg);
       E.mods.speed = M.mission.speedMul * (1 + step * R.speed);
@@ -249,6 +251,12 @@
     complete() {
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'complete'; M.endT = 0;
+      const S = WZ.Save.data, nextLvl = (M.data.index || 1) + 1;
+      if (nextLvl > (S.level || 1)) S.level = nextLvl;
+      if (nextLvl > (S.best.mission || 0)) S.best.mission = nextLvl;
+      S.flags.tutorialDone = true;
+      if (WZ.Main) WZ.Main.startIndex = S.level;
+      WZ.Save.save();
       WZ.Audio.engineStop(); WZ.Audio.sfx('win'); WZ.UI.hudShow(false);
       M.jeep.cmdr.setMode('cheer'); M.nana.cheer = true;
       WZ.Particles.confetti(M.jeep.x, M.jeep.ry + 4, M.jeep.z, 60);
@@ -256,6 +264,10 @@
     fail(reason) {
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'fail'; M.failReason = reason; M.endT = 0;
+      const S = WZ.Save.data, curLvl = Math.max(1, M.data.index || 1);
+      if (curLvl > (S.level || 1)) S.level = curLvl;
+      if (WZ.Main) WZ.Main.startIndex = S.level || curLvl;
+      WZ.Save.save();
       WZ.Audio.engineStop(); WZ.Audio.sfx('lose'); WZ.UI.hudShow(false);
     },
 
@@ -267,16 +279,23 @@
       if (win) {
         coinsDone = CFG.calc.completion(idx); coinsTime = CFG.calc.timeBonus(M.timeLeft);
         S.coins += coinsDone + coinsTime; M.data.runCoins = (M.data.runCoins || 0) + coinsDone + coinsTime;
-        if (M.mission.tutorial) S.flags.tutorialDone = true;
+        S.flags.tutorialDone = true;
+        if (idx + 1 > (S.level || 1)) S.level = idx + 1;
+        if (idx + 1 > (S.best.mission || 0)) S.best.mission = idx + 1;
         if (!S.best.fastestMission || M.time < S.best.fastestMission) S.best.fastestMission = Math.round(M.time);
+      } else {
+        if (idx > (S.level || 1)) S.level = idx;
       }
+      if (Main) Main.startIndex = S.level || (win ? idx + 1 : idx);
       const record = idx > M.prevBest && idx > 1;
       if (kos > S.best.kos) S.best.kos = kos;
       if ((M.data.runCoins || 0) > S.best.runCoins) S.best.runCoins = M.data.runCoins;
       WZ.Save.save(); WZ.Save.flush();
       const goMain = () => {
-        if (win) Main.go('mission', { index: idx + 1, runSeed: M.data.runSeed, runCoins: M.data.runCoins || 0 });
-        else Main.go('mission', { index: Main.startIndex, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+        const nextIdx = win ? idx + 1 : (S.level || idx);
+        if (Main) Main.startIndex = nextIdx;
+        if (win) Main.go('mission', { index: nextIdx, runSeed: M.data.runSeed, runCoins: M.data.runCoins || 0 });
+        else Main.go('mission', { index: nextIdx, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
       };
       WZ.UI.showSummary({
         kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft,
@@ -305,11 +324,7 @@
       }
     },
     hintText() {
-      const N = M.nana, J = M.jeep;
-      if (M.hintT > 0) return t(M.hintKey);
-      const hz = WZ.Hazards.hint(); if (hz) return t(hz);
-      if (N.returning && J.speed >= CFG.nana.boardSpeed * 0.95) return t('hud.slow');
-      if (N.isKO) return t('hud.rescue');
+      if (M.hintT > 0 && M.hintKey === 'hud.nocrate') return t(M.hintKey);
       return '';
     },
 
@@ -349,10 +364,11 @@
 
     updateHud() {
       const J = M.jeep, N = M.nana, hd = M.hud;
+      hd.level = M.data.index;
       hd.timerText = U.fmtTime(M.timeLeft); hd.timerLow = M.timeLeft <= CFG.timer.lowWarn;
       hd.heat = M.heat; hd.heatOn = M.mission.heatOn;
       hd.cratesText = M.landed + '/' + M.crates.total;
-      hd.hp = J.hp; hd.hpMax = J.maxHp; hd.nanaOut = N.out; hd.nanaHp = N.hp; hd.nanaMax = N.maxHp;
+      hd.hp = J.hp; hd.hpMax = J.maxHp; hd.nanaOut = true; hd.nanaHp = N.hp; hd.nanaMax = N.maxHp;
       if (N.state === 'IN_JEEP') hd.deploy = M.crates.nearestAvailable(J.x, J.z, CFG.nana.deployRadius) ? 'deploy-ready' : 'deploy';
       else hd.deploy = (N.state === 'KO' || N.state === 'BOARDING' || N.state === 'RECALLING') ? 'off' : 'recall';
       hd.boostPct = J.boostPct;

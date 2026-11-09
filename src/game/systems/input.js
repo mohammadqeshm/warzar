@@ -8,6 +8,8 @@
 
     init(zone, baseEl, knobEl) {
       IN._baseEl = baseEl; IN._knobEl = knobEl;
+      if (IN._baseEl) IN._baseEl.style.display = 'none';
+      if (IN._knobEl) IN._knobEl.style.display = 'none';
       IN.device = (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 'touch' : 'keys';
       const setDev = (d) => { if (IN.device !== d) { IN.device = d; WZ.Events.emit('input:device', d); } };
 
@@ -34,11 +36,15 @@
       document.addEventListener('contextmenu', pr);
       document.addEventListener('gesturestart', pr);
       document.addEventListener('dblclick', pr);
-      document.addEventListener('touchmove', (e) => { if (e.target && e.target.closest && e.target.closest('#wz-root')) e.preventDefault(); }, { passive: false });
+      document.addEventListener('touchmove', (e) => {
+        if (e.target && e.target.closest && e.target.closest('.shop-list, .shop-detail, .sum, .pause-box, .brief')) return;
+        if (e.target && e.target.closest && e.target.closest('#wz-root')) e.preventDefault();
+      }, { passive: false });
 
       zone.addEventListener('pointerdown', (e) => {
         WZ.Audio.unlock();
         if (e.pointerType === 'touch') setDev('touch');
+        if (WZ.UI && WZ.UI.root && !WZ.UI.root.classList.contains('in-mission')) return;
         if (IN._touchId !== -1) return;
         IN._touchId = e.pointerId; IN._ox = IN._tx = e.clientX; IN._oy = IN._ty = e.clientY;
         IN._R = Math.max(54, Math.min(96, Math.min(window.innerWidth, window.innerHeight) * 0.14));
@@ -46,6 +52,9 @@
         if (IN._baseEl) {
           IN._baseEl.style.display = 'block'; IN._baseEl.style.width = IN._baseEl.style.height = IN._R * 2 + 'px';
           IN._baseEl.style.transform = 'translate(' + (IN._ox - IN._R) + 'px,' + (IN._oy - IN._R) + 'px)';
+        }
+        if (IN._knobEl) {
+          IN._knobEl.style.display = 'block';
           IN._knobEl.style.transform = 'translate(' + (IN._ox - 30) + 'px,' + (IN._oy - 30) + 'px)';
         }
         e.preventDefault();
@@ -66,6 +75,7 @@
     _release() {
       IN._touchId = -1;
       if (IN._baseEl) IN._baseEl.style.display = 'none';
+      if (IN._knobEl) { IN._knobEl.style.display = 'none'; IN._knobEl.style.transform = 'translate(-200px,-200px)'; }
     },
     press(name) { IN.pressed[name] = true; },
     consume(name) { const v = IN.pressed[name]; IN.pressed[name] = false; return v; },

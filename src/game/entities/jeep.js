@@ -38,7 +38,16 @@
     step(dt, inp, camYaw) {
       const J = this.P;
       this.px = this.x; this.pz = this.z; this.ph = this.h;
-      if (!this.alive) { this.vx *= Math.exp(-3 * dt); this.vz *= Math.exp(-3 * dt); this.x += this.vx * dt; this.z += this.vz * dt; this.speed = Math.hypot(this.vx, this.vz); return; }
+      if (!this.alive) {
+        if (this.inPit) {
+          this.x = U.damp(this.x, this.inPit.x, 8, dt);
+          this.z = U.damp(this.z, this.inPit.z, 8, dt);
+          this.pitSink = Math.min(3.5, (this.pitSink || 0) + dt * 5.2);
+          this.speed = 0;
+          return;
+        }
+        this.vx *= Math.exp(-3 * dt); this.vz *= Math.exp(-3 * dt); this.x += this.vx * dt; this.z += this.vz * dt; this.speed = Math.hypot(this.vx, this.vz); return;
+      }
       let mag = inp.mag;
       if (mag > 0.05) {
         const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
@@ -131,9 +140,11 @@
       const fx = Math.sin(h), fz = Math.cos(h), lx = Math.cos(h), lz = -Math.sin(h);
       const pitch = -Math.atan((hm(x + fx * 2.2, z + fz * 2.2) - hm(x - fx * 2.2, z - fz * 2.2)) / 4.4);
       const roll = Math.atan((hm(x + lx * 1.4, z + lz * 1.4) - hm(x - lx * 1.4, z - lz * 1.4)) / 2.8);
-      this.rx = x; this.rz = z; this.ry = gy;
+      const sink = this.inPit ? (this.pitSink || 0) : 0;
+      this.rx = x; this.rz = z; this.ry = gy - sink;
       const hp = this.hop > 0 ? Math.sin((1 - this.hop / 0.6) * Math.PI) : 0;
-      this.mesh.position.set(x, gy + hp * 1.5, z); this.mesh.rotation.set(pitch - hp * 0.3, h, roll + hp * 0.25);
+      this.mesh.position.set(x, gy + hp * 1.5 - sink, z); this.mesh.rotation.set(pitch - hp * 0.3 - sink * 0.25, h, roll + hp * 0.25 + sink * 0.15);
+      if (sink > 0) this.mesh.scale.setScalar(Math.max(0.25, 1 - sink * 0.2));
       const m = this.model, sp01 = Math.min(1, this.speed / J.topSpeed);
       this.rollV = U.damp(this.rollV, U.clamp(-this.sL * 0.012 - this.steer * sp01 * 0.1, -0.2, 0.2), 8, dt);
       this.pitchV = U.damp(this.pitchV, U.clamp(-this.acc * 0.0035, -0.1, 0.1), 8, dt);

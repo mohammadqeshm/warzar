@@ -7,11 +7,11 @@
   class SmallProps {
     constructor(scene, map) {
       this.scene = scene; this.map = map;
-      const bags = map.smalls.filter((s) => s.t === 'bag'), bars = map.smalls.filter((s) => s.t === 'barrel');
+      const bags = map.smalls.filter((s) => s.t === 'bag'), bars = [];
       this.bagMesh = new T.InstancedMesh(P.sandbagGeo(), new T.MeshLambertMaterial({ map: A.tex('sandbag') }), Math.max(1, bags.length));
-      this.barMesh = new T.InstancedMesh(P.barrelGeo(), new T.MeshLambertMaterial({ vertexColors: true }), Math.max(1, bars.length));
+      this.barMesh = new T.InstancedMesh(P.barrelGeo(), new T.MeshLambertMaterial({ vertexColors: true }), 1);
       for (const m of [this.bagMesh, this.barMesh]) { m.frustumCulled = false; m.instanceMatrix.setUsage(T.DynamicDrawUsage); scene.add(m); m.count = 0; }
-      this.bagMesh.count = bags.length; this.barMesh.count = bars.length;
+      this.bagMesh.count = bags.length; this.barMesh.count = 0;
       this.hash = new WZ.SpatialHash(8, map.half + 12);
       this.items = []; this.fly = []; this.q = [];
       this.d = new T.Object3D(); this.c = new T.Color();

@@ -98,6 +98,18 @@
         speed: 7, speedPerMission: 0.15, maxSpeed: 11, turn: 0.9, homing: 0.55, spawnDist: [70, 88],
         radius: 8, drag: 4, pull: 9, spin: 6.5, nanaDamage: 6,
       },
+      barrels: {
+        fromMission: 1, tutorialCount: 8, baseCount: 10, perMission: 1.5, maxCount: 28,
+        roadBias: 0.6, clusterChance: 0.5,
+        trigger: 2.35, nanaTrigger: 1.35, blast: 7.5,
+        damage: 25, nanaDamage: 12, slow: 0.45,
+        minFromStart: 26, minFromCrate: 18, minFromExtract: 22,
+      },
+      pits: {
+        fromMission: 1, tutorialCount: 5, baseCount: 6, perMission: 1.0, maxCount: 18,
+        roadBias: 0.45, radius: 3.4, trigger: 2.85, nanaTrigger: 2.1,
+        minFromStart: 30, minFromCrate: 18, minFromExtract: 24, minGap: 22,
+      },
     },
 
     enemies: {

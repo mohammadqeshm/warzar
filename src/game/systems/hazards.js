@@ -4,7 +4,7 @@
  * inside its radius the jeep is dragged, pulled and spun; Nana takes damage; enemies are flung. All numbers: WZ.CFG.hazards. */
 (function (WZ) {
   'use strict';
-  const T = THREE, CFG = WZ.CFG, U = WZ.U, H = CFG.hazards, MC = H.mines, TC = H.tornado;
+  const T = THREE, CFG = WZ.CFG, U = WZ.U, H = CFG.hazards, MC = H.mines, TC = H.tornado, BC = H.barrels, PC = H.pits;
   const m4 = new T.Matrix4(), qI = new T.Quaternion(), vp = new T.Vector3(), vs = new T.Vector3();
   const d2 = (ax, az, bx, bz) => (ax - bx) * (ax - bx) + (az - bz) * (az - bz);
 
@@ -17,16 +17,20 @@
   function setM(mesh, i, x, y, z, s) { m4.compose(vp.set(x, y, z), qI, vs.set(s, s, s)); mesh.setMatrixAt(i, m4); }
 
   const Z = {
-    ctx: null, rng: null, mission: null, mines: [], torn: null, tornOn: false, minesOn: false,
+    ctx: null, rng: null, rng2: null, mission: null, mines: [], barrels: [], pits: [], torn: null,
+    tornOn: false, minesOn: false, barrelsOn: false, pitsOn: false,
     nextT: 0, pingT: 0, nearest: 1e9, caught: 0, nanaT: 0, windT: 0, dustT: 0, key: '',
-    ms: null, tg: null, layers: [], debris: [], ring: null, tex: null, geos: [],
+    ms: null, bms: null, pms: null, tg: null, layers: [], debris: [], ring: null, tex: null, geos: [],
 
     init(ctx, mission, seed) {
-      Z.dispose(); Z.ctx = ctx; Z.mission = mission; Z.rng = WZ.RNG.create(seed);
+      Z.dispose(); Z.ctx = ctx; Z.mission = mission; Z.rng = WZ.RNG.create(seed); Z.rng2 = WZ.RNG.create(WZ.RNG.hash(seed, 505));
       const m = mission.index;
       Z.minesOn = m >= MC.fromMission; Z.tornOn = !mission.tutorial && m >= TC.fromMission;
+      Z.barrelsOn = BC && m >= BC.fromMission; Z.pitsOn = PC && m >= PC.fromMission;
       if (Z.minesOn) Z.placeMines(m);
       if (Z.tornOn) { Z.nextT = Z.rng.range(TC.firstDelay[0], TC.firstDelay[1]); Z.buildTornado(); }
+      if (Z.pitsOn) Z.placePits(m);
+      if (Z.barrelsOn) Z.placeBarrels(m);
     },
 
     placeMines(m) {
@@ -84,12 +88,163 @@
       Z.ctx.scene.add(g); Z.tg = g;
     },
 
+    placeBarrels(m) {
+      const map = Z.ctx.map, col = Z.ctx.col, rng = Z.rng2, lim = map.half - 16, st = map.start, ex = map.extract, list = [];
+      const target = Z.mission.tutorial ? BC.tutorialCount : Math.min(BC.maxCount, Math.round(BC.baseCount + BC.perMission * m));
+      const ok = (x, z) => {
+        if (Math.abs(x) > lim || Math.abs(z) > lim || d2(x, z, st.x, st.z) < BC.minFromStart * BC.minFromStart) return false;
+        if (ex && d2(x, z, ex.x, ex.z) < BC.minFromExtract * BC.minFromExtract) return false;
+        for (const c of map.crates) if (d2(x, z, c.x, c.z) < BC.minFromCrate * BC.minFromCrate) return false;
+        for (const mn of Z.mines) if (d2(x, z, mn.x, mn.z) < 16) return false;
+        for (const pt of Z.pits) if (d2(x, z, pt.x, pt.z) < (PC.radius + 3.2) * (PC.radius + 3.2)) return false;
+        for (const o of list) if (d2(x, z, o.x, o.z) < 3.6) return false;
+        return col.free(x, z, 1.8);
+      };
+      for (let guard = 0; list.length < target && guard < 600; guard++) {
+        let cx, cz;
+        if (map.roadPts.length && rng.chance(BC.roadBias)) { const p = rng.pick(map.roadPts); cx = p.x + rng.range(-6, 6); cz = p.z + rng.range(-6, 6); }
+        else { cx = rng.range(-lim, lim); cz = rng.range(-lim, lim); }
+        const n = rng.chance(BC.clusterChance) ? rng.int(2, 3) : 1;
+        for (let i = 0; i < n && list.length < target; i++) {
+          const a = rng.range(0, 6.283), r = n > 1 ? rng.range(1.6, 3.2) : 0, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+          if (ok(x, z)) list.push({ x, z, gy: map.height(x, z), on: true, ph: rng.range(0, 1) });
+        }
+      }
+      Z.barrels = list;
+      const n = list.length, sc = Z.ctx.scene; if (!n) return;
+      const gs = [
+        new T.CylinderGeometry(0.68, 0.68, 1.62, 14),
+        new T.CylinderGeometry(0.71, 0.71, 0.3, 14),
+        new T.CylinderGeometry(0.71, 0.71, 0.14, 14),
+        new T.RingGeometry(0.82, 1.18, 22).rotateX(-Math.PI / 2),
+        new T.CylinderGeometry(1.65, 1.85, 0.05, 16),
+      ];
+      Z.geos.push(...gs);
+      const mats = [
+        new T.MeshLambertMaterial({ color: 0xd9241e }),
+        new T.MeshLambertMaterial({ color: 0xffb400 }),
+        new T.MeshLambertMaterial({ color: 0x1e2024 }),
+        new T.MeshBasicMaterial({ color: 0xff3a22, transparent: true, opacity: 0.6, depthWrite: false }),
+        new T.MeshLambertMaterial({ color: 0x221a14 }),
+      ];
+      Z.bms = gs.map((g, k) => { const im = new T.InstancedMesh(g, mats[k], n); im.frustumCulled = false; sc.add(im); return im; });
+      list.forEach((b, i) => { b.i = i; Z.placeBarrel(b, true); });
+    },
+
+    placeBarrel(b, on) {
+      if (!Z.bms) return;
+      const [body, band, cap, ring, crater] = Z.bms, i = b.i, x = b.x, z = b.z, y = b.gy;
+      setM(body, i, x, y + 0.81, z, on ? 1 : 0);
+      setM(band, i, x, y + 0.82, z, on ? 1 : 0);
+      setM(cap, i, x, y + 1.58, z, on ? 1 : 0);
+      setM(ring, i, x, y + 0.08, z, on ? 1 : 0);
+      setM(crater, i, x, y + 0.03, z, on ? 0 : 1);
+      for (const m of Z.bms) m.instanceMatrix.needsUpdate = true;
+    },
+
+    placePits(m) {
+      const map = Z.ctx.map, col = Z.ctx.col, rng = Z.rng2, lim = map.half - 18, st = map.start, ex = map.extract, list = [];
+      const target = Z.mission.tutorial ? PC.tutorialCount : Math.min(PC.maxCount, Math.round(PC.baseCount + PC.perMission * m));
+      const ok = (x, z) => {
+        if (Math.abs(x) > lim || Math.abs(z) > lim || d2(x, z, st.x, st.z) < PC.minFromStart * PC.minFromStart) return false;
+        if (ex && d2(x, z, ex.x, ex.z) < PC.minFromExtract * PC.minFromExtract) return false;
+        for (const c of map.crates) if (d2(x, z, c.x, c.z) < PC.minFromCrate * PC.minFromCrate) return false;
+        for (const mn of Z.mines) if (d2(x, z, mn.x, mn.z) < (PC.radius + 3.0) * (PC.radius + 3.0)) return false;
+        for (const o of list) if (d2(x, z, o.x, o.z) < PC.minGap * PC.minGap) return false;
+        return col.free(x, z, PC.radius + 1.5);
+      };
+      for (let guard = 0; list.length < target && guard < 600; guard++) {
+        let x, z;
+        if (map.roadPts.length && rng.chance(PC.roadBias)) { const p = rng.pick(map.roadPts); x = p.x + rng.range(-7, 7); z = p.z + rng.range(-7, 7); }
+        else { x = rng.range(-lim, lim); z = rng.range(-lim, lim); }
+        if (ok(x, z)) list.push({ x, z, gy: map.height(x, z), ph: rng.range(0, 1) });
+      }
+      Z.pits = list;
+      const n = list.length, sc = Z.ctx.scene; if (!n) return;
+      const R = PC.radius;
+      const gs = [
+        new T.CylinderGeometry(R * 1.05, R * 1.32, 0.34, 24),
+        new T.CylinderGeometry(R * 0.94, R * 0.9, 0.38, 24),
+        new T.CylinderGeometry(R * 0.84, R * 0.8, 0.42, 24),
+        new T.RingGeometry(R * 1.1, R * 1.32, 28).rotateX(-Math.PI / 2),
+      ];
+      Z.geos.push(...gs);
+      const mats = [
+        new T.MeshLambertMaterial({ color: 0x5c4228 }),
+        new T.MeshLambertMaterial({ color: 0x1c140e }),
+        new T.MeshBasicMaterial({ color: 0x040406 }),
+        new T.MeshBasicMaterial({ color: 0xff3a22, transparent: true, opacity: 0.65, depthWrite: false }),
+      ];
+      Z.pms = gs.map((g, k) => { const im = new T.InstancedMesh(g, mats[k], n); im.frustumCulled = false; sc.add(im); return im; });
+      list.forEach((pt, i) => {
+        pt.i = i;
+        setM(Z.pms[0], i, pt.x, pt.gy + 0.04, pt.z, 1);
+        setM(Z.pms[1], i, pt.x, pt.gy + 0.06, pt.z, 1);
+        setM(Z.pms[2], i, pt.x, pt.gy + 0.08, pt.z, 1);
+        setM(Z.pms[3], i, pt.x, pt.gy + 0.14, pt.z, 1);
+      });
+      for (const m of Z.pms) m.instanceMatrix.needsUpdate = true;
+    },
+
     // ------------------------------------------------------------------ simulation (play phase only)
     update(dt, ctx, play, tm) {
       Z.key = '';
       if (!play || !Z.ctx) return;
       if (Z.minesOn) Z.updateMines(dt);
+      if (Z.barrelsOn) Z.updateBarrels(dt);
+      if (Z.pitsOn) Z.updatePits(dt);
       if (Z.tornOn) Z.updateTornado(dt, tm);
+    },
+
+    updateBarrels() {
+      const c = Z.ctx, J = c.jeep, tr2 = BC.trigger * BC.trigger;
+      if (!J.alive) return;
+      for (const b of Z.barrels) {
+        if (!b.on) continue;
+        if (d2(b.x, b.z, J.x, J.z) < tr2) Z.boomBarrel(b, 'jeep');
+      }
+    },
+
+    boomBarrel(b, who) {
+      if (!b.on) return;
+      const c = Z.ctx, J = c.jeep, N = c.nana, P = c.particles, E = c.enemies, y = b.gy + 0.9;
+      b.on = false; Z.placeBarrel(b, false);
+      P.poof(b.x, y, b.z, 16, 2.5); P.sparks(b.x, y + 0.5, b.z, 28, 1, 0.55, 0.15); P.dust(b.x, b.gy, b.z, 9);
+      WZ.Audio.sfx('boom'); WZ.Fx.shake(who === 'jeep' ? 0.65 : 0.35); WZ.Fx.text('BOOM!', b.x, y + 3.4, b.z, 'bonk');
+      E.hash.query(b.x, b.z, BC.blast, E.q);
+      for (const e of E.q.slice()) { if (!e.active || e.state === 2) continue; E.ko(e, e.x - b.x, e.z - b.z, 13, 'barrel'); }
+      if (who === 'jeep' && J.alive) {
+        const dmg = BC.damage;
+        if (dmg >= J.hp) J.deathCause = 'barrel';
+        J.hurt(dmg); J.vx *= BC.slow; J.vz *= BC.slow; J.hop = 0.45;
+        WZ.Fx.text('-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt');
+      } else if (who === 'nana' && N.out && !N.isKO) {
+        N.hurt(BC.nanaDamage); WZ.Fx.text('-' + BC.nanaDamage, N.rx, N.ry + 4, N.rz, 'warn');
+      }
+      for (const o of Z.barrels) {
+        if (o.on && d2(b.x, b.z, o.x, o.z) < 16) Z.boomBarrel(o, 'chain');
+      }
+    },
+
+    updatePits() {
+      const c = Z.ctx, J = c.jeep;
+      if (!J.alive) return;
+      const tr2 = PC.trigger * PC.trigger;
+      for (const pt of Z.pits) {
+        if (d2(pt.x, pt.z, J.x, J.z) < tr2) { Z.fallInPit(pt); return; }
+      }
+    },
+
+    fallInPit(pt) {
+      const c = Z.ctx, J = c.jeep, P = c.particles;
+      if (!J.alive) return;
+      J.inPit = pt; J.pitSink = 0; J.deathCause = 'pit';
+      J.vx = 0; J.vz = 0; J.speed = 0;
+      P.dust(pt.x, pt.gy, pt.z, 14); P.poof(pt.x, pt.gy + 0.5, pt.z, 10, 1.8);
+      WZ.Audio.sfx('crash'); WZ.Fx.shake(0.85); WZ.Fx.flash('hurt');
+      const msg = (WZ.I18n && WZ.I18n.t) ? WZ.I18n.t('hud.pitfall') : 'FELL IN A PIT!';
+      WZ.Fx.text(msg, J.rx, J.ry + 4.5, J.rz, 'warn');
+      J.hurt(Math.ceil(J.hp) + 999);
     },
 
     updateMines(dt) {
@@ -190,6 +345,20 @@
         }
         lamp.instanceMatrix.needsUpdate = ring.instanceMatrix.needsUpdate = true;
       }
+      if (Z.bms) {
+        const bring = Z.bms[3];
+        for (const b of Z.barrels) if (b.on) {
+          setM(bring, b.i, b.x, b.gy + 0.08, b.z, 0.92 + 0.12 * Math.sin(tm * 4.5 + b.ph * 6));
+        }
+        bring.instanceMatrix.needsUpdate = true;
+      }
+      if (Z.pms) {
+        const pring = Z.pms[3];
+        for (const pt of Z.pits) {
+          setM(pring, pt.i, pt.x, pt.gy + 0.14, pt.z, 0.95 + 0.08 * Math.sin(tm * 3.8 + pt.ph * 6));
+        }
+        pring.instanceMatrix.needsUpdate = true;
+      }
       const Tn = Z.torn; if (!Tn || !Z.tg) return;
       const gy = Z.ctx.map.height(Tn.x, Tn.z), s = Tn.scale * (1 + 0.04 * Math.sin(tm * 6));
       Z.tg.position.set(Tn.x, gy, Tn.z); Z.tg.scale.set(s, Tn.phase === 'warn' ? s : s, s);
@@ -206,13 +375,21 @@
 
     dispose() {
       const sc = Z.ctx && Z.ctx.scene;
-      if (sc) { for (const m of Z.ms || []) sc.remove(m); if (Z.tg) sc.remove(Z.tg); }
+      if (sc) {
+        for (const m of Z.ms || []) sc.remove(m);
+        for (const m of Z.bms || []) sc.remove(m);
+        for (const m of Z.pms || []) sc.remove(m);
+        if (Z.tg) sc.remove(Z.tg);
+      }
       for (const g of Z.geos) g.dispose();
       for (const m of Z.layers) m.material.dispose();
       if (Z.ring) Z.ring.material.dispose(); if (Z.tex) Z.tex.dispose();
       for (const m of Z.ms || []) { m.material.dispose(); m.dispose(); }
-      Z.geos = []; Z.layers = []; Z.debris = []; Z.mines = []; Z.ms = null; Z.tg = Z.ring = Z.tex = null; Z.torn = null; Z.ctx = null;
-      Z.minesOn = Z.tornOn = false; Z.key = ''; Z.caught = 0; Z.nearest = 1e9;
+      for (const m of Z.bms || []) { m.material.dispose(); m.dispose(); }
+      for (const m of Z.pms || []) { m.material.dispose(); m.dispose(); }
+      Z.geos = []; Z.layers = []; Z.debris = []; Z.mines = []; Z.barrels = []; Z.pits = [];
+      Z.ms = Z.bms = Z.pms = null; Z.tg = Z.ring = Z.tex = null; Z.torn = null; Z.ctx = null;
+      Z.minesOn = Z.tornOn = Z.barrelsOn = Z.pitsOn = false; Z.key = ''; Z.caught = 0; Z.nearest = 1e9;
     },
   };
   WZ.Hazards = Z;

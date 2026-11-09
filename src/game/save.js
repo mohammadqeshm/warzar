@@ -5,7 +5,7 @@
   const KEY = 'warzar_crate_rush_save_v1';
 
   const defaults = () => ({
-    v: 1, coins: 0, gears: 0,
+    v: 1, coins: 0, gears: 0, level: 1,
     best: { mission: 0, runCoins: 0, fastestMission: 0, kos: 0, timeBank: 0 },
     owned: { vehicles: ['jeep'], weapons: ['mg'], cosmetics: [] },
     equipped: { vehicle: 'jeep', weapon: 'mg', abilities: [], paint: 'default', cmdrHelmet: 'default', nanaHelmet: 'default' },
@@ -40,14 +40,17 @@
       if (raw) {
         try { S.data = merge(defaults(), JSON.parse(raw)); } catch (e) { S.data = defaults(); }
       }
-      if (!S.data.runSeed) { S.data.runSeed = ((Date.now() ^ (Math.random() * 4294967296)) >>> 0) || 1; S.save(); }
+      S.data.level = Math.max(1, S.data.level | 0, (S.data.best && S.data.best.mission) | 0);
+      if (S.data.level > 1 && S.data.flags) S.data.flags.tutorialDone = true;
+      if (!S.data.runSeed) { S.data.runSeed = ((Date.now() ^ (Math.random() * 4294967296)) >>> 0) || 1; }
+      S.save();
       return S.data;
     },
 
     save() {
       S._dirty = true;
-      if (S._timer) return;
-      S._timer = setTimeout(() => { S._timer = 0; S.flush(); }, 1500);
+      if (S._timer) { clearTimeout(S._timer); S._timer = 0; }
+      S.flush();
     },
 
     flush() {
@@ -61,4 +64,8 @@
 
   WZ.Save = S;
   WZ.Events.on('game:pause', () => S.flush());
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('beforeunload', () => { S._dirty = true; S.flush(); });
+    window.addEventListener('pagehide', () => { S._dirty = true; S.flush(); });
+  }
 })(window.WZ = window.WZ || {});
