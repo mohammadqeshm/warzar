@@ -1,9 +1,9 @@
 /* WZ.Input — virtual stick (appears where you touch, fixed origin, left half), keyboard (WASD/arrows, Space, Shift, Esc/P), device detection.
- * Output: Input.stick {x,y,mag} (y up), Input.consume('deploy'|'boost'|'pause'|'debug'|'skip'), Input.boostHeld. */
+ * Output: Input.stick {x,y,mag} (y up), Input.consume('deploy'|'boost'|'pause'|'debug'|'skip'|'weapon'|'wnext'|'wprev'|'wsel'|...), Input.boostHeld. */
 (function (WZ) {
   'use strict';
   const IN = {
-    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false, heavy: false },
+    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false, heavy: false, bomb: false, heli: false, weapon: false, wnext: false, wprev: false, wsel: false },
     boostHeld: false, bot: null, enabled: true, _touchId: -1, _ox: 0, _oy: 0, _tx: 0, _ty: 0, _R: 70, _baseEl: null, _knobEl: null,
 
     init(zone, baseEl, knobEl) {
@@ -23,9 +23,17 @@
           case 'Escape': case 'KeyP': IN.pressed.pause = true; break;
           case 'Backquote': case 'F3': IN.pressed.debug = true; e.preventDefault(); break;
           case 'KeyN': IN.pressed.skip = true; break;
-          case 'KeyF': case 'KeyM': IN.pressed.mine = true; break;
+          case 'KeyF': IN.pressed.weapon = true; break;                      // USE the selected weapon
+          case 'KeyE': IN.pressed.wnext = true; break; case 'KeyQ': IN.pressed.wprev = true; break;
+          case 'Digit1': case 'Numpad1': IN.pressed.wsel = 'mine'; break; case 'Digit2': case 'Numpad2': IN.pressed.wsel = 'gun'; break;
+          case 'Digit3': case 'Numpad3': IN.pressed.wsel = 'heavy'; break; case 'Digit4': case 'Numpad4': IN.pressed.wsel = 'bomb'; break;
+          case 'Digit5': case 'Numpad5': IN.pressed.wsel = 'heli'; break;
+          // direct shortcuts (desktop): deploy a specific item without changing the selection
+          case 'KeyM': IN.pressed.mine = true; break;
           case 'KeyT': IN.pressed.turret = true; break;
           case 'KeyH': case 'KeyG': IN.pressed.heavy = true; break;
+          case 'KeyB': IN.pressed.bomb = true; break;
+          case 'KeyV': IN.pressed.heli = true; break;
           default: if (e.code.indexOf('Arrow') === 0) e.preventDefault();
         }
       });

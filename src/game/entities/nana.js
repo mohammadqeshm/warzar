@@ -177,6 +177,11 @@
               q.damage(e, N.panDamage, dx / l * N.panKnock, dz / l * N.panKnock, 'pan');
               ctx.particles.sparks(e.x, ctx.map.height(e.x, e.z) + 2, e.z, 4, 1, 0.9, 0.4);
             }
+            if (WZ.Giants) for (const g of WZ.Giants.list) { // giants are bigger: reach counts from their body edge
+              if (!g.active || Math.hypot(g.x - this.x, g.z - this.z) - g.radius > N.panRange) continue;
+              any = true; WZ.Giants.damage(g, N.panDamage, 0, 0, 'pan');
+              ctx.particles.sparks(g.x - Math.sin(this.h) * g.radius, g.ry + 3, g.z - Math.cos(this.h) * g.radius, 4, 1, 0.9, 0.4);
+            }
             if (any) {
               WZ.Audio.sfx('bonk'); ctx.fx.text(WZ.t('hud.bonk'), this.x + Math.sin(this.h) * 1.5, this.ry + 3.6, this.z + Math.cos(this.h) * 1.5, 'bonk');
               ctx.fx.shake(0.15);

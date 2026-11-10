@@ -33,14 +33,24 @@
       mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3 },
       turrets: { packs: [{ n: 1, price: 90 }, { n: 3, price: 240 }, { n: 6, price: 450 }], cap: 15, starter: 2 },
       heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 8, starter: 0 },
+      bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1 },
+      heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 8, starter: 1 },
     },
-    mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45 },
+    mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
     // DEFENSE turrets. Bought with coins in the Shop (inventory in Save.inv); every deployment consumes one.
+    // NO placement limit: place as many as you own, anywhere. `cooldown` is only a tiny anti double-tap delay.
     // GUN turret: auto-targeting twin gun, ~10 dps (the jeep gun does ~16, ~30 when stopped).
-    turret: { max: 2, cooldown: 6, life: 32, range: 30, rate: 6, damage: 1.7, knock: 1.2, turnSpeed: 7, aim: 0.14, behind: 3.2, build: 0.7 },
-    // HEAVY cannon: slow, big splash damage, longer reach. Only one at a time.
-    heavy: { max: 1, cooldown: 10, life: 28, range: 36, rate: 1.1, damage: 7, splash: 4.6, knock: 9, turnSpeed: 4, aim: 0.1, behind: 3.9, build: 0.9, scale: 1.4 },
+    turret: { cooldown: 0.4, life: 32, range: 30, rate: 6, damage: 1.7, knock: 1.2, turnSpeed: 7, aim: 0.14, behind: 3.2, build: 0.7 },
+    // HEAVY cannon: slow, big splash damage, longer reach.
+    heavy: { cooldown: 0.4, life: 28, range: 36, rate: 1.1, damage: 7, splash: 4.6, knock: 9, turnSpeed: 4, aim: 0.1, behind: 3.9, build: 0.9, scale: 1.4 },
+    // BOMB turret (mortar): lobs a bomb in an arc at the biggest group of enemies; the blast KOs everything inside `blast`.
+    // Giants take `damage` per bomb. Cannot shoot closer than `minRange`. Never hurts the jeep or Nana.
+    bomb: { cooldown: 0.4, life: 30, range: 46, minRange: 7, rate: 0.5, damage: 24, blast: 7.5, flight: [0.8, 1.6], shellSpeed: 26, knock: 15, turnSpeed: 5, aim: 0.22, behind: 3.4, build: 0.9, scale: 1.25 },
+    // ESCORT HELICOPTER (bought in the Shop, one consumed per call): flies in, hovers beside the vehicle (off to the screen side so it
+    // never blocks the view) and strafes enemies near the vehicle (or near Nana while she is outside). No limit on simultaneous helis.
+    heli: { life: 34, speed: 38, alt: 15, range: 40, guard: 34, rate: 9, damage: 1.5, knock: 0.5, spread: 1.1, arrive: 3,
+      slots: [[-12, 1], [12, 1], [-18, -7], [18, -7], [-8, 11], [8, 11]], leave: 2.2 },
     // Permanent defense tech (Shop): each level boosts every turret
     defenseTech: { max: 4, prices: [250, 550, 950, 1500], dmg: 0.2, life: 0.12, rate: 0.08 },
 
@@ -90,6 +100,7 @@
         fromMission: 1, tutorialCount: 4, tutorialDamage: 8, baseCount: 5, perMission: 1.3, maxCount: 30, roadBias: 0.55, patchChance: 0.55,
         trigger: 2.1, nanaTrigger: 1.3, blast: 6.5, detectRange: 17, slow: 0.35,
         damageBase: 14, damagePerMission: 0.8, damageMax: 30, nanaDamage: 14,
+        giantDamage: 40,
         jeepFirstHit: 0.5,          // 1st mine: the jeep loses this fraction of its MAX hp; 2nd mine: destroyed
         minFromStart: 28, minFromCrate: 14, minFromExtract: 22,
       },
@@ -97,12 +108,16 @@
         fromMission: 2, firstDelay: [14, 22], gap: [32, 48], warn: 4, life: 18, fade: 2.5,
         speed: 7, speedPerMission: 0.15, maxSpeed: 11, turn: 0.9, homing: 0.55, spawnDist: [70, 88],
         radius: 8, drag: 4, pull: 9, spin: 6.5, nanaDamage: 6,
+        // Pull zone: the closer you are the slower you get and the harder it drags you in. Boost (high speed) is the way out.
+        pullRadius: 19, pullAccel: 44, slow: 0.75, slowBoost: 0.3,
+        // Core: once inside, the vehicle is CAUGHT and whirled around the funnel for `hold` seconds with no control.
+        core: 4.4, hold: 5, orbitSpin: 3.1, lift: 3.4, throwSpeed: 15, immune: 4,
       },
       barrels: {
         fromMission: 1, tutorialCount: 8, baseCount: 10, perMission: 1.5, maxCount: 28,
         roadBias: 0.6, clusterChance: 0.5,
         trigger: 2.35, nanaTrigger: 1.35, blast: 7.5,
-        damage: 25, nanaDamage: 12, slow: 0.45,
+        damage: 25, nanaDamage: 12, slow: 0.45, giantDamage: 40,
         minFromStart: 26, minFromCrate: 18, minFromExtract: 22,
       },
       pits: {
@@ -110,6 +125,15 @@
         roadBias: 0.45, radius: 3.4, trigger: 2.85, nanaTrigger: 2.1,
         minFromStart: 30, minFromCrate: 18, minFromExtract: 24, minGap: 22,
       },
+    },
+
+    // GIANT guardian: one stands next to EVERY crate. Slow but huge, with an HP bar. Wakes up when the vehicle gets close, then chases it.
+    // While Nana is outside the vehicle it hunts HER instead and a single club hit kills her. Club hits on the vehicle cost armor.
+    giant: {
+      hp: 130, speed: 7, radius: 2.1, scale: 1, height: 8.4, home: 6.5, aggro: 36, nanaAggro: 46, leash: 85, agroTime: 7, regen: 5,
+      reach: 5.6, nanaReach: 5.2, windup: 0.75, swing: 0.3, cooldown: 1.8, jeepDamage: 22, dmgPerMission: 0.04, jeepKnock: 18,
+      ramMinSpeed: 6, ramDamage: 7, ramSelf: 9, ramCooldown: 0.8, tutorialHp: 0.5, tutorialSpeed: 0.85,
+      nanaDeathDamage: 9999,
     },
 
     enemies: {
@@ -129,6 +153,8 @@
       coinBase: 25, coinPerMission: 3, goldBase: 90, goldPerMission: 8,
       completionBase: 20, completionPerMission: 5, timeBonusPerSec: 2,
       upgradeGrowth: 1.32, maxLevel: 8,
+      // Coins for knock-outs pile up during the mission ("loot") and are only paid out when the mission is COMPLETED (burned on failure).
+      kill: { grunt: 1, brute: 3, giant: 30, giantPerMission: 2 },
     },
 
     ads: { firstDelay: 60, minGap: 90 },

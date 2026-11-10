@@ -13,8 +13,8 @@
     daily: { lastClaimUTC: '', streak: 0 },
     challenge: { lastDateUTC: '', bestScore: 0 },
     ach: {},
-    settings: { sound: 1, music: 1, vibration: 1, shake: 1, lang: 'auto', quality: 'auto' },
-    inv: { mines: WZ.CFG.shop.mines.starter, turrets: WZ.CFG.shop.turrets.starter, heavy: WZ.CFG.shop.heavy.starter },
+    settings: { sound: 1, music: 1, vibration: 1, shake: 1, lang: 'auto', quality: 'auto', weapon: 'gun' },
+    inv: { mines: WZ.CFG.shop.mines.starter, turrets: WZ.CFG.shop.turrets.starter, heavy: WZ.CFG.shop.heavy.starter, bombs: WZ.CFG.shop.bombs.starter, heli: WZ.CFG.shop.heli.starter },
     flags: { tutorialDone: false, noAds: false },
     runSeed: 0,
   });

@@ -21,6 +21,8 @@
       this.impact = 0; this.wheelRot = 0; this.crates = 0; this.hurtT = 0; this.rollV = 0; this.pitchV = 0;
       this.cmdr = WZ.Heroes.commander(); this.model.seatCmdr.add(this.cmdr.root); this.cmdr.setMode('sit');
       this.t = 0; this.hop = 0;
+      // tornado hooks (WZ.Hazards): captive = whirled around the funnel (no control), slow = top-speed multiplier for this step, lift/tilt = visual
+      this.captive = null; this.slow = 1; this.lift = 0; this.tiltX = 0; this.tiltZ = 0;
     }
     get boostReady() { return this.boostCd <= 0 && this.boostT <= 0; }
     get boostPct() { return this.boostT > 0 ? 1 : 1 - Math.max(0, this.boostCd) / (J.boostCooldown); }
@@ -48,6 +50,14 @@
         }
         this.vx *= Math.exp(-3 * dt); this.vz *= Math.exp(-3 * dt); this.x += this.vx * dt; this.z += this.vz * dt; this.speed = Math.hypot(this.vx, this.vz); return;
       }
+      if (this.captive) { // caught by the tornado: the hazard system moves us, the driver has no control at all
+        this.speed = Math.hypot(this.vx, this.vz); this.boosting = false; this.throttle = 0; this.unstick = 0; this.stuckT = 0;
+        this.wheelRot += 14 * dt; this.steer = U.damp(this.steer, 0.4, 6, dt);
+        if (this.hurtT > 0) this.hurtT -= dt;
+        if (this.hop > 0) this.hop -= dt;
+        return;
+      }
+      const slow = this.slow; this.slow = 1;
       let mag = inp.mag;
       if (mag > 0.05) {
         const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
@@ -74,7 +84,7 @@
       const sF0 = sF;
       if (active) {
         const align = Math.max(0, Math.cos(U.angDiff(h, this.targetH)));
-        const want = (boosting ? J.boostSpeed : J.topSpeed) * (boosting ? 1 : mag) * (0.35 + 0.65 * align);
+        const want = (boosting ? J.boostSpeed : J.topSpeed) * (boosting ? 1 : mag) * (0.35 + 0.65 * align) * slow;
         if (sF < want) sF = Math.min(want, sF + J.accel * (boosting ? 1.7 : 1) * dt); else sF = Math.max(want, sF - J.brake * dt);
       } else sF = sF > 0 ? Math.max(0, sF - J.coast * dt) : Math.min(0, sF + J.coast * dt);
       sL *= Math.exp(-J.grip * dt);
@@ -143,7 +153,8 @@
       const sink = this.inPit ? (this.pitSink || 0) : 0;
       this.rx = x; this.rz = z; this.ry = gy - sink;
       const hp = this.hop > 0 ? Math.sin((1 - this.hop / 0.6) * Math.PI) : 0;
-      this.mesh.position.set(x, gy + hp * 1.5 - sink, z); this.mesh.rotation.set(pitch - hp * 0.3 - sink * 0.25, h, roll + hp * 0.25 + sink * 0.15);
+      if (!this.captive) { this.lift = U.damp(this.lift, 0, 5, dt); this.tiltX = U.damp(this.tiltX, 0, 6, dt); this.tiltZ = U.damp(this.tiltZ, 0, 6, dt); }
+      this.mesh.position.set(x, gy + hp * 1.5 - sink + this.lift, z); this.mesh.rotation.set(pitch - hp * 0.3 - sink * 0.25 + this.tiltX, h, roll + hp * 0.25 + sink * 0.15 + this.tiltZ);
       if (sink > 0) this.mesh.scale.setScalar(Math.max(0.25, 1 - sink * 0.2));
       const m = this.model, sp01 = Math.min(1, this.speed / J.topSpeed);
       this.rollV = U.damp(this.rollV, U.clamp(-this.sL * 0.012 - this.steer * sp01 * 0.1, -0.2, 0.2), 8, dt);

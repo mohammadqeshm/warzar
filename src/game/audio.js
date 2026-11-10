@@ -59,7 +59,7 @@
       if (!A.ctx || A.hardSuspended || A.muted) return;
       v = v == null ? 1 : v;
       const now = A.ctx.currentTime;
-      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03 }[name] || 0;
+      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03, heli: 0.18, mortar: 0.12, club: 0.2, roar: 0.4 }[name] || 0;
       if (gap && A.last[name] && now - A.last[name] < gap) return;
       A.last[name] = now;
       switch (name) {
@@ -91,6 +91,11 @@
         case 'mine': A.tone('sine', 1250, 1250, 0.05, 0.14 * v); break;
         case 'siren': for (let i = 0; i < 4; i++) A.tone('sawtooth', i % 2 ? 520 : 760, i % 2 ? 760 : 520, 0.22, 0.17 * v, i * 0.22); break;
         case 'wind': A.noiseBurst(0.5, 'bandpass', 500, 1500, 0.28 * v, 0, 1.2); break;
+        case 'roar': A.tone('sawtooth', 120, 55, 0.55, 0.3 * v); A.tone('square', 80, 45, 0.5, 0.15 * v); A.noiseBurst(0.5, 'lowpass', 600, 150, 0.3 * v); break;
+        case 'club': A.tone('sine', 85, 34, 0.38, 0.7 * v); A.noiseBurst(0.3, 'lowpass', 1000, 100, 0.5 * v); A.tone('triangle', 300, 90, 0.12, 0.3 * v); break;
+        case 'swish': A.noiseBurst(0.38, 'bandpass', 350, 1500, 0.22 * v, 0, 1.2); break;
+        case 'mortar': A.tone('sine', 220, 55, 0.26, 0.45 * v); A.noiseBurst(0.2, 'lowpass', 1300, 200, 0.4 * v); break;
+        case 'heli': A.noiseBurst(0.15, 'lowpass', 220, 110, 0.3 * v); A.tone('sawtooth', 58, 46, 0.13, 0.07 * v); break;
         case 'spawn': A.tone('sine', 200, 260, 0.08, 0.05 * v); break;
         default: break;
       }

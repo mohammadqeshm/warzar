@@ -38,11 +38,14 @@ import './systems/hazards.js';
 import './systems/landmines.js';
 import './systems/turrets.js';
 import './systems/bullets.js';
+import './systems/heli.js';
+import './systems/weapons.js';
 
 import './entities/smallprops.js';
 import './entities/crate.js';
 import './entities/jeep.js';
 import './entities/enemy.js';
+import './entities/giant.js';
 import './entities/nana.js';
 
 import './ui.js';

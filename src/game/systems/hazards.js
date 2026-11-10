@@ -5,14 +5,37 @@
 (function (WZ) {
   'use strict';
   const T = THREE, CFG = WZ.CFG, U = WZ.U, H = CFG.hazards, MC = H.mines, TC = H.tornado, BC = H.barrels, PC = H.pits;
-  const m4 = new T.Matrix4(), qI = new T.Quaternion(), vp = new T.Vector3(), vs = new T.Vector3();
+  const m4 = new T.Matrix4(), qI = new T.Quaternion(), vp = new T.Vector3(), vs = new T.Vector3(), qT = new T.Quaternion(), eT = new T.Euler();
   const d2 = (ax, az, bx, bz) => (ax - bx) * (ax - bx) + (az - bz) * (az - bz);
 
-  function streakTex() {
-    const c = document.createElement('canvas'); c.width = 128; c.height = 64; const x = c.getContext('2d');
-    x.fillStyle = '#c9b89a'; x.fillRect(0, 0, 128, 64);
-    for (let i = 0; i < 46; i++) { x.fillStyle = 'rgba(' + (40 + Math.random() * 60 | 0) + ',' + (30 + Math.random() * 40 | 0) + ',20,' + (0.25 + Math.random() * 0.5) + ')'; x.fillRect(Math.random() * 128, 0, 1 + Math.random() * 4, 64); }
-    const tx = new T.CanvasTexture(c); tx.wrapS = tx.wrapT = T.RepeatWrapping; tx.repeat.set(2, 1); return tx;
+  /** tileable swirling dust texture (alpha): diagonal streaks wrap around the funnel => reads as a spinning column of debris */
+  function funnelTex(seed) {
+    const W = 256, H = 128, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+    const rnd = WZ.RNG.mulberry32(seed);
+    x.clearRect(0, 0, W, H);
+    for (let i = 0; i < 90; i++) {
+      const px = rnd() * W, w = 2 + rnd() * 10, sl = 26 + rnd() * 34, a = 0.14 + rnd() * 0.42, sh = 70 + (rnd() * 110) | 0;
+      const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(' + sh + ',' + (sh - 8) + ',' + (sh - 22) + ',0)'); g.addColorStop(0.5, 'rgba(' + sh + ',' + (sh - 8) + ',' + (sh - 22) + ',' + a + ')'); g.addColorStop(1, 'rgba(' + sh + ',' + (sh - 8) + ',' + (sh - 22) + ',0)');
+      x.fillStyle = g;
+      for (const ox of [-W, 0, W]) { x.beginPath(); x.moveTo(px + ox, 0); x.lineTo(px + ox + w, 0); x.lineTo(px + ox + w + sl, H); x.lineTo(px + ox + sl, H); x.closePath(); x.fill(); }
+    }
+    for (let i = 0; i < 40; i++) { // lighter puffs
+      const px = rnd() * W, py = rnd() * H, r = 6 + rnd() * 16;
+      for (const ox of [-W, 0, W]) { const g = x.createRadialGradient(px + ox, py, 0, px + ox, py, r); g.addColorStop(0, 'rgba(205,190,165,0.30)'); g.addColorStop(1, 'rgba(205,190,165,0)'); x.fillStyle = g; x.fillRect(px + ox - r, py - r, r * 2, r * 2); }
+    }
+    x.globalCompositeOperation = 'destination-in';
+    const m = x.createLinearGradient(0, 0, 0, H); m.addColorStop(0, 'rgba(0,0,0,0.15)'); m.addColorStop(0.3, 'rgba(0,0,0,1)'); m.addColorStop(0.7, 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0.15)');
+    x.fillStyle = m; x.fillRect(0, 0, W, H);
+    const tx = new T.CanvasTexture(c); tx.wrapS = tx.wrapT = T.RepeatWrapping; tx.repeat.set(1, 1); return tx;
+  }
+  /** soft round dust/cloud disc (alpha) for the ground skirt and the dark cloud cap */
+  function discTex(seed, dark) {
+    const S = 128, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'), rnd = WZ.RNG.mulberry32(seed);
+    const g = x.createRadialGradient(S / 2, S / 2, 4, S / 2, S / 2, S / 2); g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.55, 'rgba(255,255,255,0.45)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, S, S);
+    x.globalCompositeOperation = 'source-atop';
+    for (let i = 0; i < 70; i++) { const px = rnd() * S, py = rnd() * S, r = 5 + rnd() * 16, v = dark ? 20 + rnd() * 50 : 120 + rnd() * 90; x.fillStyle = 'rgba(' + v + ',' + (v - 6) + ',' + (v - 16) + ',' + (0.25 + rnd() * 0.4) + ')'; x.beginPath(); x.arc(px, py, r, 0, 6.3); x.fill(); }
+    return new T.CanvasTexture(c);
   }
   function setM(mesh, i, x, y, z, s) { m4.compose(vp.set(x, y, z), qI, vs.set(s, s, s)); mesh.setMatrixAt(i, m4); }
 
@@ -20,7 +43,8 @@
     ctx: null, rng: null, rng2: null, mission: null, mines: [], barrels: [], pits: [], torn: null,
     tornOn: false, minesOn: false, barrelsOn: false, pitsOn: false,
     nextT: 0, pingT: 0, nearest: 1e9, caught: 0, nanaT: 0, windT: 0, dustT: 0, key: '',
-    ms: null, bms: null, pms: null, tg: null, layers: [], debris: [], ring: null, tex: null, geos: [],
+    ms: null, bms: null, pms: null, tg: null, layers: [], debris: null, debrisU: [], disks: [], core: null, coreRing: null, ring: null, texs: [], geos: [], immune: 0, spark: 0,
+    FH: 32, NDEB: 36, fadeK: 1,
 
     init(ctx, mission, seed) {
       Z.dispose(); Z.ctx = ctx; Z.mission = mission; Z.rng = WZ.RNG.create(seed); Z.rng2 = WZ.RNG.create(WZ.RNG.hash(seed, 505));
@@ -73,18 +97,38 @@
       for (const m of Z.ms) m.instanceMatrix.needsUpdate = true;
     },
 
+    // Funnel: 16 stacked open cones widening toward the top (dark swirling dust), a dark core, a ground dust skirt, a storm-cloud cap,
+    // 36 tumbling debris pieces (instanced) and two ground rings (pull range / core). All animated in render().
     buildTornado() {
-      const g = new T.Group(); g.visible = false; Z.tex = streakTex(); Z.layers = []; Z.debris = [];
-      for (let i = 0; i < 8; i++) {
-        const r0 = 1.1 + i * 1.05, geo = new T.CylinderGeometry(r0 + 1.05, r0, 3.3, 16, 1, true); Z.geos.push(geo);
-        const mat = new T.MeshBasicMaterial({ map: Z.tex, color: i % 2 ? 0xb9a98e : 0x9c8a70, transparent: true, opacity: 0.58 - i * 0.03, side: T.DoubleSide, depthWrite: false });
-        const mesh = new T.Mesh(geo, mat); mesh.position.y = 1.6 + i * 3.1; g.add(mesh); Z.layers.push(mesh);
+      const g = new T.Group(); g.visible = false; Z.layers = []; Z.debris = null; Z.disks = [];
+      Z.texs = [funnelTex(11), funnelTex(23), discTex(5, false), discTex(9, true)];
+      const H = Z.FH, rAt = (y) => 0.9 + 8.6 * Math.pow(y / H, 1.4), N = 16, dh = H / N;
+      for (let i = 0; i < N; i++) {
+        const y0 = i * dh, geo = new T.CylinderGeometry(rAt(y0 + dh * 1.08), rAt(y0), dh * 1.08, 22, 1, true); Z.geos.push(geo);
+        const k = i / (N - 1), col = new T.Color().setRGB(0.62 + 0.2 * k, 0.55 + 0.22 * k, 0.45 + 0.24 * k);
+        const mat = new T.MeshBasicMaterial({ map: Z.texs[i % 2], color: col, transparent: true, opacity: 0.78 - 0.2 * k, side: T.DoubleSide, depthWrite: false });
+        const mesh = new T.Mesh(geo, mat); mesh.position.y = y0 + dh * 0.5; mesh.userData = { op: mat.opacity, i, sp: (2.6 + (i % 4) * 0.45) * (1 - i * 0.025), r: rAt(y0 + dh / 2) }; g.add(mesh); Z.layers.push(mesh);
       }
-      const dg = new T.BoxGeometry(0.5, 0.35, 0.8), dm = new T.MeshLambertMaterial({ color: 0x5a4430 }); Z.geos.push(dg);
-      for (let i = 0; i < 14; i++) { const d = new T.Mesh(dg, dm); d.userData = { a: Z.rng.range(0, 6.28), h: Z.rng.range(1, 22), sp: Z.rng.range(1.5, 3.2) }; g.add(d); Z.debris.push(d); }
-      const rg = new T.RingGeometry(TC.radius - 0.6, TC.radius, 40); Z.geos.push(rg);
-      Z.ring = new T.Mesh(rg, new T.MeshBasicMaterial({ color: 0xff5a3a, transparent: true, opacity: 0.55, side: T.DoubleSide, depthWrite: false }));
+      const cg = new T.CylinderGeometry(rAt(H) * 0.38, 0.35, H, 14, 1, true); Z.geos.push(cg);
+      Z.core = new T.Mesh(cg, new T.MeshBasicMaterial({ color: 0x2c241c, transparent: true, opacity: 0.34, side: T.BackSide, depthWrite: false })); Z.core.position.y = H / 2; Z.core.userData = { op: 0.34 }; g.add(Z.core);
+      // ground dust skirt + cloud cap
+      const dg = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2); Z.geos.push(dg);
+      const disc = (tex, r, y, col, op) => { const m = new T.Mesh(dg, new T.MeshBasicMaterial({ map: tex, color: col, transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide })); m.scale.set(r * 2, 1, r * 2); m.position.y = y; m.userData = { op, cap: y > 5 }; g.add(m); Z.disks.push(m); return m; };
+      disc(Z.texs[2], 13, 0.5, 0xc2a880, 0.7); disc(Z.texs[2], 9, 1.4, 0xa89270, 0.65); disc(Z.texs[2], 6, 2.6, 0x8f7c60, 0.55);
+      disc(Z.texs[3], 19, H + 0.6, 0x555660, 0.8); disc(Z.texs[3], 14, H + 1.8, 0x3f4048, 0.85); disc(Z.texs[3], 9, H + 3.0, 0x2e2f36, 0.8);
+      // debris
+      const dgeo = new T.BoxGeometry(0.55, 0.38, 0.9); Z.geos.push(dgeo);
+      const im = new T.InstancedMesh(dgeo, new T.MeshLambertMaterial({ color: 0xffffff }), Z.NDEB); im.frustumCulled = false; im.castShadow = false;
+      const cc = new T.Color(), pal = [0x5a4430, 0x7a6a58, 0x3d3a36, 0x8a5a2b, 0x9a9488];
+      for (let i = 0; i < Z.NDEB; i++) { im.setColorAt(i, cc.setHex(pal[i % pal.length])); }
+      Z.debrisU = []; for (let i = 0; i < Z.NDEB; i++) Z.debrisU.push({ a: Z.rng.range(0, 6.28), h: Z.rng.range(1, H * 0.95), sp: Z.rng.range(1.2, 3.4), s: Z.rng.range(0.6, 1.9), o: Z.rng.range(0.9, 1.6) });
+      g.add(im); Z.debris = im;
+      // ground rings: pull range + core
+      const rg = new T.RingGeometry(TC.pullRadius - 0.5, TC.pullRadius, 64), cr = new T.RingGeometry(TC.core - 0.35, TC.core, 40); Z.geos.push(rg, cr);
+      Z.ring = new T.Mesh(rg, new T.MeshBasicMaterial({ color: 0xff7a3a, transparent: true, opacity: 0.4, side: T.DoubleSide, depthWrite: false }));
       Z.ring.rotation.x = -Math.PI / 2; Z.ring.position.y = 0.25; g.add(Z.ring);
+      Z.coreRing = new T.Mesh(cr, new T.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.45, side: T.DoubleSide, depthWrite: false }));
+      Z.coreRing.rotation.x = -Math.PI / 2; Z.coreRing.position.y = 0.3; g.add(Z.coreRing);
       Z.ctx.scene.add(g); Z.tg = g;
     },
 
@@ -213,6 +257,7 @@
       WZ.Audio.sfx('boom'); WZ.Fx.shake(who === 'jeep' ? 0.65 : 0.35); WZ.Fx.text('BOOM!', b.x, y + 3.4, b.z, 'bonk');
       E.hash.query(b.x, b.z, BC.blast, E.q);
       for (const e of E.q.slice()) { if (!e.active || e.state === 2) continue; E.ko(e, e.x - b.x, e.z - b.z, 13, 'barrel'); }
+      if (WZ.Giants) WZ.Giants.splash(b.x, b.z, BC.blast * 0.6, BC.giantDamage, 'barrel');
       if (who === 'jeep' && J.alive) {
         const dmg = BC.damage;
         if (dmg >= J.hp) J.deathCause = 'barrel';
@@ -269,6 +314,7 @@
       WZ.Audio.sfx('boom'); WZ.Fx.shake(who === 'jeep' ? 0.75 : 0.4); WZ.Fx.text('BOOM!', mn.x, y + 3.5, mn.z, 'bonk');
       E.hash.query(mn.x, mn.z, MC.blast, E.q);
       for (const e of E.q.slice()) { if (!e.active || e.state === 2) continue; E.ko(e, e.x - mn.x, e.z - mn.z, 12, 'mine'); }
+      if (WZ.Giants) WZ.Giants.splash(mn.x, mn.z, MC.blast * 0.6, MC.giantDamage, 'mine');
       if (who === 'jeep') {
         // TWO-STRIKE RULE: the first mine costs half of the jeep's max HP, the second one destroys it
         J.mineHits = (J.mineHits || 0) + 1;
@@ -291,8 +337,19 @@
       Z.tg.visible = true; WZ.Audio.sfx('siren'); WZ.Fx.shake(0.2); WZ.Fx.text('TORNADO!', J.rx, J.ry + 6, J.rz, 'warn');
     },
 
+    /** the vehicle is released: thrown outward, brief immunity so it can drive away */
+    releaseJeep(Tn, J) {
+      const k = J.captive; if (!k) return;
+      J.captive = null; Z.immune = TC.immune; Z.caught = 0;
+      const ox = Math.cos(k.ang), oz = Math.sin(k.ang), tx = -oz * Tn.spin, tz = ox * Tn.spin;
+      J.vx = ox * TC.throwSpeed + tx * 6; J.vz = oz * TC.throwSpeed + tz * 6; J.h = Math.atan2(J.vx, J.vz); J.targetH = J.h; J.hop = 0.45;
+      J.speed = Math.hypot(J.vx, J.vz);
+      WZ.Fx.text(WZ.I18n.t('hud.tornadoFree'), J.rx, J.ry + 6, J.rz, 'good'); WZ.Fx.flash('good'); WZ.Audio.sfx('boost');
+    },
+
     updateTornado(dt, tm) {
       const c = Z.ctx, J = c.jeep, N = c.nana, E = c.enemies, Tn = Z.torn, rng = Z.rng, lim = c.map.half - 10;
+      if (Z.immune > 0) Z.immune -= dt;
       if (!Tn) { if (J.alive && tm >= Z.nextT) Z.startWarn(tm); return; }
       Tn.t += dt;
       if (Tn.phase === 'warn') {
@@ -300,25 +357,51 @@
         if (Tn.t >= TC.warn) { Tn.phase = 'active'; Tn.t = 0; WZ.Fx.shake(0.3); }
         return;
       }
+      const cap = J.captive;
       if (Tn.phase === 'active') {
-        Tn.scale = 1; if (Tn.t >= TC.life) { Tn.phase = 'fade'; Tn.t = 0; }
-        const sp = Math.min(TC.maxSpeed, TC.speed + TC.speedPerMission * Z.mission.index);
+        Tn.scale = 1;
+        if (Tn.t >= TC.life) { if (cap) Tn.t = TC.life - 0.01; else { Tn.phase = 'fade'; Tn.t = 0; } }   // never vanish while it is holding the vehicle
+        const sp = Math.min(TC.maxSpeed, TC.speed + TC.speedPerMission * Z.mission.index) * (cap ? 0.2 : 1);
         const want = Math.atan2(J.x - Tn.x, J.z - Tn.z) + Math.sin(Tn.t * 0.8 + Tn.ph) * 0.9 * (1 - TC.homing);
         Tn.hd += U.clamp(U.angDiff(Tn.hd, want), -TC.turn * dt, TC.turn * dt);
         Tn.x = U.clamp(Tn.x + Math.sin(Tn.hd) * sp * dt, -lim, lim); Tn.z = U.clamp(Tn.z + Math.cos(Tn.hd) * sp * dt, -lim, lim);
       } else {
         Tn.scale = Math.max(0, 1 - Tn.t / TC.fade);
+        if (cap) Z.releaseJeep(Tn, J);
         if (Tn.t >= TC.fade) { Z.torn = null; Z.tg.visible = false; Z.nextT = tm + rng.range(TC.gap[0], TC.gap[1]); Z.caught = 0; return; }
       }
-      const R = TC.radius * Tn.scale, dj = Math.hypot(J.x - Tn.x, J.z - Tn.z);
-      if (J.alive && dj < R) {
-        const k = 1 - dj / R, f = Math.exp(-TC.drag * k * dt), l = dj || 1;
-        J.vx = J.vx * f + (Tn.x - J.x) / l * TC.pull * k * dt; J.vz = J.vz * f + (Tn.z - J.z) / l * TC.pull * k * dt;
-        J.h += Tn.spin * TC.spin * (0.35 + 0.65 * k) * dt;
-        WZ.Fx.shake(0.1 + 0.2 * k); Z.key = 'hud.tornadoEscape';
-        if (!Z.caught) { Z.caught = 1; WZ.Fx.text('SPINNING!', J.rx, J.ry + 6, J.rz, 'warn'); WZ.Fx.flash('hurt'); }
-        Z.windT -= dt; if (Z.windT <= 0) { Z.windT = 0.45; WZ.Audio.sfx('wind'); }
-      } else { Z.caught = 0; if (dj < 45) Z.key = 'hud.tornado'; }
+      const R = TC.radius * Tn.scale, pullR = TC.pullRadius * Tn.scale, coreR = TC.core * Tn.scale, dj = Math.hypot(J.x - Tn.x, J.z - Tn.z);
+
+      if (J.captive) {
+        // ---- CAUGHT: whirled around the funnel, lifted, spinning, zero control, for TC.hold seconds
+        const k = J.captive; k.t += dt;
+        const ox = J.x, oz = J.z;
+        k.ang += (TC.orbitSpin + 0.5 * Math.sin(k.t * 2.1)) * Tn.spin * dt;
+        const rOrb = 2.7 + 1.0 * Math.sin(k.t * 2.3), r = U.lerp(k.r0, rOrb, U.smooth(0, 1, Math.min(1, k.t / 0.6)));
+        J.x = Tn.x + Math.cos(k.ang) * r; J.z = Tn.z + Math.sin(k.ang) * r;
+        J.vx = (J.x - ox) / dt; J.vz = (J.z - oz) / dt;
+        J.h += TC.spin * 1.7 * Tn.spin * dt;
+        const up = U.smooth(0, 1, Math.min(1, k.t / 0.7)) * (1 - U.smooth(0, 1, Math.max(0, (k.t - (TC.hold - 0.45)) / 0.45)));
+        J.lift = (TC.lift + 0.5 * Math.sin(k.t * 4.4)) * up; J.tiltX = 0.32 * Math.sin(k.t * 3.1) * up; J.tiltZ = (0.42 + 0.15 * Math.sin(k.t * 5)) * up;
+        WZ.Fx.shake(0.22); Z.key = 'hud.tornadoCaught';
+        Z.windT -= dt; if (Z.windT <= 0) { Z.windT = 0.4; WZ.Audio.sfx('wind'); }
+        c.particles.dust(J.x + (Math.random() - 0.5) * 2, J.ry + J.lift * 0.4, J.z + (Math.random() - 0.5) * 2, 1);
+        if (k.t >= TC.hold || !J.alive) Z.releaseJeep(Tn, J);
+      } else if (J.alive && dj < pullR && Z.immune <= 0) {
+        // ---- PULL ZONE: the closer, the slower you are and the harder it drags you in (boost = the way out)
+        const kk0 = 1 - dj / pullR, kk = kk0 * kk0 * (3 - 2 * kk0), l = dj || 1;
+        J.slow = Math.min(J.slow, J.boosting ? 1 - TC.slowBoost * kk : 1 - TC.slow * kk);
+        const a = TC.pullAccel * kk * dt;
+        J.vx += (Tn.x - J.x) / l * a; J.vz += (Tn.z - J.z) / l * a;
+        J.h += Tn.spin * TC.spin * 0.22 * kk * dt;
+        WZ.Fx.shake(0.04 + 0.16 * kk); Z.key = kk > 0.35 ? 'hud.tornadoPull' : 'hud.tornado';
+        Z.windT -= dt; if (Z.windT <= 0) { Z.windT = 0.55 - 0.25 * kk; WZ.Audio.sfx('wind', 0.5 + kk * 0.6); }
+        if (dj < coreR && !J.captive) {
+          J.captive = { t: 0, ang: Math.atan2(J.z - Tn.z, J.x - Tn.x), r0: dj };
+          Z.caught = 1; WZ.Fx.text(WZ.I18n.t('hud.tornadoSpin'), J.rx, J.ry + 6, J.rz, 'warn'); WZ.Fx.flash('hurt'); WZ.Audio.sfx('siren');
+        }
+      } else { Z.caught = 0; if (dj < 55 && Z.immune <= 0) Z.key = 'hud.tornado'; }
+
       if (N.out && !N.isKO && Math.hypot(N.x - Tn.x, N.z - Tn.z) < R * 0.85) {
         Z.nanaT -= dt; if (Z.nanaT <= 0) { Z.nanaT = 0.5; N.hurt(TC.nanaDamage); }
       }
@@ -360,17 +443,42 @@
         pring.instanceMatrix.needsUpdate = true;
       }
       const Tn = Z.torn; if (!Tn || !Z.tg) return;
-      const gy = Z.ctx.map.height(Tn.x, Tn.z), s = Tn.scale * (1 + 0.04 * Math.sin(tm * 6));
-      Z.tg.position.set(Tn.x, gy, Tn.z); Z.tg.scale.set(s, Tn.phase === 'warn' ? s : s, s);
-      Z.ring.visible = Tn.phase === 'warn'; Z.ring.material.opacity = 0.35 + 0.3 * Math.sin(tm * 12);
+      const gy = Z.ctx.map.height(Tn.x, Tn.z), s = Tn.scale * (1 + 0.03 * Math.sin(tm * 6));
+      Z.tg.position.set(Tn.x, gy, Tn.z); Z.tg.scale.set(s, Tn.phase === 'warn' ? s * (0.5 + 0.5 * Tn.scale) : s, s);
+      const warn = Tn.phase === 'warn', fz = Tn.scale;
+      Z.ring.visible = true; Z.ring.material.opacity = warn ? 0.35 + 0.3 * Math.sin(tm * 12) : 0.14 + 0.07 * Math.sin(tm * 3);
+      Z.ring.scale.setScalar(warn ? 1 : 1 + 0.015 * Math.sin(tm * 2)); Z.coreRing.visible = !warn; Z.coreRing.material.opacity = 0.3 + 0.2 * Math.sin(tm * 7);
+      const sw = Tn.spin, H = Z.FH;
+      // while the vehicle is caught the camera sits inside the funnel: fade the dust so the player can still see the spinning vehicle
+      Z.fadeK = U.damp(Z.fadeK, Z.ctx.jeep.captive ? 0.22 : 1, 6, dt);
+      for (const l of Z.layers) l.material.opacity = l.userData.op * Z.fadeK;
+      for (const d of Z.disks) d.material.opacity = d.userData.op * (d.userData.cap ? Z.fadeK * Z.fadeK : Z.fadeK);
+      Z.core.material.opacity = Z.core.userData.op * Z.fadeK;
       for (let i = 0; i < Z.layers.length; i++) {
-        const l = Z.layers[i]; l.rotation.y += dt * (3.5 + i * 0.6) * Tn.spin; l.position.x = Math.sin(tm * 2.2 + i * 0.8) * i * 0.18; l.position.z = Math.cos(tm * 1.9 + i * 0.7) * i * 0.15;
+        const l = Z.layers[i], u = l.userData; l.rotation.y += dt * u.sp * sw;
+        const sway = i / Z.layers.length; l.position.x = Math.sin(tm * 1.7 + i * 0.55) * (0.15 + sway * sway * 2.6); l.position.z = Math.cos(tm * 1.45 + i * 0.5) * (0.12 + sway * sway * 2.2);
       }
-      for (const d of Z.debris) {
-        const u = d.userData; u.a += u.sp * dt * Tn.spin; const r = 1.6 + u.h * 0.38;
-        d.position.set(Math.cos(u.a) * r, u.h, Math.sin(u.a) * r); d.rotation.x += dt * 6; d.rotation.y += dt * 4;
+      for (let i = 0; i < 2; i++) { const t = Z.texs[i]; t.offset.x -= dt * (0.05 + i * 0.03) * sw; t.offset.y += dt * 0.07; }
+      Z.core.position.x = Math.sin(tm * 1.7 + 4) * 0.8; Z.core.position.z = Math.cos(tm * 1.45 + 4) * 0.7;
+      for (let i = 0; i < Z.disks.length; i++) { Z.disks[i].rotation.y += dt * (0.7 + i * 0.15) * (i < 3 ? sw : -sw); }
+      // debris spiralling up the funnel
+      const im = Z.debris, U_ = Z.debrisU;
+      for (let i = 0; i < U_.length; i++) {
+        const d = U_[i]; d.a += d.sp * dt * sw * (1.6 - d.h / H); d.h += dt * 2.2 * d.s; if (d.h > H) d.h = 1 + Math.random() * 3;
+        const r = (0.9 + 8.6 * Math.pow(d.h / H, 1.4)) * d.o + 0.6;
+        vp.set(Math.cos(d.a) * r, d.h, Math.sin(d.a) * r); const q = d.a * 3 + tm * d.sp * 3;
+        qT.setFromEuler(eT.set(q, q * 0.7, q * 1.3)); const sc = d.s * (0.8 + 0.5 * Math.sin(i)); vs.set(sc, sc, sc);
+        m4.compose(vp, qT, vs); im.setMatrixAt(i, m4);
       }
-      Z.dustT -= dt; if (Z.dustT <= 0 && Tn.scale > 0.4) { Z.dustT = 0.07; Z.ctx.particles.dust(Tn.x + (Math.random() - 0.5) * 5, gy, Tn.z + (Math.random() - 0.5) * 5, 2); }
+      im.instanceMatrix.needsUpdate = true;
+      // dust: skirt puffs at the base + swirling smoke ring, scaled with the funnel
+      Z.dustT -= dt; if (Z.dustT <= 0 && fz > 0.3) {
+        Z.dustT = 0.045; const PT = Z.ctx.particles;
+        for (let k = 0; k < 2; k++) {
+          const a = Math.random() * 6.283, rr = (3 + Math.random() * 7) * fz;
+          PT.emit(0, Tn.x + Math.cos(a) * rr, gy + 0.4, Tn.z + Math.sin(a) * rr, -Math.sin(a) * 5 * sw + (Math.random() - 0.5), 1.5 + Math.random() * 3, Math.cos(a) * 5 * sw + (Math.random() - 0.5), 0.9 + Math.random() * 0.6, 1.4, 4.2, 0.74, 0.64, 0.5, 0.5, 0, 0, 0.6);
+        }
+      }
     },
 
     dispose() {
@@ -383,12 +491,15 @@
       }
       for (const g of Z.geos) g.dispose();
       for (const m of Z.layers) m.material.dispose();
-      if (Z.ring) Z.ring.material.dispose(); if (Z.tex) Z.tex.dispose();
+      for (const m of Z.disks) m.material.dispose();
+      if (Z.core) Z.core.material.dispose(); if (Z.coreRing) Z.coreRing.material.dispose();
+      if (Z.debris) { Z.debris.material.dispose(); Z.debris.dispose(); }
+      if (Z.ring) Z.ring.material.dispose(); for (const t of Z.texs) t.dispose();
       for (const m of Z.ms || []) { m.material.dispose(); m.dispose(); }
       for (const m of Z.bms || []) { m.material.dispose(); m.dispose(); }
       for (const m of Z.pms || []) { m.material.dispose(); m.dispose(); }
-      Z.geos = []; Z.layers = []; Z.debris = []; Z.mines = []; Z.barrels = []; Z.pits = [];
-      Z.ms = Z.bms = Z.pms = null; Z.tg = Z.ring = Z.tex = null; Z.torn = null; Z.ctx = null;
+      Z.geos = []; Z.layers = []; Z.debris = null; Z.debrisU = []; Z.disks = []; Z.texs = []; Z.core = Z.coreRing = null; Z.mines = []; Z.barrels = []; Z.pits = []; Z.immune = 0;
+      Z.ms = Z.bms = Z.pms = null; Z.tg = Z.ring = null; Z.torn = null; Z.ctx = null;
       Z.minesOn = Z.tornOn = Z.barrelsOn = Z.pitsOn = false; Z.key = ''; Z.caught = 0; Z.nearest = 1e9;
     },
   };

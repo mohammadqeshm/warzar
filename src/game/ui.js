@@ -9,7 +9,22 @@
   const CRATE_ICO = '<svg viewBox="0 0 24 24" class="ico"><rect x="2" y="5" width="20" height="16" rx="2" fill="#7A5230" stroke="#0E0E0E" stroke-width="1.5"/><path d="M2 9h20M2 17h20M5 5v16M19 5v16" stroke="#3A3C3E" stroke-width="2"/><path d="M6 20L18 6" stroke="#5E4126" stroke-width="2"/></svg>';
   const BOLT_ICO = '<svg viewBox="0 0 24 24" class="ico"><path d="M13 1L4 14h6l-2 9 10-14h-6z" fill="#FFB400" stroke="#0E0E0E" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 
+  // weapon icons (one per deployable) + swap icon + coin
+  const WI = (body) => '<svg viewBox="0 0 32 32" class="wi">' + body + '</svg>';
+  const ST = 'stroke="#0E0E0E" stroke-width="1.6" stroke-linejoin="round"';
+  const W_ICO = {
+    mine: WI('<ellipse cx="16" cy="20" rx="12.5" ry="6" fill="#3e4430" ' + ST + '/><ellipse cx="16" cy="17" rx="12.5" ry="6" fill="#6b7348" ' + ST + '/><circle cx="16" cy="16.6" r="3" fill="#ff3a22" ' + ST + '/><path d="M6 13l-2-3M26 13l2-3M16 10V6" stroke="#0E0E0E" stroke-width="2" stroke-linecap="round"/>'),
+    gun: WI('<rect x="5" y="23" width="22" height="5" rx="2" fill="#FFB400" ' + ST + '/><rect x="9" y="13" width="14" height="10" rx="3" fill="#4A525A" ' + ST + '/><rect x="11.5" y="3.5" width="3.4" height="11" rx="1" fill="#16181A" ' + ST + '/><rect x="17.2" y="3.5" width="3.4" height="11" rx="1" fill="#16181A" ' + ST + '/><rect x="13" y="16" width="6" height="3" rx="1" fill="#4cff6a"/>'),
+    heavy: WI('<rect x="4" y="23" width="24" height="5" rx="2" fill="#FFB400" ' + ST + '/><rect x="8" y="15" width="16" height="9" rx="3" fill="#59636E" ' + ST + '/><rect x="13" y="1.5" width="7" height="15" rx="2" fill="#16181A" ' + ST + ' transform="rotate(22 16 16)"/><rect x="12.5" y="1.5" width="8" height="3.4" rx="1" fill="#ff7a4a" ' + ST + ' transform="rotate(22 16 16)"/>'),
+    bomb: WI('<circle cx="14.5" cy="19.5" r="10" fill="#2f2f3d" ' + ST + '/><ellipse cx="11" cy="15.5" rx="3" ry="2" fill="#6b6b84" transform="rotate(-30 11 15.5)"/><rect x="17" y="5.5" width="6" height="5" rx="1.5" fill="#8a8a95" ' + ST + ' transform="rotate(28 20 8)"/><path d="M22.5 6.5q4-4 6-0.5" stroke="#c9a06a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="28.5" cy="5" r="2.6" fill="#FFB400" ' + ST + '/>'),
+    heli: WI('<rect x="2" y="5" width="28" height="2.6" rx="1.3" fill="#23272A" ' + ST + '/><rect x="15" y="7" width="2.4" height="3.2" fill="#23272A"/><ellipse cx="14" cy="16.5" rx="9.5" ry="6" fill="#56733F" ' + ST + '/><path d="M6.5 14.5q1.5-4 6-3.6v6.2h-8.4z" fill="#8AD0FF" ' + ST + '/><rect x="21" y="14" width="9" height="3.2" rx="1.4" fill="#56733F" ' + ST + '/><rect x="27.5" y="9.5" width="2.6" height="6.2" rx="1" fill="#FFB400" ' + ST + '/><path d="M5 25h17M9 22v3M18 22v3" stroke="#0E0E0E" stroke-width="2" stroke-linecap="round"/>'),
+  };
+  const SWAP_ICO = '<svg viewBox="0 0 24 24" class="wi"><path d="M4 8h13l-3-3M20 16H7l3 3" fill="none" stroke="#ECE9E1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const COIN_ICO = '<svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="10.5" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5f00" stroke-width="2"/><path d="M12 7.2l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z" fill="#8a5f00"/></svg>';
+  const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli'];
+
   const UI = {
+    giantBarMax: 10, giantEls: [],
     root: null, c: {}, arrowEls: [], dbgOn: false, h: {},
 
     mount(host) {
@@ -21,6 +36,7 @@
         '<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="fg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFC23A"/><stop offset="1" stop-color="#FF4A10"/></linearGradient></defs></svg>' +
         '<div id="wz-hud" class="hidden">' +
         '  <div id="hud-top"><div id="hud-timer-box" class="panel"><div id="hud-timer">0:00</div></div>' +
+        '    <div id="hud-coins" class="panel" title="' + t('hud.loot.tip') + '">' + COIN_ICO + '<span id="hud-coins-n">0</span></div>' +
         '    <div id="hud-heat" class="panel"><div class="flames">' + flameSvg(0) + flameSvg(1) + flameSvg(2) + '</div><div class="lbl">' + t('hud.heat') + '</div></div></div>' +
         '  <div id="hud-left"><div id="hud-lvl" class="panel">LVL 1</div><div id="hud-crates" class="panel">' + CRATE_ICO + '<span id="hud-crates-n">0/0</span></div>' +
         '    <div id="hud-hp" class="bar"><i style="width:100%"></i><span>' + t('hud.jeep') + '</span><em class="strikes" title="mines"><u></u><u></u></em></div>' +
@@ -29,24 +45,32 @@
         '  <div id="hud-obj"></div><div id="hud-prompt" class="hidden"></div><div id="hud-hint" class="hidden"></div>' +
         '  <div id="hud-gun" class="hidden">' + BOLT_ICO + 'GUN BOOST</div>' +
         '  <div id="hud-arrows"></div>' +
+        '  <div id="hud-giants"></div>' +
         '  <div id="hud-buttons"><div id="hud-defs">' +
-        '<button id="btn-turret" class="ready"><i class="cd"></i><span>' + t('hud.turret') + '</span><b id="turret-n">0</b><small class="k-keys">' + t('hud.key.turret') + '</small></button>' +
-        '<button id="btn-heavy" class="ready"><i class="cd"></i><span>' + t('hud.heavy') + '</span><b id="heavy-n">0</b><small class="k-keys">' + t('hud.key.heavy') + '</small></button>' +
-        '<button id="btn-mine" class="off"><span>' + t('hud.mine') + '</span><b id="mine-n">0</b><small class="k-keys">' + t('hud.key.mine') + '</small></button></div>' +
+        '<div id="w-wheel" class="hidden"><div id="w-label"></div><div class="w-strip">' + W_ORDER.map((id) => '<button class="wchip" data-w="' + id + '"><i class="cd"></i>' + W_ICO[id] + '<b>0</b><small class="k-keys">' + (W_ORDER.indexOf(id) + 1) + '</small></button>').join('') + '</div></div>' +
+        '<button id="btn-wswap" aria-label="swap weapon">' + SWAP_ICO + '<small class="k-keys">Q/E</small></button>' +
+        '<button id="btn-weapon" class="ready" data-w="gun"><i class="cd"></i><span id="w-ico"></span><span id="w-name">' + t('w.gun') + '</span><b id="w-n">0</b><small class="k-keys">' + t('hud.key.weapon') + '</small></button></div>' +
         '<div id="hud-main"><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div></div>' +
         '</div>' +
         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
         '<div id="wz-load"><div class="load-in"><div class="load-title">WARZAR</div><div class="load-bar"><i id="load-fill"></i></div><div class="load-sub">' + t('load.title') + '</div></div></div>';
 
-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-mine', 'mine-n', 'btn-turret', 'turret-n', 'btn-heavy', 'heavy-n', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
-      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.tcd = UI.h['btn-turret'].querySelector('.cd'); UI.h.hcd = UI.h['btn-heavy'].querySelector('.cd'); UI.h.strikes = UI.h['hud-hp'].querySelectorAll('.strikes u');
+      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-weapon', 'btn-wswap', 'w-wheel', 'w-label', 'w-ico', 'w-name', 'w-n', 'hud-coins', 'hud-coins-n', 'hud-giants', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
+      UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.wcd = UI.h['btn-weapon'].querySelector('.cd'); UI.h.chips = Array.from(UI.h['w-wheel'].querySelectorAll('.wchip')); UI.h.strikes = UI.h['hud-hp'].querySelectorAll('.strikes u');
       UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
       // arrows
       for (let i = 0; i < 12; i++) {
         const a = document.createElement('div'); a.className = 'arrow hidden';
         a.innerHTML = '<svg viewBox="0 0 40 40"><path d="M20 3L36 33L20 26L4 33Z" fill="currentColor" stroke="#0E0E0E" stroke-width="3" stroke-linejoin="round"/></svg><b></b>';
         UI.h['hud-arrows'].appendChild(a); UI.arrowEls.push({ el: a, svg: a.firstChild, lbl: a.lastChild, vis: false });
+      }
+      // giant HP bars (pooled)
+      UI.giantEls = [];
+      for (let i = 0; i < UI.giantBarMax; i++) {
+        const g = document.createElement('div'); g.className = 'gbar hidden';
+        g.innerHTML = '<div class="gb-name">' + t('hud.giant') + '</div><div class="gb-bar"><i></i></div><em></em>';
+        UI.h['hud-giants'].appendChild(g); UI.giantEls.push({ el: g, fill: g.querySelector('i'), hp: g.querySelector('em'), vis: false, pct: -1, alert: -1, n: -1 });
       }
       // film grain
       try {
@@ -67,14 +91,14 @@
     },
 
     // ------------------------------------------------------------ HUD
-    hudShow(on) { UI.h['wz-hud'].classList.toggle('hidden', !on); UI.root.classList.toggle('in-mission', on); if (!on) { UI.hideArrows(0); if (WZ.Input && WZ.Input.reset) WZ.Input.reset(); } },
+    hudShow(on) { UI.h['wz-hud'].classList.toggle('hidden', !on); UI.root.classList.toggle('in-mission', on); if (!on) { UI.hideArrows(0); UI.hideGiantBars(0); UI.closeWheel(); if (WZ.Input && WZ.Input.reset) WZ.Input.reset(); } },
     bindHud(handlers) {
       const dep = UI.h['btn-deploy'], bst = UI.h['btn-boost'], pz = UI.h['btn-pause'];
       const press = (el, fn) => { el.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); fn(true); }; };
       press(dep, () => handlers.deploy());
-      press(UI.h['btn-mine'], () => handlers.mine());
-      press(UI.h['btn-turret'], () => handlers.turret());
-      press(UI.h['btn-heavy'], () => handlers.heavy());
+      press(UI.h['btn-weapon'], () => handlers.weapon());
+      press(UI.h['btn-wswap'], () => { handlers.wswap(); UI.openWheel(); });
+      for (const chip of UI.h.chips) press(chip, () => { handlers.wsel(chip.dataset.w); UI.openWheel(); });
       bst.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); WZ.Input.setBoost(true); };
       bst.onpointerup = bst.onpointercancel = bst.onpointerleave = () => WZ.Input.setBoost(false);
       pz.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); handlers.pause(); };
@@ -101,14 +125,49 @@
       if (c.prompt !== s.prompt) { c.prompt = s.prompt; h['hud-prompt'].textContent = s.prompt || ''; h['hud-prompt'].classList.toggle('hidden', !s.prompt); }
       if (c.hint !== s.hint) { c.hint = s.hint; h['hud-hint'].textContent = s.hint || ''; h['hud-hint'].classList.toggle('hidden', !s.hint); }
       if (c.obj !== s.objective) { c.obj = s.objective; h['hud-obj'].textContent = s.objective || ''; }
-      if (c.tp !== Math.round(s.turretPct * 20) || c.tn !== s.turretN) { c.tp = Math.round(s.turretPct * 20); c.tn = s.turretN; h.tcd.style.height = (100 - s.turretPct * 100) + '%'; h['turret-n'].textContent = s.turretN; h['btn-turret'].classList.toggle('ready', s.turretPct >= 1 && s.turretN > 0); h['btn-turret'].classList.toggle('off', !(s.turretN > 0)); }
-      if (c.hp2 !== Math.round(s.heavyPct * 20) || c.hn !== s.heavyN) { c.hp2 = Math.round(s.heavyPct * 20); c.hn = s.heavyN; h.hcd.style.height = (100 - s.heavyPct * 100) + '%'; h['heavy-n'].textContent = s.heavyN; h['btn-heavy'].classList.toggle('ready', s.heavyPct >= 1 && s.heavyN > 0); h['btn-heavy'].classList.toggle('off', !(s.heavyN > 0)); }
+      UI.paintWeapons(s);
       if (c.strikes !== s.strikes) { c.strikes = s.strikes; h.strikes.forEach((u, i) => u.classList.toggle('on', i < s.strikes)); }
       const rk = s.rush > 0.5; if (c.rk !== rk) { c.rk = rk; h['hud-nana'].classList.toggle('danger', rk); h['wz-hud'].classList.toggle('rush', rk); }
-      if (c.mines !== s.mines) { c.mines = s.mines; h['mine-n'].textContent = s.mines; h['btn-mine'].classList.toggle('off', !(s.mines > 0)); }
+      if (c.loot !== s.loot) { const up = c.loot != null && s.loot > c.loot; c.loot = s.loot; h['hud-coins-n'].textContent = s.loot; if (up) { const e = h['hud-coins']; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); } }
       if (c.gun !== s.gunBoost) { c.gun = s.gunBoost; h['hud-gun'].classList.toggle('hidden', !s.gunBoost); }
     },
-    resetHudCache() { UI.c = {}; },
+    resetHudCache() { UI.c = {}; UI._wsig = ''; UI.h['hud-coins'].classList.remove('burn', 'pop'); UI.closeWheel(); },
+
+    // ------------------------------------------------------------ weapon selector (one USE button + a swap button + a strip of all items)
+    paintWeapons(s) {
+      const h = UI.h, W = s.weapons, sel = s.wsel;
+      let sig = sel + '|';
+      for (let i = 0; i < W.length; i++) sig += W[i].n + ':' + Math.round(W[i].pct * 20) + ',';
+      if (sig === UI._wsig) return; UI._wsig = sig;
+      const si = W_ORDER.indexOf(sel), it = W[si], btn = h['btn-weapon'];
+      if (btn.dataset.w !== sel) { btn.dataset.w = sel; h['w-ico'].innerHTML = W_ICO[sel]; h['w-name'].textContent = t('w.' + sel); }
+      h['w-n'].textContent = it.n; h.wcd.style.height = (100 - it.pct * 100) + '%';
+      btn.classList.toggle('ready', it.pct >= 1 && it.n > 0); btn.classList.toggle('off', !(it.n > 0));
+      h.chips.forEach((ch, i) => {
+        ch.classList.toggle('sel', i === si); ch.classList.toggle('off', !(W[i].n > 0)); ch.firstChild.style.height = (100 - W[i].pct * 100) + '%';
+        const b = ch.querySelector('b'); if (b.textContent !== String(W[i].n)) b.textContent = W[i].n;
+      });
+      h['w-label'].textContent = t('w.' + sel);
+    },
+    /** show the weapon strip for a moment (after swapping / selecting) */
+    openWheel() {
+      const w = UI.h['w-wheel']; if (!w) return; w.classList.remove('hidden');
+      clearTimeout(UI._wheelT); UI._wheelT = setTimeout(UI.closeWheel, 3200);
+    },
+    closeWheel() { clearTimeout(UI._wheelT); const w = UI.h['w-wheel']; if (w) w.classList.add('hidden'); },
+    burnLoot() { const e = UI.h['hud-coins']; if (e) { e.classList.remove('pop'); e.classList.add('burn'); } },
+
+    // ------------------------------------------------------------ giant HP bars (positions are projected by WZ.Giants.bars)
+    setGiantBar(i, x, y, pct, alert, hp) {
+      const g = UI.giantEls[i]; if (!g) return;
+      if (!g.vis) { g.vis = true; g.el.classList.remove('hidden'); }
+      g.el.style.transform = 'translate(' + x.toFixed(0) + 'px,' + y.toFixed(0) + 'px) translate(-50%,-100%)';
+      const p = Math.round(Math.max(0, Math.min(1, pct)) * 100);
+      if (g.pct !== p) { g.pct = p; g.fill.style.width = p + '%'; }
+      if (g.alert !== alert) { g.alert = alert; g.el.classList.toggle('alert', !!alert); }
+      const n = Math.ceil(hp); if (g.n !== n) { g.n = n; g.hp.textContent = n; }
+    },
+    hideGiantBars(from) { for (let i = from; i < UI.giantEls.length; i++) { const g = UI.giantEls[i]; if (g.vis) { g.vis = false; g.el.classList.add('hidden'); } } },
 
     /** off-screen / on-screen arrows to targets */
     setArrow(i, x, y, rotDeg, label, kind, onscreen) {
@@ -165,13 +224,15 @@
       let rows = '';
       if (win) {
         rows = '<div class="sum-row"><span>' + t('sum.coins.crates') + '</span><b>+' + r.coinsCrates + '</b></div>' +
+          '<div class="sum-row"><span>' + t('sum.coins.kills') + '</span><b>+' + (r.coinsKills || 0) + '</b></div>' +
           '<div class="sum-row"><span>' + t('sum.coins.done') + '</span><b>+' + r.coinsDone + '</b></div>' +
           '<div class="sum-row"><span>' + t('sum.coins.time') + '</span><b>+' + r.coinsTime + '</b></div>';
-      } else rows = '<div class="sum-row"><span>' + t('sum.coins.crates') + '</span><b>+' + r.coinsCrates + '</b></div>';
+      } else rows = '<div class="sum-row"><span>' + t('sum.coins.crates') + '</span><b>+' + r.coinsCrates + '</b></div>' +
+        (r.burned > 0 ? '<div class="sum-row burned"><span>' + t('sum.coins.burned') + '</span><b>-' + r.burned + '</b></div>' : '');
       const el = UI._screen('summary',
         '<div class="sum panel ' + (win ? 'win' : 'fail') + '">' +
         '<div class="sum-title">' + (win ? t('sum.complete') : t('sum.failed')) + '</div>' +
-        (win ? '' : '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit' })[r.reason] || 'sum.fail.jeep') + '</div><div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>') +
+        (win ? '' : '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant' })[r.reason] || 'sum.fail.jeep') + '</div><div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>') +
         (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') +
         '<div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
         (win ? '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div>' : '') + '</div>' +

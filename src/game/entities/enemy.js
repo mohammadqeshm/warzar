@@ -51,11 +51,15 @@
         const d = (e.x - x) * (e.x - x) + (e.z - z) * (e.z - z);
         if (d < bd) { bd = d; best = e; }
       }
+      // giant guardians live outside the pool but are valid targets for every weapon (compare by surface distance)
+      const G = WZ.Giants && WZ.Giants.nearest ? WZ.Giants.nearest(x, z, r) : null;
+      if (G && (!best || Math.hypot(G.x - x, G.z - z) - G.radius < Math.sqrt(bd))) best = G;
       return best;
     },
 
     /** returns true if the hit KO'd the enemy */
     damage(e, amt, kx, kz, cause) {
+      if (e.giant) return WZ.Giants.damage(e, amt, kx, kz, cause);
       if (!e.active || e.state === KO) return false;
       e.hp -= amt; e.flash = 1;
       if (e.hp <= 0) { E.ko(e, kx, kz, 7, cause); return true; }

@@ -51,6 +51,7 @@
         E.hash.query(m.x, m.z, C.trigger + 1.5, E.q);
         let hit = false;
         for (let i = 0; i < E.q.length; i++) { const e = E.q[i]; if (e.active && e.state !== 2 && Math.hypot(e.x - m.x, e.z - m.z) < C.trigger) { hit = true; break; } }
+        if (!hit && WZ.Giants) for (const g of WZ.Giants.list) if (g.active && Math.hypot(g.x - m.x, g.z - m.z) < C.trigger + g.radius * 0.6) { hit = true; break; }
         if (hit) L.boom(k);
       }
     },
@@ -63,6 +64,7 @@
       E.hash.query(m.x, m.z, C.blast, E.q);
       let n = 0;
       for (const e of E.q.slice()) { if (!e.active || e.state === 2 || Math.hypot(e.x - m.x, e.z - m.z) > C.blast) continue; E.ko(e, e.x - m.x, e.z - m.z, C.power, 'mine'); n++; }
+      if (WZ.Giants) n += WZ.Giants.splash(m.x, m.z, C.blast * 0.7, C.giantDamage, 'mine');
       L.kills += n;
       if (n >= 3) WZ.Fx.text('x' + n + ' ' + WZ.I18n.t('hud.combo'), m.x, y + 6, m.z, 'coin');
     },

@@ -5,7 +5,7 @@
   const T = THREE, CFG = WZ.CFG, U = WZ.U, Cam = WZ.Cam;
   const t = (k, v) => WZ.I18n.t(k, v);
   const v3 = new T.Vector3(), tmp = { x: 0, z: 0 };
-  const TIPS = ['brief.tip1', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip5', 'brief.tip6', 'brief.tip7', 'brief.tip8', 'brief.tip9', 'brief.tip10', 'brief.tip11', 'brief.tip12'];
+  const TIPS = ['brief.tip1', 'brief.tip13', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip14', 'brief.tip5', 'brief.tip6', 'brief.tip15', 'brief.tip7', 'brief.tip8', 'brief.tip9', 'brief.tip10', 'brief.tip11', 'brief.tip12'];
 
   const M = {
     name: 'mission', phase: 'none',
@@ -27,14 +27,14 @@
       M.ctx = { scene: M.scene, map: M.map, col: M.col, jeep: M.jeep, enemies: WZ.Enemies, crates: M.crates, particles: WZ.Particles, fx: WZ.Fx, nana: null };
       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
-      WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx);
+      WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
       M.inp = { x: 0, y: 0, mag: 0, boost: false };
-      M.hud = { level: data.index, timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, mines: 0, turretPct: 1, turretN: 0, heavyPct: 1, heavyN: 0, strikes: 0, rush: 0 };
+      M.hud = { level: data.index, timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons.snap(), wsel: WZ.Weapons.selId, strikes: 0, rush: 0 };
 
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
-      M.coinsCrates = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
+      M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
       M.nanaOutT = 0; M.rushK = 0; M.rampStep = 0; M.failReason = '';
       M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.resultShown = false;
       M.camBlend = 0; M.fromPos = new T.Vector3(); M.fromLook = new T.Vector3();
@@ -51,7 +51,7 @@
       M.jeep.sync(1, 0.016, 0); M.nana.render(1, 0.016, 0);
       Cam.snap(M.jeep.rx, M.jeep.ry, M.jeep.rz);
       WZ.UI.hudShow(false); WZ.UI.resetHudCache();
-      WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), mine: () => WZ.Input.press('mine'), turret: () => WZ.Input.press('turret'), heavy: () => WZ.Input.press('heavy'), pause: () => WZ.Main.togglePause() });
+      WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), weapon: () => WZ.Input.press('weapon'), wswap: () => WZ.Input.press('wnext'), wsel: (id) => { WZ.Input.pressed.wsel = id; }, pause: () => WZ.Main.togglePause() });
       WZ.Input.reset();
       M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, tip: t(TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
       void Main;
@@ -70,7 +70,7 @@
       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
-      WZ.Hazards.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose();
+      WZ.Hazards.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Giants.dispose();
       M.scene = null; WZ.Main.renderer.renderLists.dispose();
     },
 
@@ -105,7 +105,13 @@
       j.cmdr.setMode('ko'); M.nana.cheer = false;
       if (M.failT < 0) { M.failT = j.deathCause === 'pit' ? 0.85 : 1.1; M.failReason = j.deathCause || 'jeep'; }
     },
-    onEnemyKO() { M.kosThisMission = (M.kosThisMission || 0); },
+    /** KO coins pile up as LOOT (HUD). Only paid out when the mission is completed; burned on failure. */
+    onEnemyKO(e) {
+      const en = e && e.enemy; if (!en || M.phase !== 'play') return;
+      const K = CFG.economy.kill, n = en.giant ? K.giant + K.giantPerMission * (M.data.index || 1) : (en.type === 'brute' ? K.brute : K.grunt);
+      M.killCoins += n;
+      if (n >= 3) WZ.Fx.text('+' + n, en.x, (en.ry || 0) + (en.giant ? 7 : 3.4), en.z, 'coin');
+    },
     onDeploy() {
       M.deployedOnce = true;
       if (M.mission.tutorial) M.spawnAt = M.time + CFG.spawn.tutorialDelay;
@@ -131,28 +137,36 @@
       M.t += dt;
       const I = WZ.Input, J = M.jeep, N = M.nana;
       if (I.consume('debug')) WZ.UI.toggleDebug();
-      if (M.phase === 'briefing') { if (I.consume('deploy') && M.briefEl) M.briefEl._go(); I.consume('boost'); I.consume('mine'); I.consume('turret'); I.consume('heavy'); return; }
+      if (M.phase === 'briefing') { if (I.consume('deploy') && M.briefEl) M.briefEl._go(); M.drain(I); return; }
       if (M.flashCd > 0) M.flashCd -= dt;
       if (M.hintT > 0) M.hintT -= dt;
 
       if (M.phase === 'play') {
         I.update(); M.inp.x = I.stick.x; M.inp.y = I.stick.y; M.inp.mag = I.stick.mag; M.inp.boost = I.consume('boost');
         if (I.consume('deploy')) M.doDeploy();
-        if (I.consume('mine')) WZ.Landmines.plant();
-        if (I.consume('turret')) WZ.Turrets.plant('gun');
-        if (I.consume('heavy')) WZ.Turrets.plant('heavy');
+        const Wp = WZ.Weapons, ws = I.consume('wsel');
+        if (ws) { Wp.select(ws); WZ.UI.openWheel(); }
+        if (I.consume('wnext')) { Wp.cycle(1); WZ.UI.openWheel(); }
+        if (I.consume('wprev')) { Wp.cycle(-1); WZ.UI.openWheel(); }
+        if (I.consume('weapon')) Wp.use();                       // the ONE use button: deploys the selected item
+        if (I.consume('mine')) Wp.use('mine');                   // direct desktop shortcuts
+        if (I.consume('turret')) Wp.use('gun');
+        if (I.consume('heavy')) Wp.use('heavy');
+        if (I.consume('bomb')) Wp.use('bomb');
+        if (I.consume('heli')) Wp.use('heli');
         if (I.consume('skip') && WZ.UI.dbgOn) { M.complete(); }
         M.time += dt;
-      } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); I.consume('boost'); I.consume('mine'); I.consume('turret'); I.consume('heavy'); }
+      } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); M.drain(I); }
 
       J.step(dt, M.inp, Cam.yaw);
       M.afterJeep(dt);
       N.step(dt);
       WZ.Enemies.update(dt, M.ctx);
+      WZ.Giants.update(dt);
       WZ.Gun.update(dt, M.ctx);
       M.small.hit(J, WZ.Particles); M.small.update(dt);
       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
-      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); }
+      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); }
       M.effects(dt);
       WZ.Audio.engineSet(Math.min(1, J.speed / J.P.boostSpeed), J.throttle, J.boosting);
 
@@ -162,6 +176,8 @@
         if (!M.resultShown && M.endT >= (M.endKind === 'complete' ? 1.9 : 1.5)) M.showResult();
       }
     },
+
+    drain(I) { for (const k of ['boost', 'mine', 'turret', 'heavy', 'bomb', 'heli', 'weapon', 'wnext', 'wprev', 'wsel']) I.consume(k); },
 
     afterJeep(dt) {
       const J = M.jeep, E = WZ.Enemies, P = WZ.Particles;
@@ -256,6 +272,7 @@
       if (nextLvl > (S.best.mission || 0)) S.best.mission = nextLvl;
       S.flags.tutorialDone = true;
       if (WZ.Main) WZ.Main.startIndex = S.level;
+      M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;   // KO loot is paid out on a win
       WZ.Save.save();
       WZ.Audio.engineStop(); WZ.Audio.sfx('win'); WZ.UI.hudShow(false);
       M.jeep.cmdr.setMode('cheer'); M.nana.cheer = true;
@@ -268,6 +285,7 @@
       if (curLvl > (S.level || 1)) S.level = curLvl;
       if (WZ.Main) WZ.Main.startIndex = S.level || curLvl;
       WZ.Save.save();
+      if (M.killCoins > 0) { WZ.UI.burnLoot(); WZ.Fx.text(WZ.I18n.t('sum.coins.burned') + ' -' + M.killCoins, M.jeep.rx, M.jeep.ry + 7, M.jeep.rz, 'warn'); }
       WZ.Audio.engineStop(); WZ.Audio.sfx('lose'); WZ.UI.hudShow(false);
     },
 
@@ -299,7 +317,7 @@
       };
       WZ.UI.showSummary({
         kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft,
-        coinsCrates: M.coinsCrates, coinsDone, coinsTime, wallet: S.coins, record,
+        coinsCrates: M.coinsCrates, coinsKills: win ? M.coinsKills : 0, burned: win ? 0 : M.killCoins, coinsDone, coinsTime, wallet: S.coins, record,
       }, {
         main: goMain,
         garage: () => Main.go('shop', { ret: goMain }),
@@ -315,7 +333,7 @@
       switch (N.state) {
         case 'IN_JEEP': {
           const near = C.nearestAvailable(J.x, J.z, CFG.nana.deployRadius);
-          if (near) return t('tut.deploy');
+          if (near) return WZ.Giants.guardOf(near) ? t('tut.giant') : t('tut.deploy');
           return M.landed > 0 ? t('tut.next') : t('tut.drive');
         }
         case 'RUNNING_OUT': case 'GRABBING': return t('tut.defend');
@@ -325,6 +343,7 @@
     },
     hintText() {
       if (M.hintT > 0 && M.hintKey === 'hud.nocrate') return t(M.hintKey);
+      const hz = WZ.Hazards.hint(); if (hz && hz.indexOf('hud.tornado') === 0) return t(hz);   // tornado warning / pull / caught
       return '';
     },
 
@@ -334,6 +353,7 @@
       J.sync(alpha, dt, M.t); N.render(alpha, dt, M.t);
       WZ.Blobs.begin();
       for (let i = 0; i < M.crates.list.length; i++) { const c = M.crates.list[i]; if (c.state === 'idle') WZ.Blobs.add(c.x, c.gy, c.z, 3.6); }
+      WZ.Giants.render(alpha, M.t, dt);
       WZ.Enemies.render(alpha, M.t);
       WZ.Blobs.end();
       M.crates.update(dt, M.t, cam);
@@ -353,10 +373,11 @@
       M.view.followLight(J.rx, J.ry, J.rz);
       M.view.update(M.t, dt, cam);
       WZ.Gun.render(dt);
+      WZ.Heli.render(alpha, dt, M.t);
       WZ.Particles.update(dt, cam);
       WZ.Fx.update(dt, cam, w, h);
 
-      if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); }
+      if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); WZ.Giants.bars(cam, w, h); }
       if (WZ.UI.dbgOn) M.debugText();
       WZ.Hazards.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
       Main.renderer.render(M.scene, cam);
@@ -374,8 +395,7 @@
       hd.boostPct = J.boostPct;
       hd.prompt = M.promptText(); hd.hint = M.hintText();
       hd.objective = t(M.allLoaded ? (N.out ? 'hud.obj.nana' : 'hud.obj.extract') : 'hud.obj.find');
-      hd.gunBoost = WZ.Gun.boosted; hd.mines = WZ.Landmines.count;
-      hd.turretPct = WZ.Turrets.cdPct('gun'); hd.turretN = WZ.Turrets.stock('gun'); hd.heavyPct = WZ.Turrets.cdPct('heavy'); hd.heavyN = WZ.Turrets.stock('heavy');
+      hd.gunBoost = WZ.Gun.boosted; hd.loot = M.killCoins; hd.weapons = WZ.Weapons.snap(); hd.wsel = WZ.Weapons.selId;
       hd.strikes = J.mineHits || 0; hd.rush = M.rushK;
       WZ.UI.updateHUD(hd);
     },
