@@ -27,7 +27,7 @@
       M.ctx = { scene: M.scene, map: M.map, col: M.col, jeep: M.jeep, enemies: WZ.Enemies, crates: M.crates, particles: WZ.Particles, fx: WZ.Fx, nana: null };
       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
-      WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
+      WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
       M.inp = { x: 0, y: 0, mag: 0, boost: false };
@@ -70,7 +70,7 @@
       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
-      WZ.Hazards.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Giants.dispose();
+      WZ.Hazards.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Giants.dispose();
       M.scene = null; WZ.Main.renderer.renderLists.dispose();
     },
 
@@ -105,7 +105,7 @@
       j.cmdr.setMode('ko'); M.nana.cheer = false;
       if (M.failT < 0) { M.failT = j.deathCause === 'pit' ? 0.85 : 1.1; M.failReason = j.deathCause || 'jeep'; }
     },
-    /** KO coins pile up as LOOT (HUD). Only paid out when the mission is completed; burned on failure. */
+    /** KO coins pile up as LOOT (HUD). They are paid out when the mission ends - on a win AND on a fail (they are never lost). */
     onEnemyKO(e) {
       const en = e && e.enemy; if (!en || M.phase !== 'play') return;
       const K = CFG.economy.kill, n = en.giant ? K.giant + K.giantPerMission * (M.data.index || 1) : (en.type === 'brute' ? K.brute : K.grunt);
@@ -154,6 +154,7 @@
         if (I.consume('heavy')) Wp.use('heavy');
         if (I.consume('bomb')) Wp.use('bomb');
         if (I.consume('heli')) Wp.use('heli');
+        if (I.consume('tank')) Wp.use('tank');
         if (I.consume('skip') && WZ.UI.dbgOn) { M.complete(); }
         M.time += dt;
       } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); M.drain(I); }
@@ -166,7 +167,8 @@
       WZ.Gun.update(dt, M.ctx);
       M.small.hit(J, WZ.Particles); M.small.update(dt);
       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
-      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); }
+      WZ.Fire.update(dt);
+      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); WZ.Tanks.update(dt); }
       M.effects(dt);
       WZ.Audio.engineSet(Math.min(1, J.speed / J.P.boostSpeed), J.throttle, J.boosting);
 
@@ -177,7 +179,7 @@
       }
     },
 
-    drain(I) { for (const k of ['boost', 'mine', 'turret', 'heavy', 'bomb', 'heli', 'weapon', 'wnext', 'wprev', 'wsel']) I.consume(k); },
+    drain(I) { for (const k of ['boost', 'mine', 'turret', 'heavy', 'bomb', 'heli', 'tank', 'weapon', 'wnext', 'wprev', 'wsel']) I.consume(k); },
 
     afterJeep(dt) {
       const J = M.jeep, E = WZ.Enemies, P = WZ.Particles;
@@ -284,8 +286,10 @@
       const S = WZ.Save.data, curLvl = Math.max(1, M.data.index || 1);
       if (curLvl > (S.level || 1)) S.level = curLvl;
       if (WZ.Main) WZ.Main.startIndex = S.level || curLvl;
-      WZ.Save.save();
-      if (M.killCoins > 0) { WZ.UI.burnLoot(); WZ.Fx.text(WZ.I18n.t('sum.coins.burned') + ' -' + M.killCoins, M.jeep.rx, M.jeep.ry + 7, M.jeep.rz, 'warn'); }
+      // a lost run must never cost the player coins: the KO loot is banked right now (crate coins were saved the moment each crate landed)
+      M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;
+      WZ.Save.save(); WZ.Save.flush();
+      if (M.killCoins > 0) WZ.Fx.text('+' + M.killCoins, M.jeep.rx, M.jeep.ry + 7, M.jeep.rz, 'coin');
       WZ.Audio.engineStop(); WZ.Audio.sfx('lose'); WZ.UI.hudShow(false);
     },
 
@@ -317,7 +321,7 @@
       };
       WZ.UI.showSummary({
         kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft,
-        coinsCrates: M.coinsCrates, coinsKills: win ? M.coinsKills : 0, burned: win ? 0 : M.killCoins, coinsDone, coinsTime, wallet: S.coins, record,
+        coinsCrates: M.coinsCrates, coinsKills: M.coinsKills, burned: 0, coinsDone, coinsTime, wallet: S.coins, record,
       }, {
         main: goMain,
         garage: () => Main.go('shop', { ret: goMain }),
@@ -373,13 +377,13 @@
       M.view.followLight(J.rx, J.ry, J.rz);
       M.view.update(M.t, dt, cam);
       WZ.Gun.render(dt);
-      WZ.Heli.render(alpha, dt, M.t);
+      WZ.Heli.render(alpha, dt, M.t); WZ.Tanks.render(alpha, dt, M.t);
       WZ.Particles.update(dt, cam);
       WZ.Fx.update(dt, cam, w, h);
 
       if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); WZ.Giants.bars(cam, w, h); }
       if (WZ.UI.dbgOn) M.debugText();
-      WZ.Hazards.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
+      WZ.Hazards.render(dt, M.t); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
       Main.renderer.render(M.scene, cam);
     },
 

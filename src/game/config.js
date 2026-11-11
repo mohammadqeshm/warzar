@@ -35,6 +35,7 @@
       heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 8, starter: 0 },
       bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1 },
       heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 8, starter: 1 },
+      tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 8, starter: 1 },
     },
     mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
@@ -51,6 +52,12 @@
     // never blocks the view) and strafes enemies near the vehicle (or near Nana while she is outside). No limit on simultaneous helis.
     heli: { life: 34, speed: 38, alt: 15, range: 40, guard: 34, rate: 9, damage: 1.5, knock: 0.5, spread: 1.1, arrive: 3,
       slots: [[-12, 1], [12, 1], [-18, -7], [18, -7], [-8, 11], [8, 11]], leave: 2.2 },
+    // ESCORT TANK (bought in the Shop, one consumed per call): drives in from off-screen, follows the vehicle (or Nana while she is outside), places itself
+    // BETWEEN the protected target and the nearest threat as a shield, shells groups with its cannon (splash) and rakes single targets with its machine gun.
+    // It also flattens small enemies it drives over. Invulnerable, never hurts the vehicle or Nana. No limit on simultaneous tanks.
+    tank: { cooldown: 0.8, life: 42, speed: 17, range: 38, guard: 32, rate: 0.85, damage: 8, splash: 4.2, knock: 8, aim: 0.1,
+      mgRate: 8, mgDamage: 1.3, mgRange: 30, mgKnock: 0.5, turretTurn: 5, hullTurn: 3.4, radius: 2.0, cover: 7, arrive: 2.2, spawnDist: 70, ramMin: 3.5,
+      slots: [[-7.5, -2], [7.5, -2], [-12, -8], [12, -8], [-5, -12], [5, -12]], scale: 1.0 },
     // Permanent defense tech (Shop): each level boosts every turret
     defenseTech: { max: 4, prices: [250, 550, 950, 1500], dmg: 0.2, life: 0.12, rate: 0.08 },
 
@@ -117,7 +124,10 @@
         fromMission: 1, tutorialCount: 8, baseCount: 10, perMission: 1.5, maxCount: 28,
         roadBias: 0.6, clusterChance: 0.5,
         trigger: 2.35, nanaTrigger: 1.35, blast: 7.5,
-        damage: 25, nanaDamage: 12, slow: 0.45, giantDamage: 40,
+        damage: 25, nanaDamage: 12, giantDamage: 40,
+        // The vehicle is NEVER slowed or stopped by a barrel. The blast is a big fireball + shockwave + flying debris; afterwards the vehicle is
+        // ON FIRE for `burn` seconds (flames glued to the body that die down one by one), and the crater keeps burning for `groundFire` seconds.
+        burn: 5, groundFire: 4, chainDelay: 0.11, debris: 11, shake: 0.8,
         minFromStart: 26, minFromCrate: 18, minFromExtract: 22,
       },
       pits: {
@@ -153,7 +163,8 @@
       coinBase: 25, coinPerMission: 3, goldBase: 90, goldPerMission: 8,
       completionBase: 20, completionPerMission: 5, timeBonusPerSec: 2,
       upgradeGrowth: 1.32, maxLevel: 8,
-      // Coins for knock-outs pile up during the mission ("loot") and are only paid out when the mission is COMPLETED (burned on failure).
+      // Coins for knock-outs pile up during the mission ("loot") and are ALWAYS paid out when the mission ends (win or fail), so a lost run
+      // never leaves the player unable to afford the upgrades needed to beat the level.
       kill: { grunt: 1, brute: 3, giant: 30, giantPerMission: 2 },
     },
 

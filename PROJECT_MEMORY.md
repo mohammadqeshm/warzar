@@ -210,3 +210,11 @@ Open questions for the human: confirm single-file `dist/index.html` is acceptabl
 - Tests: `npm run test:turrets` (nerf, plant/cooldown/max, placement, targeting, range, lifetime, cleanup) - NO ISSUES. The model was rasterised offline (`WZ.Turrets.model()`); looks right.
 - Ideas not done: sell turrets/upgrades in the Garage (more turrets, longer life, faster fire), enemies attacking turrets.
 - GitHub: push from the container is impossible (no credentials); deliver as `garage-update.patch` / zip, or commit locally.
+
+---
+
+## Update log — Escort Tank, red-barrel explosions, coin payout fix
+- **Escort Tank (new deployable, 6th item in `WZ.Weapons`, key `6`, direct shortcut `Y`)** — `src/game/systems/tanks.js` (`WZ.Tanks`). Bought in the Shop (`CFG.shop.tank`, stock `Save.data.inv.tank`, starter 1). It drives in from off-screen, follows the vehicle (or Nana while she is outside) and *covers* it: when an enemy is near the protected target the tank parks in the gap between them. Cannon = splash shells (+ `WZ.Fire.shell` blast), coax MG = rapid single-target fire, runs over small enemies. Invulnerable, limited life (`CFG.tank.life`), boosted by Defense Tech. All numbers: `CFG.tank`. HUD icon/colours: `ui.js`, `game.css`; texts: `i18n.js` (`w.tank`, `shop.tank*`, `hud.tankOn`, `hud.notank`).
+- **Red barrels** — `hazards.js` `boomBarrel` now calls `WZ.Fire.explode` (`src/game/systems/fire.js`): white flash, fireball dome, shock rings, fire column, smoke plume, sparks, flying burning debris, scorch mark, burning crater, orange screen flash, new `blast` sound. The vehicle is **no longer slowed or stopped** (the old `slow` multiplier was removed). After the hit `WZ.Fire.ignite(CFG.hazards.barrels.burn)` puts flame tongues on the vehicle body (+ flames/smoke/embers) for 5 s; they die down one by one. Chained barrels explode one after another (`chainDelay`). Purely visual fire: no extra damage. Particle pools were enlarged (460 soft / 460 glow).
+- **Coins on failure** — KO "loot" is now banked when a mission is **lost** too (`mission.js fail()`); crate coins were already saved on delivery. The summary shows the KO COINS row on a loss; HUD tooltip, tips and `sum.keptcoins` text updated. Nothing is burned any more.
+- Load order in `src/game/index.js`: `systems/fire.js` before `hazards.js`; `systems/tanks.js` after `heli.js`.

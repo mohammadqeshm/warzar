@@ -34,11 +34,13 @@ import './systems/quality.js';
 import './systems/spawner.js';
 import './systems/gun.js';
 import './systems/missions.js';
+import './systems/fire.js';
 import './systems/hazards.js';
 import './systems/landmines.js';
 import './systems/turrets.js';
 import './systems/bullets.js';
 import './systems/heli.js';
+import './systems/tanks.js';
 import './systems/weapons.js';
 
 import './entities/smallprops.js';

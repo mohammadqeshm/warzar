@@ -69,14 +69,14 @@
       'sum.newrecord': 'NEW RECORD!',
       'sum.next': 'NEXT MISSION', 'sum.retry': 'NEW RUN', 'sum.menu': 'MAIN MENU',
       'hud.turret': 'DEFENSE', 'hud.key.turret': 'T', 'hud.key.weapon': 'F', 'hud.turretCd': 'DEFENSE RECHARGING', 'hud.turretMax': 'DEFENSE LIMIT REACHED', 'hud.turretBlocked': 'NO ROOM HERE', 'hud.turretOn': 'DEFENSE ONLINE',
-      'brief.tip9': 'Pick a weapon with the swap button (or Q / E, keys 1-5), then press USE (F) to drop it: turrets, bombers, mines or a helicopter.',
+      'brief.tip9': 'Pick a weapon with the swap button (or Q / E, keys 1-6), then press USE (F) to drop it: turrets, bombers, mines, a helicopter or an escort tank.',
       'hud.mine': 'MINE', 'hud.key.mine': 'F', 'hud.nomines': 'NO MINES - BUY MORE IN THE SHOP', 'hud.maxmines': 'TOO MANY MINES PLANTED', 'hud.planted': 'MINE PLANTED', 'hud.combo': 'COMBO!',
-      'brief.tip8': 'Buy landmines, turrets, bombers and helicopters in the Shop. There is no limit on how many you can place.',
+      'brief.tip8': 'Buy landmines, turrets, bombers, helicopters and escort tanks in the Shop. There is no limit on how many you can place.',
       'shop.title': 'SHOP', 'shop.back': 'BACK', 'shop.buy': 'BUY', 'shop.equip': 'EQUIP', 'shop.equipped': 'EQUIPPED', 'shop.owned': 'OWNED', 'shop.need': 'NEED {n} MORE COINS',
       'shop.speed': 'SPEED', 'shop.armor': 'ARMOR', 'shop.handling': 'HANDLING', 'shop.ram': 'RAMMING', 'shop.mines': 'LANDMINES', 'shop.stock': 'IN STOCK {n}', 'shop.full': 'STOCK FULL',
       'shop.mines.how': 'Select MINE and press USE (F) to plant one behind your vehicle. Any enemy that steps on it blows up, along with everyone nearby. Used mines are gone for good; unused ones carry over to the next mission.',
       'shop.drag': 'HOLD AND DRAG TO ROTATE',
-      'sum.keptcoins': 'Coins from delivered crates are kept. KO coins are only paid out when you complete a mission.',
+      'sum.keptcoins': 'All your coins are saved, even after a loss. Spend them in the Shop to get stronger.',
 
       'hud.heavy': 'CANNON', 'hud.key.heavy': 'H', 'hud.heavyOn': 'CANNON ONLINE',
       'hud.noturrets': 'NO TURRETS - BUY MORE IN THE SHOP', 'hud.noheavy': 'NO CANNONS - BUY MORE IN THE SHOP',
@@ -103,8 +103,8 @@
 
 
       // ---- weapon selector, loot, giants, new defenses
-      'w.mine': 'MINE', 'w.gun': 'TURRET', 'w.heavy': 'CANNON', 'w.bomb': 'BOMBER', 'w.heli': 'HELI',
-      'hud.loot': 'LOOT', 'hud.loot.tip': 'Coins from knock-outs. Paid out only when you complete the mission - burned if you fail!',
+      'w.mine': 'MINE', 'w.gun': 'TURRET', 'w.heavy': 'CANNON', 'w.bomb': 'BOMBER', 'w.heli': 'HELI', 'w.tank': 'TANK',
+      'hud.loot': 'LOOT', 'hud.loot.tip': 'Coins from knock-outs. They are always banked when the mission ends - win or lose!',
       'hud.giant': 'GIANT', 'hud.giantdown': 'GIANT DOWN!', 'hud.clang': 'CLANG!', 'hud.smashed': 'SMASHED!',
       'hud.nobombs': 'NO BOMBERS - BUY MORE IN THE SHOP', 'hud.noheli': 'NO HELICOPTERS - BUY MORE IN THE SHOP',
       'hud.bombOn': 'BOMBER ONLINE', 'hud.heliOn': 'HELICOPTER INCOMING!',
@@ -112,10 +112,13 @@
       'sum.coins.kills': 'KO COINS', 'sum.coins.burned': 'KO COINS BURNED', 'sum.fail.giant': 'SMASHED BY A GIANT!',
       'brief.tip13': 'A GIANT guards every crate. Do not ram it - shoot it with the gun, turrets, bombers and helicopters!',
       'brief.tip14': 'If you send Nana out, the giant hunts HER - and one club hit ends the run. Lure it away or kill it first!',
-      'brief.tip15': 'KO coins pile up in the LOOT counter. Finish the mission to keep them - fail and they burn!',
-      'shop.bomb': 'BOMB TURRET', 'shop.heli': 'ESCORT HELI', 'shop.air': 'AIR SUPPORT',
+      'brief.tip15': 'KO coins pile up in the LOOT counter. They are always added to your wallet, even if the mission fails - spend them in the Shop!',
+      'shop.bomb': 'BOMB TURRET', 'shop.heli': 'ESCORT HELI', 'shop.air': 'AIR SUPPORT', 'shop.tank': 'ESCORT TANK',
       'shop.bomb.how': 'Select BOMBER and press USE (F) to drop a mortar. It lobs bombs at the biggest group: every enemy inside the blast is knocked out. Giants take heavy damage. Place as many as you own.',
       'shop.heli.how': 'Select HELI and press USE (F) to call an escort helicopter. It flies in, hovers beside you without blocking the view and strafes enemies around you (or around Nana). Call as many as you own.',
+
+      'hud.notank': 'NO TANKS - BUY MORE IN THE SHOP', 'hud.tankOn': 'ESCORT TANK ROLLING IN!', 'hud.onfire': 'ON FIRE!',
+      'shop.tank.how': 'Select TANK and press USE (F / Y) to call an escort tank. It rolls in from off-screen, follows you and drives into the gap between you and the nearest enemies to cover you (or Nana while she is outside). Its cannon blasts groups and giants, its machine gun rakes single targets, and it runs over small enemies. Call as many as you own.',
 
       'load.title': 'LOADING...',
       'dbg.skip': 'SKIP MISSION',

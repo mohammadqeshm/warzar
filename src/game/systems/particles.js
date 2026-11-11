@@ -75,7 +75,7 @@
 
     init(scene) {
       PT.scene = scene;
-      PT.pools = [new Pool(scene, 260, 'soft', false), new Pool(scene, 200, 'glow', true), new Pool(scene, 80, 'star', false)];
+      PT.pools = [new Pool(scene, 460, 'soft', false), new Pool(scene, 460, 'glow', true), new Pool(scene, 80, 'star', false)];
       PT.ready = true;
     },
     emit(pool, x, y, z, vx, vy, vz, life, s0, s1, r, g, b, a0, a1, grav, drag) {

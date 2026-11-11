@@ -18,10 +18,11 @@
     heavy: WI('<rect x="4" y="23" width="24" height="5" rx="2" fill="#FFB400" ' + ST + '/><rect x="8" y="15" width="16" height="9" rx="3" fill="#59636E" ' + ST + '/><rect x="13" y="1.5" width="7" height="15" rx="2" fill="#16181A" ' + ST + ' transform="rotate(22 16 16)"/><rect x="12.5" y="1.5" width="8" height="3.4" rx="1" fill="#ff7a4a" ' + ST + ' transform="rotate(22 16 16)"/>'),
     bomb: WI('<circle cx="14.5" cy="19.5" r="10" fill="#2f2f3d" ' + ST + '/><ellipse cx="11" cy="15.5" rx="3" ry="2" fill="#6b6b84" transform="rotate(-30 11 15.5)"/><rect x="17" y="5.5" width="6" height="5" rx="1.5" fill="#8a8a95" ' + ST + ' transform="rotate(28 20 8)"/><path d="M22.5 6.5q4-4 6-0.5" stroke="#c9a06a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="28.5" cy="5" r="2.6" fill="#FFB400" ' + ST + '/>'),
     heli: WI('<rect x="2" y="5" width="28" height="2.6" rx="1.3" fill="#23272A" ' + ST + '/><rect x="15" y="7" width="2.4" height="3.2" fill="#23272A"/><ellipse cx="14" cy="16.5" rx="9.5" ry="6" fill="#56733F" ' + ST + '/><path d="M6.5 14.5q1.5-4 6-3.6v6.2h-8.4z" fill="#8AD0FF" ' + ST + '/><rect x="21" y="14" width="9" height="3.2" rx="1.4" fill="#56733F" ' + ST + '/><rect x="27.5" y="9.5" width="2.6" height="6.2" rx="1" fill="#FFB400" ' + ST + '/><path d="M5 25h17M9 22v3M18 22v3" stroke="#0E0E0E" stroke-width="2" stroke-linecap="round"/>'),
+    tank: WI('<rect x="2" y="21" width="28" height="7.5" rx="3.75" fill="#1B1D1F" ' + ST + '/><circle cx="6.5" cy="24.7" r="2.2" fill="#8d949c"/><circle cx="16" cy="24.7" r="2.2" fill="#8d949c"/><circle cx="25.5" cy="24.7" r="2.2" fill="#8d949c"/><path d="M5 21l2.5-5.5h17L27 21z" fill="#56733F" ' + ST + '/><rect x="10" y="9.5" width="12" height="7" rx="3" fill="#6B8A4C" ' + ST + '/><rect x="21" y="11" width="10" height="2.6" rx="1.2" fill="#16181A" ' + ST + '/><rect x="11" y="12.5" width="9" height="1.8" fill="#FFB400"/>'),
   };
   const SWAP_ICO = '<svg viewBox="0 0 24 24" class="wi"><path d="M4 8h13l-3-3M20 16H7l3 3" fill="none" stroke="#ECE9E1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const COIN_ICO = '<svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="10.5" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5f00" stroke-width="2"/><path d="M12 7.2l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z" fill="#8a5f00"/></svg>';
-  const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli'];
+  const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli', 'tank'];
 
   const UI = {
     giantBarMax: 10, giantEls: [],
@@ -155,7 +156,7 @@
       clearTimeout(UI._wheelT); UI._wheelT = setTimeout(UI.closeWheel, 3200);
     },
     closeWheel() { clearTimeout(UI._wheelT); const w = UI.h['w-wheel']; if (w) w.classList.add('hidden'); },
-    burnLoot() { const e = UI.h['hud-coins']; if (e) { e.classList.remove('pop'); e.classList.add('burn'); } },
+    /* (unused since KO coins are always paid out; kept for the HUD style) */ burnLoot() { const e = UI.h['hud-coins']; if (e) { e.classList.remove('pop'); e.classList.add('burn'); } },
 
     // ------------------------------------------------------------ giant HP bars (positions are projected by WZ.Giants.bars)
     setGiantBar(i, x, y, pct, alert, hp) {
@@ -228,7 +229,7 @@
           '<div class="sum-row"><span>' + t('sum.coins.done') + '</span><b>+' + r.coinsDone + '</b></div>' +
           '<div class="sum-row"><span>' + t('sum.coins.time') + '</span><b>+' + r.coinsTime + '</b></div>';
       } else rows = '<div class="sum-row"><span>' + t('sum.coins.crates') + '</span><b>+' + r.coinsCrates + '</b></div>' +
-        (r.burned > 0 ? '<div class="sum-row burned"><span>' + t('sum.coins.burned') + '</span><b>-' + r.burned + '</b></div>' : '');
+        '<div class="sum-row"><span>' + t('sum.coins.kills') + '</span><b>+' + (r.coinsKills || 0) + '</b></div>';   // KO loot is banked even when the mission is lost
       const el = UI._screen('summary',
         '<div class="sum panel ' + (win ? 'win' : 'fail') + '">' +
         '<div class="sum-title">' + (win ? t('sum.complete') : t('sum.failed')) + '</div>' +

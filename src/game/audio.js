@@ -59,7 +59,7 @@
       if (!A.ctx || A.hardSuspended || A.muted) return;
       v = v == null ? 1 : v;
       const now = A.ctx.currentTime;
-      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03, heli: 0.18, mortar: 0.12, club: 0.2, roar: 0.4 }[name] || 0;
+      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03, heli: 0.18, mortar: 0.12, club: 0.2, roar: 0.4, blast: 0.06, burn: 0.3, ignite: 0.4, tank: 0.2, cannon: 0.1 }[name] || 0;
       if (gap && A.last[name] && now - A.last[name] < gap) return;
       A.last[name] = now;
       switch (name) {
@@ -86,6 +86,11 @@
         case 'win': [523, 659, 784, 1046].forEach((f, i) => A.tone('triangle', f, f, 0.22, 0.3 * v, i * 0.12)); A.tone('square', 1046, 1046, 0.5, 0.15 * v, 0.5); break;
         case 'lose': [440, 370, 311, 220].forEach((f, i) => A.tone('sawtooth', f, f * 0.96, 0.3, 0.2 * v, i * 0.18)); break;
         case 'boom': A.noiseBurst(0.7, 'lowpass', 1500, 80, 0.7 * v); A.tone('sine', 70, 28, 0.6, 0.6 * v); break;
+        case 'blast': A.noiseBurst(0.95, 'lowpass', 1800, 70, 0.8 * v); A.tone('sine', 62, 24, 0.75, 0.7 * v); A.tone('sawtooth', 150, 40, 0.3, 0.22 * v); A.noiseBurst(0.5, 'highpass', 2600, 900, 0.18 * v, 0.03); A.noiseBurst(0.6, 'bandpass', 500, 180, 0.3 * v, 0.2); break;
+        case 'ignite': A.noiseBurst(0.55, 'bandpass', 700, 2600, 0.3 * v, 0, 1.2); A.tone('sawtooth', 90, 200, 0.3, 0.1 * v); break;
+        case 'burn': A.noiseBurst(0.22, 'highpass', 3200, 2500, 0.1 * v); A.noiseBurst(0.18, 'bandpass', 900, 600, 0.12 * v, 0.08); break;
+        case 'tank': A.noiseBurst(0.18, 'lowpass', 260, 120, 0.22 * v); A.tone('sawtooth', 44, 38, 0.16, 0.08 * v); break;
+        case 'cannon': A.noiseBurst(0.35, 'lowpass', 1200, 120, 0.55 * v); A.tone('sine', 110, 40, 0.3, 0.55 * v); A.tone('triangle', 420, 90, 0.1, 0.25 * v); break;
         case 'tshot': A.noiseBurst(0.05, 'bandpass', 3200, 1600, 0.13 * v, 0, 1.0); A.tone('square', 420, 140, 0.04, 0.05 * v); break;
         case 'build': A.tone('sawtooth', 160, 520, 0.28, 0.12 * v); A.tone('sine', 120, 60, 0.16, 0.3 * v, 0.2); A.noiseBurst(0.12, 'lowpass', 900, 250, 0.2 * v, 0.2); break;
         case 'mine': A.tone('sine', 1250, 1250, 0.05, 0.14 * v); break;

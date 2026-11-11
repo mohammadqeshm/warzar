@@ -264,3 +264,9 @@ Do not commit, push, force-push, or rewrite shared Git history unless the reposi
 ## License
 
 See [LICENSES.txt](LICENSES.txt) for third-party license notices. No separate open-source license is declared here for the WARZAR project itself. Do not assume the project is open source or that its original assets/code may be reused without permission.
+
+
+## Recent changes
+- New purchasable **Escort Tank** (Shop > Defense): rolls in, follows and covers the vehicle/Nana, shells groups, rakes single targets.
+- Red barrels now explode with a big fireball + debris + shockwave, never slow the vehicle, and leave it burning for ~5 s.
+- KO coins are always paid out when a mission ends, including a failed one, so a lost run can never leave the player unable to afford upgrades.

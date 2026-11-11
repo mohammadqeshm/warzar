@@ -240,34 +240,44 @@
       if (Z.tornOn) Z.updateTornado(dt, tm);
     },
 
-    updateBarrels() {
+    updateBarrels(dt) {
       const c = Z.ctx, J = c.jeep, tr2 = BC.trigger * BC.trigger;
+      // chain reaction: barrels caught in a blast go off one after another (short fuse) instead of all in the same frame
+      for (const b of Z.barrels) {
+        if (!b.on || !(b.fuse > 0)) continue;
+        b.fuse -= dt || 0.016; if (b.fuse <= 0) Z.boomBarrel(b, 'chain');
+      }
       if (!J.alive) return;
       for (const b of Z.barrels) {
-        if (!b.on) continue;
+        if (!b.on || b.fuse > 0) continue;
         if (d2(b.x, b.z, J.x, J.z) < tr2) Z.boomBarrel(b, 'jeep');
       }
     },
 
     boomBarrel(b, who) {
       if (!b.on) return;
-      const c = Z.ctx, J = c.jeep, N = c.nana, P = c.particles, E = c.enemies, y = b.gy + 0.9;
-      b.on = false; Z.placeBarrel(b, false);
-      P.poof(b.x, y, b.z, 16, 2.5); P.sparks(b.x, y + 0.5, b.z, 28, 1, 0.55, 0.15); P.dust(b.x, b.gy, b.z, 9);
-      WZ.Audio.sfx('boom'); WZ.Fx.shake(who === 'jeep' ? 0.65 : 0.35); WZ.Fx.text('BOOM!', b.x, y + 3.4, b.z, 'bonk');
+      const c = Z.ctx, J = c.jeep, N = c.nana, E = c.enemies, y = b.gy + 0.9;
+      b.on = false; b.fuse = 0; Z.placeBarrel(b, false);
+      const direct = who === 'jeep';
+      // big fireball, shock rings, debris, smoke, scorch mark and a burning crater (WZ.Fire)
+      WZ.Fire.explode(b.x, b.gy + 0.8, b.z, { scale: direct ? 1.2 : 0.95, flash: direct, debris: direct ? BC.debris : Math.ceil(BC.debris * 0.6) });
+      WZ.Fx.text('BOOM!', b.x, y + 3.6, b.z, 'bonk');
       E.hash.query(b.x, b.z, BC.blast, E.q);
       for (const e of E.q.slice()) { if (!e.active || e.state === 2) continue; E.ko(e, e.x - b.x, e.z - b.z, 13, 'barrel'); }
       if (WZ.Giants) WZ.Giants.splash(b.x, b.z, BC.blast * 0.6, BC.giantDamage, 'barrel');
-      if (who === 'jeep' && J.alive) {
+      if (direct && J.alive) {
+        // the vehicle takes the hit but keeps its speed (no slowdown, no stop); it only does a little hop and then BURNS
         const dmg = BC.damage;
         if (dmg >= J.hp) J.deathCause = 'barrel';
-        J.hurt(dmg); J.vx *= BC.slow; J.vz *= BC.slow; J.hop = 0.45;
-        WZ.Fx.text('-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt');
+        J.hurt(dmg); J.hop = 0.4;
+        WZ.Fx.text('-' + dmg, J.rx, J.ry + 5, J.rz, 'warn');
       } else if (who === 'nana' && N.out && !N.isKO) {
         N.hurt(BC.nanaDamage); WZ.Fx.text('-' + BC.nanaDamage, N.rx, N.ry + 4, N.rz, 'warn');
       }
+      // fire sticks to the vehicle when it caused the blast, or when a chained barrel goes off right next to it
+      if (J.alive && (direct || d2(b.x, b.z, J.x, J.z) < 36)) WZ.Fire.ignite(BC.burn);
       for (const o of Z.barrels) {
-        if (o.on && d2(b.x, b.z, o.x, o.z) < 16) Z.boomBarrel(o, 'chain');
+        if (o.on && !(o.fuse > 0) && d2(b.x, b.z, o.x, o.z) < 16) o.fuse = BC.chainDelay * (0.7 + Math.random() * 0.8) + Math.sqrt(d2(b.x, b.z, o.x, o.z)) * 0.03;
       }
     },
 
