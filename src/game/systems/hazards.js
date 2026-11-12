@@ -49,7 +49,7 @@
     init(ctx, mission, seed) {
       Z.dispose(); Z.ctx = ctx; Z.mission = mission; Z.rng = WZ.RNG.create(seed); Z.rng2 = WZ.RNG.create(WZ.RNG.hash(seed, 505));
       const m = mission.index;
-      Z.minesOn = m >= MC.fromMission; Z.tornOn = !mission.tutorial && m >= TC.fromMission;
+      Z.minesOn = m >= MC.fromMission; Z.tornOn = !mission.tutorial && m >= TC.fromMission && !ctx.map.noTornado;   // volcanic map: eruptions replace the tornado
       Z.barrelsOn = BC && m >= BC.fromMission; Z.pitsOn = PC && m >= PC.fromMission;
       if (Z.minesOn) Z.placeMines(m);
       if (Z.tornOn) { Z.nextT = Z.rng.range(TC.firstDelay[0], TC.firstDelay[1]); Z.buildTornado(); }

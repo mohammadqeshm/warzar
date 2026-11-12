@@ -173,9 +173,43 @@
 
     // MAPS (selected in the main menu, stored in Save.data.settings.map). `village` = the original desert village.
     maps: {
-      order: ['village', 'jurassic'],
+      order: ['village', 'jurassic', 'volcanic'],
       village: { name: 'maps.village' },
       jurassic: { name: 'maps.jurassic', waterLevel: -0.5, waterSlow: 0.72, waterTurn: 0.3, waterGrip: 0.55, current: 6.5, hillAmp: 7.2, riverWidth: 7.4, bridges: 4 },
+      // VOLCANIC WASTELAND (harder than the Jurassic map): two LAVA RIVERS (wade / waterSlow / waterTurn / waterGrip / current are read by the vehicle exactly like the
+      // Jurassic river, but lava ALSO burns: `lavaPct` of the vehicle's MAX armor per second, rising with the mission), basalt causeways at the trail crossings,
+      // erupting vents + rockfall (CFG.volcano) and the MAGMA TITAN guardians (CFG.titan). spawnMul / hpMul toughen the enemy waves a little (not in the tutorial).
+      volcanic: { name: 'maps.volcanic', waterLevel: -0.5, waterSlow: 0.6, waterTurn: 0.22, waterGrip: 0.4, current: 2.6, hillAmp: 5.4, riverWidth: 9.6, riverWidth2: 6.8, bridges: 9,
+        lavaPct: 0.13, lavaPctPerMission: 0.004, lavaPctMax: 0.22, lavaTick: 0.25, lavaNana: 11, spawnMul: 1.15, hpMul: 1.1 },
+    },
+    // VOLCANO hazards (volcanic map only, see systems/volcano.js). Everything is telegraphed:
+    //  ERUPTION: siren + rumble + red sky (`warn`), then for `dur` seconds molten rocks fall SLOWLY (`fall` u/s from `fallFrom` above the ground, so ~5-6 s in the air).
+    //    Every rock paints a red pulsing ring on the ground where it will land (blast radius `radius`). Stay out of the rings and nothing hits you.
+    //    `near` = share of rocks aimed around the vehicle (the rest are scattered over the area, a few around Nana while she is outside), a standing vehicle gets aimed at directly.
+    //  VENTS: cracked mounds that glow. Every `period` seconds each one charges for `warn` seconds (ring flashes red, rumble) and then blasts a column of fire (radius `radius`).
+    //    Driving up to a dormant vent makes it charge sooner (`trigger`) but never without the full warning.
+    //  POOLS: magma puddles left by the Titan (`pool*` in CFG.titan); they burn the vehicle (`jeepPct` of max armor per second) and Nana (`nanaDps`) while they glow.
+    volcano: {
+      tutorialMul: 0.5,
+      erupt: { firstDelay: [18, 26], gap: [26, 38], gapPerMission: -0.5, gapMin: 18, warn: 3.4, dur: 9, rate: 2.5, ratePerMission: 0.07, rateMax: 4.0,
+        fallFrom: 46, fall: 8.2, fallPerMission: 0.1, fallMax: 10.5, maxRocks: 30, near: 0.55, nearR: [4, 24], farR: [10, 46], nanaShare: 0.3, pinSpeed: 4, pinGap: 1.4,
+        radius: 5.2, damage: 24, dmgPerMission: 0.9, dmgMax: 42, nanaDamage: 18, giantDamage: 14, burn: 3.2, minFromStart: 30, tutorialDelay: 40 },
+      vents: { baseCount: 8, perMission: 0.6, maxCount: 17, tutorialCount: 3, roadBias: 0.5, radius: 5.0, period: [8.5, 12], warn: 1.8, trigger: 10, triggerWarn: 1.4,
+        damage: 22, dmgPerMission: 0.8, dmgMax: 38, nanaDamage: 15, giantDamage: 18, burn: 2.8, minFromStart: 36, minFromCrate: 16, minFromExtract: 24, minGap: 26, hint: 22 },
+      pool: { tick: 0.25, jeepPct: 0.1, nanaDps: 7, maxPools: 28, grow: 0.45, fade: 1.6 },
+    },
+    // MAGMA TITAN guardians (volcanic map): they replace the club giants. Same chase / ram / HP-bar rules (these values are merged over CFG.giant).
+    //  - SLAM (melee): fists up (telegraph) then smash: damage like the club, kills Nana in reach, and splits the ground into `slam.pools` magma pools around the impact.
+    //  - BOULDER (ranged): between `minRange` and `range` it rears back with a molten boulder overhead (`windup`, the body glows), then LOBS it (flight `flight` s).
+    //    A red ring marks the landing spot the whole time; the blast (`radius`) hurts and leaves a magma pool. Below `enrage` HP it throws TWO boulders per volley.
+    //  - Magma TRAIL: while it walks it drips small short-lived pools under its feet, so the ground around a Titan is never safe.
+    titan: {
+      hp: 190, speed: 6.4, radius: 2.7, height: 10.6, home: 8, aggro: 42, nanaAggro: 48, leash: 92,
+      reach: 7.0, nanaReach: 6.3, windup: 0.85, swing: 0.3, cooldown: 2.4, jeepDamage: 24, jeepKnock: 20,
+      rock: { range: 38, nanaRange: 32, minRange: 11, windup: 1.05, flight: [1.15, 1.7], cooldown: 4.4, radius: 5.0, damage: 26, nanaDamage: 18, lead: 0.5, enrage: 0.5, pair: 7,
+        poolR: 4.0, poolLife: 7.5, handY: 9.4, tutorialMul: 0.5 },
+      slam: { pools: 4, ring: 6.2, poolR: 3.0, poolLife: 6.5, radius: 9 },
+      trail: { every: 1.35, r: 1.9, life: 3.6 },
     },
     // DINOSAUR guardians (Jurassic map): they replace the club giants. Same chase / ram / HP-bar rules (these values are merged over CFG.giant),
     // but the weapon is a FIRE BREATH: the dino rears back with a glowing mouth (telegraph), then roars a cone of flame that sweeps toward its target.
@@ -225,6 +259,7 @@
   };
 
   CFG.dinoStats = Object.assign({}, CFG.giant, CFG.dino);   // the dinosaur guardian = giant rules + overrides from CFG.dino
+  CFG.titanStats = Object.assign({}, CFG.giant, CFG.titan); // the Magma Titan guardian = giant rules + overrides from CFG.titan
 
   WZ.CFG = CFG;
 })(window.WZ = window.WZ || {});

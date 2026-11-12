@@ -115,8 +115,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 
 .menu-logo { position: absolute; top: calc(10px + var(--sat)); left: 50%; transform: translateX(-50%); width: min(86vw, 680px, 95vh); pointer-events: none !important; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.55)); }
 .menu-logo canvas { width: 100%; height: auto; display: block; }
-.map-pick { display: flex; gap: 10px; justify-content: center; pointer-events: none; margin-bottom: 14px; }
-.map-card { pointer-events: auto !important; cursor: pointer; font: inherit; text-transform: uppercase; background: rgba(14,14,14,0.84); border: 3px dashed rgba(236,233,225,0.6); border-radius: 6px; color: var(--w); padding: 5px 6px 6px; width: clamp(128px, 38vw, 184px); text-align: center; transition: transform 0.12s; }
+.map-pick { display: flex; gap: 8px; justify-content: center; pointer-events: none; margin-bottom: 14px; }
+.map-card { pointer-events: auto !important; cursor: pointer; font: inherit; text-transform: uppercase; background: rgba(14,14,14,0.84); border: 3px dashed rgba(236,233,225,0.6); border-radius: 6px; color: var(--w); padding: 5px 5px 6px; width: clamp(96px, 30vw, 172px); text-align: center; transition: transform 0.12s; }
 .map-card svg { width: 100%; height: clamp(34px, 8vw, 50px); display: block; border-radius: 3px; margin-bottom: 4px; }
 .map-card b { display: block; font-size: clamp(12px, 3.3vw, 16px); letter-spacing: 0.05em; line-height: 1.1; }
 .map-card small { display: block; font-size: clamp(8px, 2.2vw, 10px); opacity: 0.75; letter-spacing: 0.04em; line-height: 1.2; margin-top: 2px; }
@@ -549,7 +549,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 @media (orientation: landscape) and (max-height: 480px) {
   .menu-bottom { flex-direction: row; align-items: flex-end !important; gap: 14px; padding-bottom: calc(10px + var(--sab)); }
   .map-pick { margin-bottom: 0; }
-  .map-card { width: clamp(108px, 19vw, 150px); }
+  .map-card { width: clamp(92px, 16vw, 140px); }
   .play-btn { padding: 6px 22px 8px; }
   .play-btn span { font-size: clamp(22px, 7vh, 34px); }
 }

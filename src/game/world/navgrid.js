@@ -145,6 +145,8 @@
       mark(c.x - ext, c.x + ext, c.z - ext, c.z + ext, (cx, cz) => (cx - c.x) * (cx - c.x) + (cz - c.z) * (cz - c.z) < rr * rr);
     }
     for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { if (Math.abs(g.cc(i)) > lim || Math.abs(g.cc(j)) > lim) g.blocked[j * n + i] = 1; }
+    // optional map hook (volcanic map): cells that are lava are not walkable for AI (enemies, guardians, Nana) - they use the causeways instead
+    if (map.navBlock) for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { if (!g.blocked[j * n + i] && map.navBlock(g.cc(i), g.cc(j))) g.blocked[j * n + i] = 1; }
     return g;
   }
 

@@ -227,3 +227,26 @@ Open questions for the human: confirm single-file `dist/index.html` is acceptabl
 - **PC input** (`systems/input.js`): mouse WHEEL = previous/next weapon, RIGHT CLICK (capture `pointerdown`) = use selected weapon, only LEFT button drives the floating stick. The stick knob is now visible for mouse users (the `.dev-keys #stick-knob` hide rule was removed).
 - **Pickups**: `CFG.pickups.minFromStart` 38 → 110 (hearts/clocks are never near the start).
 - **Main-menu SHOP button**: storefront icon (`SHOP_ICO`) + coin counter. **HUD**: top bar width-limited so it never runs under the pause button; compact rules for ≤640 px, ≤360 px and short landscape screens.
+
+---
+
+## VOLCANIC WASTELAND map (added after the Jurassic update)
+
+Third entry in `CFG.maps.order` (`village`, `jurassic`, `volcanic`); selected from the main-menu map cards (`Save.data.settings.map = 'volcanic'`). Harder than the Jurassic map by design.
+
+**New files** (all registered in `src/game/index.js`, load order matters):
+- `world/gen_volcanic.js` - `WZ.WorldV.generate`. Two analytic LAVA RIVERS (west-east, wide; north-south, narrower, kept away from the start), carved into the terrain, basalt CAUSEWAYS (raised terrain + slab deck) wherever a trail crosses a river. `map.lava = { level, rivers, inLava(x,z), depth(x,z) 0..1, flow(x,z,out) }`, `map.navBlock` (lava cells are blocked in the nav grids -> enemies / Titans / Nana use the causeways), `map.noHazard`, `map.noTornado`.
+- `art/volcanic.js` - `WZ.Volca`: ash ground splat with glowing cracks, charred trees / obsidian spires / basalt boulders / fumaroles / causeways, animated lava mesh, embers + falling ash, red sky, ash clouds, volcano with a crater glow + plume that reacts to `WZ.Volcano.alert`, black cliffs.
+- `art/magma.js` - `WZ.MagmaArt` (Titan rig + pose; same rig contract as the club giant / dino).
+- `systems/volcano.js` - `WZ.Volcano`: lava burning, eruptions, vents, magma pools, Titan boulders (`lob`). No-op on other maps.
+
+**Mechanics** (all numbers in `CFG.maps.volcanic`, `CFG.volcano`, `CFG.titan`):
+- LAVA: vehicle wades like the Jurassic river (slow / heavy steering / slide; `Jeep.wc` selects the liquid config) AND burns `lavaPct` of its MAX armor per second (rises with mission); Nana burns; enemies in lava are KO'd. Fail reason `lava`.
+- ERUPTION: siren + rumble + redder sky/lighting (`Volcano.alert`), then molten rocks fall SLOWLY (~5-6 s) each with a pulsing red ground ring (radius = blast). Standing still gets you targeted. Fail reason `rock`.
+- VENTS: cracked mounds, periodic charge-up (flashing ring) then a fire blast; driving close makes them charge earlier but always with the warning. Fail reason `vent`.
+- MAGMA TITAN (`giant.js`, flag `g.titan`): slam (two fists up -> smash -> ring of magma pools), boulder lob (wind-up with boulder overhead -> ring on landing spot -> blast + magma pool; two boulders below 50% HP), magma trail under its feet. HP bar label `TITAN`.
+- Tornado is disabled on this map (`map.noTornado`); mines / barrels / pits / pickups still appear. Non-tutorial missions get `spawnMul` / `hpMul`.
+
+**Touched existing files (small, additive):** `config.js`, `world/gen.js` (dispatch), `world/navgrid.js` (optional `map.navBlock` hook), `world/worldview.js` (theme branches), `entities/jeep.js` (`wc` liquid config, default = Jurassic values), `entities/giant.js` (Titan branches), `scenes/mission.js` (lava wading, Volcano init/update/render/dispose, map tips, hint line), `systems/hazards.js` (`noTornado`), `audio.js` (`rumble`), `i18n.js`, `ui.js` (map icon + fail reasons), `game.css` (3 map cards fit on phones).
+
+**QA:** `node tools/test-volcano-gen.cjs` (144 maps: reachability, nothing in lava, causeways). Verified in headless Chromium (SwiftShader): menu, briefing, lava damage, eruption warn + rockfall, vents, Titan slam / boulder / pools, village + Jurassic still start and run 25 s of sim without errors. NOT tested on real phones. `tools/test-hazards.cjs` already fails on the original repo (fake canvas stub, unrelated).

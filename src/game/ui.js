@@ -31,6 +31,7 @@
   const MAP_ICO = {
     village: '<svg viewBox="0 0 120 56"><rect width="120" height="56" fill="#A9D3F2"/><path d="M0 40q30-14 60-4t60-6V56H0z" fill="#C2A866"/><rect x="22" y="26" width="30" height="20" fill="#E2D6C1" stroke="#0E0E0E" stroke-width="2"/><path d="M18 27l19-14 19 14z" fill="#B5503A" stroke="#0E0E0E" stroke-width="2"/><rect x="33" y="34" width="8" height="12" fill="#2A1F16"/><rect x="82" y="16" width="8" height="30" fill="#6B4A2B"/><path d="M78 16h16l-8-9z" fill="#B5503A" stroke="#0E0E0E" stroke-width="1.6"/></svg>',
     jurassic: '<svg viewBox="0 0 120 56"><defs><linearGradient id="jg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FC6BE"/><stop offset="1" stop-color="#F3DFA8"/></linearGradient></defs><rect width="120" height="56" fill="url(#jg)"/><path d="M60 40L74 12h12l14 28z" fill="#4A3F3A"/><path d="M74 12h12l-2 5h-8z" fill="#FF6A1A"/><circle cx="84" cy="7" r="5" fill="#8D8780" opacity=".8"/><path d="M0 42q25-12 50-4t70-6V56H0z" fill="#4F9A45" stroke="#0E0E0E" stroke-width="1.6"/><path d="M0 50q40-6 120 0" stroke="#3F9CC6" stroke-width="5" fill="none"/><path d="M18 44V26M18 26l-9 4M18 26l9 3M18 26l-5-8M18 26l6-8" stroke="#2F7A42" stroke-width="3" stroke-linecap="round"/><path d="M40 46c2-12 8-16 15-17l4-4 8 3-3 5c-3 1-5 4-5 9z" fill="#5E9440" stroke="#0E0E0E" stroke-width="1.8" stroke-linejoin="round"/><path d="M58 28l6 1" stroke="#FF8A2A" stroke-width="3" stroke-linecap="round"/></svg>',
+    volcanic: '<svg viewBox="0 0 120 56"><defs><linearGradient id="vg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A2434"/><stop offset="0.7" stop-color="#C8662F"/><stop offset="1" stop-color="#E89048"/></linearGradient></defs><rect width="120" height="56" fill="url(#vg)"/><path d="M34 42L56 10h16l22 32z" fill="#2C201E" stroke="#0E0E0E" stroke-width="1.6" stroke-linejoin="round"/><path d="M56 10h16l-2 5H58z" fill="#FF6A1A"/><path d="M64 15l-6 27M64 15l9 27" stroke="#FF8A2A" stroke-width="2" fill="none"/><circle cx="66" cy="5" r="5" fill="#6A5A54" opacity=".85"/><circle cx="76" cy="3" r="3.4" fill="#FF9A3A"/><circle cx="52" cy="8" r="2" fill="#FF7A22"/><path d="M0 44q25-8 50-2t70-6V56H0z" fill="#3B2A26" stroke="#0E0E0E" stroke-width="1.6"/><path d="M0 51q20-6 44-1t76-3" stroke="#FF6A1A" stroke-width="5" fill="none"/><path d="M0 51q20-6 44-1t76-3" stroke="#FFC060" stroke-width="1.6" fill="none"/></svg>',
   };
   const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli', 'tank', 'jet'];
 
@@ -297,7 +298,7 @@
           jeep: '<path d="M4 31l3-9 9-5h14l9 5 5 2 2 7z" fill="#6b6b6e" stroke="#0E0E0E" stroke-width="2.6" stroke-linejoin="round"/><circle cx="15" cy="33" r="5.4" fill="#23272A" stroke="#0E0E0E" stroke-width="2.4"/><circle cx="37" cy="33" r="5.4" fill="#23272A" stroke="#0E0E0E" stroke-width="2.4"/><path d="M19 9l-4 5M27 7v6M34 9l3 5" stroke="#9a9a9a" stroke-width="3" stroke-linecap="round"/>',
         };
         const ico = ({ time: 'time', nana: 'nana', mine: 'boom', barrel: 'boom', pit: 'pit', giant: 'jeep', fire: 'fire' })[rs] || 'jeep';
-        const hint = t('sum.hint.' + (['time', 'nana', 'mine', 'barrel', 'pit', 'giant', 'fire'].indexOf(rs) >= 0 ? rs : 'jeep'));
+        const hint = t('sum.hint.' + (['time', 'nana', 'mine', 'barrel', 'pit', 'giant', 'fire', 'lava', 'rock', 'vent'].indexOf(rs) >= 0 ? rs : 'jeep'));
         let segs = ''; const tot = Math.max(1, r.total || 1); for (let i = 0; i < tot; i++) segs += '<i class="' + (i < r.crates ? 'on' : '') + '" style="--i:' + i + '"></i>';
         let smoke = ''; for (let i = 0; i < 9; i++) smoke += '<b style="left:' + (6 + i * 11) + '%;--dl:' + ((i * 7) % 5) * 0.55 + 's;--du:' + (5 + (i % 4)) + 's;--s:' + (90 + (i * 29) % 90) + 'px"></b>';
         el = UI._screen('summary is-fail',
@@ -308,7 +309,7 @@
           '<div class="fail-icon"><svg viewBox="0 0 48 48">' + IC[ico] + '</svg></div>' +
           '<div class="fail-stamp">' + t('sum.stamp') + '</div>' +
           '<div class="sum-title">' + t('sum.failed') + '</div>' +
-          '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant', fire: 'sum.fail.fire' })[rs] || 'sum.fail.jeep') + '</div>' +
+          '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant', fire: 'sum.fail.fire', lava: 'sum.fail.lava', rock: 'sum.fail.rock', vent: 'sum.fail.vent' })[rs] || 'sum.fail.jeep') + '</div>' +
           '<div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>' +
           (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') + '</div>' +
           '<div class="sum-body"><div class="fail-prog"><div class="fp-h"><span>' + t('sum.progress') + '</span><b>' + r.crates + '/' + r.total + '</b></div><div class="fp-bar">' + segs + '</div>' +

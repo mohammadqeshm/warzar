@@ -59,7 +59,7 @@
       if (!A.ctx || A.hardSuspended || A.muted) return;
       v = v == null ? 1 : v;
       const now = A.ctx.currentTime;
-      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03, heli: 0.18, mortar: 0.12, club: 0.2, roar: 0.4, blast: 0.06, burn: 0.3, ignite: 0.4, tank: 0.2, cannon: 0.1, jet: 0.5, whistle: 0.07, dflame: 0.16, dino: 0.5, pickup: 0.12 }[name] || 0;
+      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03, heli: 0.18, mortar: 0.12, club: 0.2, roar: 0.4, blast: 0.06, burn: 0.3, ignite: 0.4, tank: 0.2, cannon: 0.1, jet: 0.5, whistle: 0.07, dflame: 0.16, dino: 0.5, pickup: 0.12, rumble: 0.35 }[name] || 0;
       if (gap && A.last[name] && now - A.last[name] < gap) return;
       A.last[name] = now;
       switch (name) {
@@ -107,6 +107,7 @@
         case 'dino': A.tone('sawtooth', 190, 52, 0.9, 0.34 * v); A.tone('square', 96, 40, 0.85, 0.18 * v); A.noiseBurst(0.8, 'lowpass', 900, 120, 0.34 * v); A.tone('sawtooth', 420, 110, 0.5, 0.1 * v, 0.05); break;
         case 'pickup': [660, 880, 1320].forEach((f, i) => A.tone('sine', f, f * 1.01, 0.2, 0.26 * v, i * 0.07)); A.noiseBurst(0.18, 'highpass', 5200, 5200, 0.07 * v, 0.14); break;
         case 'clock': [988, 1318, 1976].forEach((f, i) => A.tone('triangle', f, f, 0.14, 0.24 * v, i * 0.08)); A.tone('square', 1760, 1760, 0.05, 0.1 * v, 0.34); A.tone('square', 1760, 1760, 0.05, 0.1 * v, 0.42); break;
+        case 'rumble': A.noiseBurst(1.1, 'lowpass', 220, 55, 0.55 * v); A.tone('sine', 52, 28, 1.0, 0.5 * v); A.tone('triangle', 38, 26, 0.9, 0.3 * v, 0.1); A.noiseBurst(0.5, 'bandpass', 90, 60, 0.3 * v, 0.2); break;
         case 'spawn': A.tone('sine', 200, 260, 0.08, 0.05 * v); break;
         default: break;
       }

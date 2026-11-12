@@ -17,17 +17,20 @@
       M.mission = WZ.Missions.make(data.index, tutorial);
       M.scene = new T.Scene();
       const themeId = data.theme || WZ.Save.data.settings.map || 'village'; M.theme = CFG.maps[themeId] && themeId !== 'order' ? themeId : 'village';
+      const MP = CFG.maps[M.theme];
+      if (!tutorial && MP.spawnMul) { M.mission.spawnRate *= MP.spawnMul; M.mission.hpMul *= MP.hpMul || 1; }     // harder maps: tougher enemy waves
       M.map = WZ.World.generate(data.runSeed, data.index, { tutorial, theme: M.theme });
       M.col = WZ.Collision.create(M.map);
       M.view = WZ.WorldView.build(M.map, M.scene, { quality: WZ.Quality.level });
       WZ.Particles.init(M.scene); WZ.Blobs.init(M.scene, 72);
       M.small = new WZ.SmallProps(M.scene, M.map);
       M.crates = new WZ.Crates(M.scene, M.map);
-      M.jeep = new WZ.Jeep(M.map, M.col, M.scene);
+      M.jeep = new WZ.Jeep(M.map, M.col, M.scene); if (M.map.lava) M.jeep.wc = CFG.maps[M.theme];       // lava handling values
       WZ.Enemies.init(M.scene, M.map, M.col);
       M.ctx = { scene: M.scene, map: M.map, col: M.col, jeep: M.jeep, enemies: WZ.Enemies, crates: M.crates, particles: WZ.Particles, fx: WZ.Fx, nana: null };
       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
+      WZ.Volcano.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 6161));     // volcanic map only (no-op elsewhere)
       WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Jets.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
       M.ctx.addTime = (s) => { M.timeLeft += s; };
       WZ.Pickups.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 4242));
@@ -56,8 +59,8 @@
       WZ.UI.hudShow(false); WZ.UI.resetHudCache();
       WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), weapon: () => WZ.Input.press('weapon'), wswap: () => WZ.Input.press('wnext'), wsel: (id) => { WZ.Input.pressed.wsel = id; }, pause: () => WZ.Main.togglePause() });
       WZ.Input.reset();
-      const jurTips = ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], jurMap = M.theme === 'jurassic';
-      M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: jurMap ? t('brief.map', { m: t('maps.jurassic') }) : '', tip: t(jurMap && data.index % 3 !== 0 ? jurTips[(data.index - 1) % 3] : TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
+      const mapTips = { jurassic: ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], volcanic: ['brief.tipV1', 'brief.tipV2', 'brief.tipV3', 'brief.tipV4'] }, mt = mapTips[M.theme];
+      M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: mt ? t('brief.map', { m: t('maps.' + M.theme) }) : '', tip: t(mt && data.index % 3 !== 0 ? mt[(data.index - 1) % mt.length] : TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
       void Main;
     },
 
@@ -74,7 +77,7 @@
       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
-      WZ.Hazards.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
+      WZ.Hazards.dispose(); WZ.Volcano.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
       M.scene = null; WZ.Main.renderer.renderLists.dispose();
     },
 
@@ -164,7 +167,7 @@
         M.time += dt;
       } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); M.drain(I); }
 
-      M.inWater = false;
+      M.inWater = false; M.inLava = false;
       if (M.map.water && J.alive && !J.captive) {      // wading through the river: slower, heavier steering, and the current drags you downstream
         const hh = M.map.height(J.x, J.z), lv = M.map.water.level;
         if (hh < lv + 0.25) {
@@ -172,6 +175,13 @@
           const wd = U.clamp((lv + 0.6 - hh) / 1.4, 0.35, 1), rv = M.map.river, dz = rv && rv.dzc ? rv.dzc(J.x) : 0, l = Math.hypot(1, dz);
           J.wade = wd; J.curX = 1 / l; J.curZ = dz / l;
           J.slow = Math.min(J.slow, 1 - (1 - CFG.maps.jurassic.waterSlow) * wd);
+        }
+      } else if (M.map.lava && J.alive && !J.captive) {  // volcanic map: LAVA - same wading handling (thicker, stickier), the burning itself is in WZ.Volcano
+        const wd = M.map.lava.depth(J.x, J.z);
+        if (wd > 0) {
+          M.inWater = M.inLava = true; M.map.lava.flow(J.x, J.z, tmp);
+          J.wade = wd; J.curX = tmp.x; J.curZ = tmp.z;
+          J.slow = Math.min(J.slow, 1 - (1 - CFG.maps.volcanic.waterSlow) * wd);
         }
       }
       J.step(dt, M.inp, Cam.yaw);
@@ -182,6 +192,7 @@
       WZ.Gun.update(dt, M.ctx);
       M.small.hit(J, WZ.Particles); M.small.update(dt);
       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
+      WZ.Volcano.update(dt, M.ctx, M.phase === 'play', M.time);
       WZ.Fire.update(dt);
       if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); WZ.Tanks.update(dt); }
       if (M.phase === 'play' || M.phase === 'ending') WZ.Jets.update(dt);
@@ -238,7 +249,10 @@
           }
         }
       }
-      if (M.inWater && sp > 2) {
+      if (M.inLava && sp > 2) {                          // lava: a spray of glowing blobs + smoke
+        M.splashT = (M.splashT || 0) - dt;
+        if (M.splashT <= 0) { M.splashT = 0.05; for (let s = -1; s <= 1; s += 2) { J.localToWorld(s * 1.5, 0.4, tmp); P.emit(1, tmp.x, J.ry + 0.5, tmp.z, -J.vx * 0.15 + (Math.random() - 0.5) * 3, 3 + Math.random() * 3, -J.vz * 0.15 + (Math.random() - 0.5) * 3, 0.6 + Math.random() * 0.3, 0.9, 0.2, 1, 0.45 + Math.random() * 0.25, 0.1, 0.95, 0, -8, 0.6); } }
+      } else if (M.inWater && sp > 2) {
         M.splashT = (M.splashT || 0) - dt;
         if (M.splashT <= 0) { M.splashT = 0.045; for (let s = -1; s <= 1; s += 2) { J.localToWorld(s * 1.5, 0.4, tmp); P.emit(0, tmp.x, J.ry + 0.5, tmp.z, -J.vx * 0.15 + (Math.random() - 0.5) * 3, 2.4 + Math.random() * 2.4, -J.vz * 0.15 + (Math.random() - 0.5) * 3, 0.6 + Math.random() * 0.3, 0.7, 2.2, 0.86, 0.95, 1, 0.7, 0, -7, 0.8); } }
       }
@@ -369,6 +383,7 @@
     hintText() {
       if (M.hintT > 0 && M.hintKey === 'hud.nocrate') return t(M.hintKey);
       const hz = WZ.Hazards.hint(); if (hz && hz.indexOf('hud.tornado') === 0) return t(hz);   // tornado warning / pull / caught
+      const vh = WZ.Volcano.hint(); if (vh) return t(vh);                                       // lava / eruption / vent / magma pool warnings (volcanic map)
       return '';
     },
 
@@ -405,7 +420,7 @@
 
       if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); WZ.Giants.bars(cam, w, h); }
       if (WZ.UI.dbgOn) M.debugText();
-      WZ.Hazards.render(dt, M.t); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
+      WZ.Hazards.render(dt, M.t); WZ.Volcano.render(dt, M.t); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
       Main.renderer.render(M.scene, cam);
     },
 

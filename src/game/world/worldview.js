@@ -10,6 +10,7 @@
 
   function paintGround(map) {
     if (map.theme === 'jurassic') return WZ.Jura.paintGround(map, SPLAT, SPAN, hexA);
+    if (map.theme === 'volcanic') return WZ.Volca.paintGround(map, SPLAT, SPAN, hexA);
     const c = document.createElement('canvas'); c.width = c.height = SPLAT;
     const g = c.getContext('2d'), rng = R.mulberry32((map.seed ^ 0xABCDEF) >>> 0), k = SPLAT / SPAN;
     const px = (x) => (x + SPAN / 2) * k, pz = (z) => (z + SPAN / 2) * k;
@@ -77,8 +78,8 @@
     const t = new T.CanvasTexture(c); t.anisotropy = 8; return t;
   }
 
-  function tuftGeo(jur) {
-    const b = new G.Builder(), cols = jur ? WZ.Jura.grassColors : [0xB59A5B, 0x8F8B45, 0xC9B06A, 0xA08A4A];
+  function tuftGeo(jur, vol) {
+    const b = new G.Builder(), cols = vol ? WZ.Volca.grassColors : jur ? WZ.Jura.grassColors : [0xB59A5B, 0x8F8B45, 0xC9B06A, 0xA08A4A];
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * 6.283;
       b.add(G.cone(3), { x: Math.cos(a) * 0.22, z: Math.sin(a) * 0.22, y: 0.55, rz: Math.cos(a) * 0.25, rx: Math.sin(a) * 0.25, sx: 0.09, sy: 1.1, sz: 0.09, color: cols[i % 4] });
@@ -109,12 +110,12 @@
     const group = new T.Group(); scene.add(group);
     const rng = R.create((map.seed ^ 0x77) | 0), half = map.half;
     const view = { group, map, smokeT: [], flames: [], extract: null };
-    const jur = map.theme === 'jurassic';
+    const jur = map.theme === 'jurassic', vol = map.theme === 'volcanic', themed = jur || vol;
 
-    scene.fog = jur ? new T.Fog(0xCBDDAE, 90, 330) : new T.Fog(0xB9D6EE, 100, 360);
-    scene.background = new T.Color(jur ? 0xCFE0AC : 0xA9D3F2);
-    const hemi = jur ? new T.HemisphereLight(0xE4F4D0, 0x4E6B34, 0.72) : new T.HemisphereLight(0xCFE6FF, 0xA88C5E, 0.64); scene.add(hemi);
-    const sun = new T.DirectionalLight(jur ? 0xFFD9A0 : 0xFFE3B8, jur ? 0.92 : 0.86);
+    scene.fog = vol ? new T.Fog(0x7A3E2C, 95, 340) : jur ? new T.Fog(0xCBDDAE, 90, 330) : new T.Fog(0xB9D6EE, 100, 360);
+    scene.background = new T.Color(vol ? 0x6A3626 : jur ? 0xCFE0AC : 0xA9D3F2);
+    const hemi = vol ? new T.HemisphereLight(0xFFC9A0, 0x6A4636, 0.98) : jur ? new T.HemisphereLight(0xE4F4D0, 0x4E6B34, 0.72) : new T.HemisphereLight(0xCFE6FF, 0xA88C5E, 0.64); scene.add(hemi);
+    const sun = new T.DirectionalLight(vol ? 0xFFC890 : jur ? 0xFFD9A0 : 0xFFE3B8, vol ? 0.95 : jur ? 0.92 : 0.86);
     sun.castShadow = CFG.quality.shadow[q] > 0;
     if (sun.castShadow) {
       const ss = sun.shadow; ss.mapSize.set(CFG.quality.shadow[q], CFG.quality.shadow[q]);
@@ -126,35 +127,36 @@
 
     // ground
     const splat = paintGround(map);
-    const gSeg = jur ? 168 : 100, gg = new T.PlaneGeometry(SPAN, SPAN, gSeg, gSeg); gg.rotateX(-Math.PI / 2);
+    const gSeg = themed ? 168 : 100, gg = new T.PlaneGeometry(SPAN, SPAN, gSeg, gSeg); gg.rotateX(-Math.PI / 2);
     const gp = gg.attributes.position;
     for (let i = 0; i < gp.count; i++) gp.setY(i, map.height(gp.getX(i), gp.getZ(i)));
     gg.computeVertexNormals();
     const ground = new T.Mesh(gg, new T.MeshLambertMaterial({ map: splat }));
     ground.receiveShadow = true; group.add(ground);
-    const outer = new T.Mesh(new T.PlaneGeometry(3400, 3400), new T.MeshLambertMaterial({ color: jur ? 0x4A6B32 : 0x9C8A52 }));
+    const outer = new T.Mesh(new T.PlaneGeometry(3400, 3400), new T.MeshLambertMaterial({ color: vol ? 0x2A1E1B : jur ? 0x4A6B32 : 0x9C8A52 }));
     outer.rotation.x = -Math.PI / 2; outer.position.y = -6; group.add(outer); // below any hill; hidden by the border cliffs
 
     // static village, merged per chunk + material
     const CH = CFG.world.chunk, nC = Math.ceil(map.size / CH), sets = [];
     if (jur) view.jx = WZ.Jura.addScenery(map, group, scene, q);
+    else if (vol) view.jx = WZ.Volca.addScenery(map, group, scene, q);
     for (let i = 0; i < nC * nC; i++) sets.push(P.newSet());
     const setAt = (x, z) => sets[Math.max(0, Math.min(nC - 1, Math.floor((z + half) / CH))) * nC + Math.max(0, Math.min(nC - 1, Math.floor((x + half) / CH)))];
     for (const h of map.houses) P.house(setAt(h.x, h.z), h.x, h.z, h.gy, h.w, h.d, h.h, rng, { red: h.red });
     for (const w of map.walls) P.wall(setAt(w.x, w.z), w.x, w.z, w.gy, w.len, w.axis, 1.4, 2.6, rng);
     for (const t of map.towers) P.tower(setAt(t.x, t.z), t.x, t.z, t.gy, t.h);
     for (const t of map.trees) P.tree(setAt(t.x, t.z), t.x, t.z, t.gy, t.s, t.dead, rng);
-    for (const r of (jur ? [] : map.rocks)) P.rock(setAt(r.x, r.z), r.x, r.z, r.gy, r.r, rng);
-    for (const t of (jur ? [] : map.tents)) P.camp(setAt(t.x, t.z), t.x, t.z, map.height(t.x, t.z));
-    for (const f of (jur ? [] : map.flags)) P.flagPole(setAt(f.x, f.z), f.x, f.z, map.height(f.x, f.z));
+    for (const r of (themed ? [] : map.rocks)) P.rock(setAt(r.x, r.z), r.x, r.z, r.gy, r.r, rng);
+    for (const t of (themed ? [] : map.tents)) P.camp(setAt(t.x, t.z), t.x, t.z, map.height(t.x, t.z));
+    for (const f of (themed ? [] : map.flags)) P.flagPole(setAt(f.x, f.z), f.x, f.z, map.height(f.x, f.z));
     for (const w of map.wrecks) P.wreck(setAt(w.x, w.z), w.x, w.z, w.gy, rng);
     sets.forEach((s) => P.setMeshes(s, group));
-    const cl = P.newSet(); if (jur) WZ.Jura.cliffs(cl, half, rng); else P.cliffs(cl, half, rng); P.setMeshes(cl, group);
+    const cl = P.newSet(); if (vol) WZ.Volca.cliffs(cl, half, rng); else if (jur) WZ.Jura.cliffs(cl, half, rng); else P.cliffs(cl, half, rng); P.setMeshes(cl, group);
 
     // grass tufts
     const nGrass = Math.min(map.grass.length, CFG.quality.grass[q]);
     if (nGrass > 0) {
-      const gm = new T.InstancedMesh(tuftGeo(jur), new T.MeshLambertMaterial({ vertexColors: true }), nGrass);
+      const gm = new T.InstancedMesh(tuftGeo(jur, vol), new T.MeshLambertMaterial({ vertexColors: true }), nGrass);
       gm.frustumCulled = false;
       const d = new T.Object3D(), c = new T.Color();
       for (let i = 0; i < nGrass; i++) {
@@ -166,10 +168,11 @@
     }
 
     // sky, mountains, clouds, sun glow
-    view.sky = jur ? WZ.Jura.skyDome() : skyDome(); scene.add(view.sky);
-    view.mountains = jur ? WZ.Jura.mountains(R.create(map.seed ^ 0x33)) : P.mountains(R.create(map.seed ^ 0x33)); scene.add(view.mountains);
-    view.clouds = P.clouds(R.create(map.seed ^ 0x44)); scene.add(view.clouds);
-    const glow = new T.Sprite(new T.SpriteMaterial({ map: WZ.Assets.tex('glow'), color: 0xFFE9B0, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, opacity: 0.8 }));
+    view.sky = vol ? WZ.Volca.skyDome() : jur ? WZ.Jura.skyDome() : skyDome(); scene.add(view.sky);
+    view.mountains = vol ? WZ.Volca.mountains(R.create(map.seed ^ 0x33)) : jur ? WZ.Jura.mountains(R.create(map.seed ^ 0x33)) : P.mountains(R.create(map.seed ^ 0x33)); scene.add(view.mountains);
+    if (vol && view.jx && view.jx.bindMountains) view.jx.bindMountains(view.mountains);
+    view.clouds = vol ? WZ.Volca.clouds(R.create(map.seed ^ 0x44)) : P.clouds(R.create(map.seed ^ 0x44)); scene.add(view.clouds);
+    const glow = new T.Sprite(new T.SpriteMaterial({ map: WZ.Assets.tex('glow'), color: vol ? 0xFF9A50 : 0xFFE9B0, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, opacity: vol ? 0.6 : 0.8 }));
     glow.scale.set(340, 340, 1); glow.renderOrder = -9; scene.add(glow); view.glow = glow;
 
     // fires (burning wreck)
@@ -219,7 +222,8 @@
       view.clouds.position.set(camera.position.x * 0.9 + t * 3, 0, camera.position.z * 0.9);
       view.glow.position.copy(camera.position).add(tmp.set(-34, 62, -28).normalize().multiplyScalar(820));
       if (view.extract) view.extract.update(t, camera);
-      if (view.jx) view.jx.update(t, dt, camera);
+      if (view.jx) view.jx.update(t, dt, camera, WZ.Volcano ? WZ.Volcano.alert : 0);
+      if (vol) { const al = WZ.Volcano ? WZ.Volcano.alert : 0; hemi.intensity = 0.98 + 0.3 * al * (0.85 + 0.15 * Math.sin(t * 9)); hemi.color.setRGB(1, 0.79 - 0.2 * al, 0.63 - 0.25 * al); scene.fog.color.setRGB(0.48 + 0.2 * al, 0.24 - 0.04 * al, 0.17 - 0.03 * al); }      // the sky turns redder during an eruption warning
       for (const fl of view.flames) fl.parts.forEach((m, i) => { const s = 1 + Math.sin(t * (9 + i * 3) + i) * 0.18; m.scale.y = (2.6 - i * 0.4) * s; m.rotation.y = t * (1 + i); m.material.opacity = 0.7 + Math.sin(t * 13 + i) * 0.15; });
       const Pt = WZ.Particles;
       if (Pt && Pt.ready) {

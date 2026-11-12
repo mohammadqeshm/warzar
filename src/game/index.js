@@ -22,11 +22,14 @@ import './art/vehicles_extra.js';
 import './art/enemies.js';
 import './art/dino.js';
 import './art/jurassic.js';
+import './art/volcanic.js';
+import './art/magma.js';
 
 import './world/navgrid.js';
 import './world/collision.js';
 import './world/gen.js';
 import './world/gen_jurassic.js';
+import './world/gen_volcanic.js';
 import './world/worldview.js';
 
 import './systems/particles.js';
@@ -39,6 +42,7 @@ import './systems/gun.js';
 import './systems/missions.js';
 import './systems/fire.js';
 import './systems/hazards.js';
+import './systems/volcano.js';
 import './systems/landmines.js';
 import './systems/turrets.js';
 import './systems/bullets.js';
