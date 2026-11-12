@@ -61,6 +61,7 @@
       const map = Z.ctx.map, col = Z.ctx.col, rng = Z.rng, lim = map.half - 16, st = map.start, ex = map.extract, list = [];
       const target = Z.mission.tutorial ? MC.tutorialCount : Math.min(MC.maxCount, Math.round(MC.baseCount + MC.perMission * m));
       const ok = (x, z) => {
+        if (map.noHazard && map.noHazard(x, z)) return false;
         if (Math.abs(x) > lim || Math.abs(z) > lim || d2(x, z, st.x, st.z) < MC.minFromStart * MC.minFromStart) return false;
         if (ex && d2(x, z, ex.x, ex.z) < MC.minFromExtract * MC.minFromExtract) return false;
         for (const c of map.crates) if (d2(x, z, c.x, c.z) < MC.minFromCrate * MC.minFromCrate) return false;
@@ -136,6 +137,7 @@
       const map = Z.ctx.map, col = Z.ctx.col, rng = Z.rng2, lim = map.half - 16, st = map.start, ex = map.extract, list = [];
       const target = Z.mission.tutorial ? BC.tutorialCount : Math.min(BC.maxCount, Math.round(BC.baseCount + BC.perMission * m));
       const ok = (x, z) => {
+        if (map.noHazard && map.noHazard(x, z)) return false;
         if (Math.abs(x) > lim || Math.abs(z) > lim || d2(x, z, st.x, st.z) < BC.minFromStart * BC.minFromStart) return false;
         if (ex && d2(x, z, ex.x, ex.z) < BC.minFromExtract * BC.minFromExtract) return false;
         for (const c of map.crates) if (d2(x, z, c.x, c.z) < BC.minFromCrate * BC.minFromCrate) return false;
@@ -190,6 +192,7 @@
       const map = Z.ctx.map, col = Z.ctx.col, rng = Z.rng2, lim = map.half - 18, st = map.start, ex = map.extract, list = [];
       const target = Z.mission.tutorial ? PC.tutorialCount : Math.min(PC.maxCount, Math.round(PC.baseCount + PC.perMission * m));
       const ok = (x, z) => {
+        if (map.noHazard && map.noHazard(x, z)) return false;
         if (Math.abs(x) > lim || Math.abs(z) > lim || d2(x, z, st.x, st.z) < PC.minFromStart * PC.minFromStart) return false;
         if (ex && d2(x, z, ex.x, ex.z) < PC.minFromExtract * PC.minFromExtract) return false;
         for (const c of map.crates) if (d2(x, z, c.x, c.z) < PC.minFromCrate * PC.minFromCrate) return false;

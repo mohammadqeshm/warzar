@@ -205,6 +205,7 @@
 
   function generate(runSeed, missionIndex, opts) {
     opts = opts || {};
+    if (opts.theme === 'jurassic' && WZ.WorldJ) return WZ.WorldJ.generate(runSeed, missionIndex, opts);   // see world/gen_jurassic.js
     const tutorial = opts.tutorial != null ? opts.tutorial : missionIndex <= CFG.mission.tutorialIndex;
     const base = R.hash(runSeed >>> 0, missionIndex);
     let map = null, attempt = 0;

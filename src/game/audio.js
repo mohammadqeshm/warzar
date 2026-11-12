@@ -59,7 +59,7 @@
       if (!A.ctx || A.hardSuspended || A.muted) return;
       v = v == null ? 1 : v;
       const now = A.ctx.currentTime;
-      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03, heli: 0.18, mortar: 0.12, club: 0.2, roar: 0.4, blast: 0.06, burn: 0.3, ignite: 0.4, tank: 0.2, cannon: 0.1 }[name] || 0;
+      const gap = { gun: 0.05, bonk: 0.06, hit: 0.1, ko: 0.05, thud: 0.08, bag: 0.08, click: 0.03, heli: 0.18, mortar: 0.12, club: 0.2, roar: 0.4, blast: 0.06, burn: 0.3, ignite: 0.4, tank: 0.2, cannon: 0.1, jet: 0.5, whistle: 0.07, dflame: 0.16, dino: 0.5, pickup: 0.12 }[name] || 0;
       if (gap && A.last[name] && now - A.last[name] < gap) return;
       A.last[name] = now;
       switch (name) {
@@ -101,6 +101,12 @@
         case 'swish': A.noiseBurst(0.38, 'bandpass', 350, 1500, 0.22 * v, 0, 1.2); break;
         case 'mortar': A.tone('sine', 220, 55, 0.26, 0.45 * v); A.noiseBurst(0.2, 'lowpass', 1300, 200, 0.4 * v); break;
         case 'heli': A.noiseBurst(0.15, 'lowpass', 220, 110, 0.3 * v); A.tone('sawtooth', 58, 46, 0.13, 0.07 * v); break;
+        case 'jet': A.noiseBurst(2.1, 'bandpass', 180, 1900, 0.42 * v, 0, 0.9); A.noiseBurst(1.6, 'lowpass', 500, 220, 0.3 * v, 0.3); A.tone('sawtooth', 70, 210, 1.5, 0.1 * v); A.tone('triangle', 140, 420, 1.3, 0.05 * v, 0.2); break;
+        case 'whistle': A.tone('sine', 1700, 380, 0.85, 0.05 * v); A.tone('triangle', 1150, 300, 0.8, 0.025 * v); break;
+        case 'dflame': A.noiseBurst(0.34, 'bandpass', 700, 260, 0.3 * v, 0, 0.7); A.noiseBurst(0.3, 'highpass', 2600, 1400, 0.07 * v); A.tone('sawtooth', 70, 48, 0.3, 0.06 * v); break;
+        case 'dino': A.tone('sawtooth', 190, 52, 0.9, 0.34 * v); A.tone('square', 96, 40, 0.85, 0.18 * v); A.noiseBurst(0.8, 'lowpass', 900, 120, 0.34 * v); A.tone('sawtooth', 420, 110, 0.5, 0.1 * v, 0.05); break;
+        case 'pickup': [660, 880, 1320].forEach((f, i) => A.tone('sine', f, f * 1.01, 0.2, 0.26 * v, i * 0.07)); A.noiseBurst(0.18, 'highpass', 5200, 5200, 0.07 * v, 0.14); break;
+        case 'clock': [988, 1318, 1976].forEach((f, i) => A.tone('triangle', f, f, 0.14, 0.24 * v, i * 0.08)); A.tone('square', 1760, 1760, 0.05, 0.1 * v, 0.34); A.tone('square', 1760, 1760, 0.05, 0.1 * v, 0.42); break;
         case 'spawn': A.tone('sine', 200, 260, 0.08, 0.05 * v); break;
         default: break;
       }

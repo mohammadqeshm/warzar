@@ -36,6 +36,7 @@
       bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1 },
       heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 8, starter: 1 },
       tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 8, starter: 1 },
+      jet: { packs: [{ n: 1, price: 520 }, { n: 2, price: 960 }, { n: 4, price: 1800 }], cap: 8, starter: 1 },
     },
     mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
@@ -58,6 +59,13 @@
     tank: { cooldown: 0.8, life: 42, speed: 17, range: 38, guard: 32, rate: 0.85, damage: 8, splash: 4.2, knock: 8, aim: 0.1,
       mgRate: 8, mgDamage: 1.3, mgRange: 30, mgKnock: 0.5, turretTurn: 5, hullTurn: 3.4, radius: 2.0, cover: 7, arrive: 2.2, spawnDist: 70, ramMin: 3.5,
       slots: [[-7.5, -2], [7.5, -2], [-12, -8], [12, -8], [-5, -12], [5, -12]], scale: 1.0 },
+    // FIGHTER JET (bought in the Shop, one consumed per call): screams in from off-screen, flies `passes` low bombing runs over the biggest enemy group
+    // (or the giant/dinosaur) near the vehicle - or near Nana while she is outside - and carpet-bombs a line of `bombsPerPass` bombs on each run.
+    // Bombs are real ballistic projectiles (they inherit the jet's velocity + gravity); the release point is computed from the jet's own motion so the
+    // string of explosions lands on the planned line. Then it lights the afterburner and climbs away. Bombs never hurt the vehicle or Nana.
+    // Defense Tech: +damage, and +1 bomb per run at levels 2 and 4.
+    jet: { cooldown: 1.0, passes: 3, bombsPerPass: 7, spacing: 4.8, speed: 76, boostSpeed: 150, cruiseAlt: 36, bombAlt: 25, turnRate: 2.3, gravity: 34,
+      damage: 26, blast: 8.6, knock: 17, searchRange: 62, minSafe: 12, defaultAhead: 32, approach: 205, maxBombs: 90, leaveTime: 5.5, bombCap: 8 },
     // Permanent defense tech (Shop): each level boosts every turret
     defenseTech: { max: 4, prices: [250, 550, 950, 1500], dmg: 0.2, life: 0.12, rate: 0.08 },
 
@@ -154,6 +162,31 @@
         shootRange: 13, shootStop: 5.5, shootCd: 2.3, shootDamage: 9, bulletSpeed: 19 },
     },
 
+    // PICKUPS scattered over the map (very few per mission, off in the tutorial). Drive over them with the vehicle.
+    //  heal: repairs `healPct` of the vehicle's max armor (is NOT used up while the armor is already full).  time: adds `bonus` seconds to the timer.
+    pickups: {
+      fromMission: 2, radius: 3.0, minFromStart: 38, minFromCrate: 16, minFromExtract: 22, minGap: 55, bob: 0.35, hover: 2.6,
+      heal: { healPct: 0.4, count: (m) => Math.min(3, 1 + Math.floor((m + 1) / 4)) },
+      time: { bonus: 60, count: (m) => (m >= 5 ? 2 : 1) },
+      arrowRange: 95,
+    },
+
+    // MAPS (selected in the main menu, stored in Save.data.settings.map). `village` = the original desert village.
+    maps: {
+      order: ['village', 'jurassic'],
+      village: { name: 'maps.village' },
+      jurassic: { name: 'maps.jurassic', waterLevel: -0.5, waterSlow: 0.72, hillAmp: 7.2, riverWidth: 7.4, bridges: 4 },
+    },
+    // DINOSAUR guardians (Jurassic map): they replace the club giants. Same chase / ram / HP-bar rules (these values are merged over CFG.giant),
+    // but the weapon is a FIRE BREATH: the dino rears back with a glowing mouth (telegraph), then roars a cone of flame that sweeps toward its target.
+    // It still bites when the vehicle is very close. The flame hurts the vehicle (per tick) and can kill Nana in about a second and a half.
+    dino: {
+      hp: 150, speed: 7.8, radius: 2.4, height: 8.9, home: 7.5, aggro: 42, nanaAggro: 48, leash: 95,
+      reach: 6.4, nanaReach: 5.8, windup: 0.6, swing: 0.3, cooldown: 2.1, jeepDamage: 18,
+      fire: { range: 27, nanaRange: 23, minRange: 7.5, len: 27, wStart: 1.1, wEnd: 4.6, windup: 0.95, dur: 1.7, cooldown: 4.6, turn: 1.15, windTurn: 2.4, advance: 0.32,
+        tick: 0.2, jeepTick: 3.4, nanaTick: 8, mouth: 4.7, mouthY: 6.9, tutorialMul: 0.5 },
+    },
+
     crates: {
       weights: { coin: 55, gold: 12, time: 12, part: 8, repair: 8, tnt: 5 },   // M2
       beamHeight: 120,
@@ -190,6 +223,8 @@
     completion: (m) => CFG.economy.completionBase + CFG.economy.completionPerMission * m,
     timeBonus: (sec) => Math.floor(sec) * CFG.economy.timeBonusPerSec,
   };
+
+  CFG.dinoStats = Object.assign({}, CFG.giant, CFG.dino);   // the dinosaur guardian = giant rules + overrides from CFG.dino
 
   WZ.CFG = CFG;
 })(window.WZ = window.WZ || {});

@@ -11,7 +11,7 @@
   'use strict';
   const T = THREE, CFG = WZ.CFG, BC = CFG.hazards.barrels;
   const SOFT = 0, GLOW = 1;
-  const NB = 6, ND = 44, NS = 28, NG = 12;
+  const NB = 12, ND = 44, NS = 28, NG = 12;
   const PAL = [[1, 0.93, 0.5], [1, 0.64, 0.18], [1, 0.42, 0.1], [0.95, 0.26, 0.06]];
   const DEB = [0xd9241e, 0xb01c16, 0x1e2024, 0xffb400, 0x6a6e73];
   const m4 = new T.Matrix4(), qa = new T.Quaternion(), ea = new T.Euler(), vp = new T.Vector3(), vs = new T.Vector3(), col = new T.Color();
@@ -78,10 +78,11 @@
     },
 
     // ------------------------------------------------------------------ explosion
-    /** opts: { scale, debris, groundFire (seconds), shake, flash, scorch } */
+    /** opts: { scale, debris, groundFire (seconds), shake, flash, scorch, parts (particle multiplier), mute } */
     explode(x, y, z, opts) {
       const c = F.ctx; if (!c || !F.blasts.length) return;
-      const o = opts || {}, sc = o.scale || 1, P = c.particles, dn = o.debris == null ? BC.debris : o.debris;
+      const o = opts || {}, sc = o.scale || 1, P = c.particles, dn = o.debris == null ? BC.debris : o.debris, pk = o.parts == null ? 1 : o.parts;
+      const cnt = (n) => Math.max(1, Math.round(n * pk * (CFG.quality.particles[WZ.Quality ? WZ.Quality.level : 2] || 1)));   // `parts` thins out the particles for rapid-fire blasts (carpet bombing)
       // flash + fireball
       P.emit(GLOW, x, y + 0.6, z, 0, 0, 0, 0.15, 15 * sc, 21 * sc, 1, 0.95, 0.7, 1, 0, 0, 0);
       P.emit(GLOW, x, y + 1.0, z, 0, 0.6, 0, 0.34, 8 * sc, 15 * sc, 1, 0.6, 0.15, 0.9, 0, 0, 0);
@@ -125,7 +126,7 @@
       const gf = o.groundFire == null ? BC.groundFire : o.groundFire;
       if (gf > 0) { if (F.gfires.length >= NG) F.gfires.shift(); F.gfires.push({ x, y: y - 0.4, z, t: 0, life: gf * (0.8 + rnd() * 0.4), r: 1.5 * sc }); }
 
-      WZ.Audio.sfx('blast', Math.min(1, 0.55 + sc * 0.4));
+      if (!o.mute) WZ.Audio.sfx('blast', Math.min(1, 0.55 + sc * 0.4));
       WZ.Fx.shake(o.shake == null ? BC.shake : o.shake);
       if (o.flash) WZ.Fx.flash('fire');
     },

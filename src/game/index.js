@@ -20,10 +20,13 @@ import './art/heroes.js';
 import './art/vehicles.js';
 import './art/vehicles_extra.js';
 import './art/enemies.js';
+import './art/dino.js';
+import './art/jurassic.js';
 
 import './world/navgrid.js';
 import './world/collision.js';
 import './world/gen.js';
+import './world/gen_jurassic.js';
 import './world/worldview.js';
 
 import './systems/particles.js';
@@ -41,6 +44,8 @@ import './systems/turrets.js';
 import './systems/bullets.js';
 import './systems/heli.js';
 import './systems/tanks.js';
+import './systems/jets.js';
+import './systems/pickups.js';
 import './systems/weapons.js';
 
 import './entities/smallprops.js';

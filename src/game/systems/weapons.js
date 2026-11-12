@@ -1,5 +1,5 @@
 /* WZ.Weapons — ONE weapon button for everything deployable (GTA-style selector).
- * Items: MINE, GUN TURRET, HEAVY CANNON, BOMB TURRET, ESCORT HELICOPTER, ESCORT TANK. The player selects one (swap button / wheel strip / Q-E / 1-5) and the
+ * Items: MINE, GUN TURRET, HEAVY CANNON, BOMB TURRET, ESCORT HELICOPTER, ESCORT TANK, FIGHTER JET. The player selects one (swap button / wheel strip / Q-E / 1-7) and the
  * single USE button (F) deploys the selected one. Stock lives in Save.data.inv, cooldowns in the individual systems; the selection is saved.
  * New deployables later = add one entry to ITEMS (+ its HUD icon in ui.js), nothing else changes on screen. */
 (function (WZ) {
@@ -12,6 +12,7 @@
     { id: 'bomb', name: 'w.bomb', key: '4' },
     { id: 'heli', name: 'w.heli', key: '5' },
     { id: 'tank', name: 'w.tank', key: '6' },
+    { id: 'jet', name: 'w.jet', key: '7' },
   ];
   const W = {
     items: ITEMS, sel: 1, snapshot: ITEMS.map((it) => ({ id: it.id, n: 0, pct: 1 })),
@@ -30,6 +31,7 @@
         case 'bomb': return WZ.Turrets.stock('bomb');
         case 'heli': return WZ.Heli.stock();
         case 'tank': return WZ.Tanks.stock();
+        case 'jet': return WZ.Jets.stock();
         default: return 0;
       }
     },
@@ -39,6 +41,7 @@
         case 'gun': case 'heavy': case 'bomb': return WZ.Turrets.cdPct(id);
         case 'heli': return WZ.Heli.cdPct();
         case 'tank': return WZ.Tanks.cdPct();
+        case 'jet': return WZ.Jets.cdPct();
         default: return 1;
       }
     },
@@ -68,6 +71,7 @@
         case 'bomb': return WZ.Turrets.plant('bomb');
         case 'heli': return WZ.Heli.call();
         case 'tank': return WZ.Tanks.call();
+        case 'jet': return WZ.Jets.call();
         default: return false;
       }
     },

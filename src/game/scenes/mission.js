@@ -5,10 +5,10 @@
   const T = THREE, CFG = WZ.CFG, U = WZ.U, Cam = WZ.Cam;
   const t = (k, v) => WZ.I18n.t(k, v);
   const v3 = new T.Vector3(), tmp = { x: 0, z: 0 };
-  const TIPS = ['brief.tip1', 'brief.tip13', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip14', 'brief.tip5', 'brief.tip6', 'brief.tip15', 'brief.tip7', 'brief.tip8', 'brief.tip9', 'brief.tip10', 'brief.tip11', 'brief.tip12'];
+  const TIPS = ['brief.tip1', 'brief.tip13', 'brief.tip2', 'brief.tip3', 'brief.tip4', 'brief.tip14', 'brief.tip5', 'brief.tip6', 'brief.tip15', 'brief.tip7', 'brief.tip8', 'brief.tip9', 'brief.tip10', 'brief.tip11', 'brief.tip12', 'brief.tip16'];
 
   const M = {
-    name: 'mission', phase: 'none',
+    name: 'mission', phase: 'none', pkList: [],
 
     enter(data) {
       const Main = WZ.Main;
@@ -16,7 +16,8 @@
       const tutorial = data.tutorial != null ? data.tutorial : (data.index <= CFG.mission.tutorialIndex && !WZ.Save.data.flags.tutorialDone);
       M.mission = WZ.Missions.make(data.index, tutorial);
       M.scene = new T.Scene();
-      M.map = WZ.World.generate(data.runSeed, data.index, { tutorial });
+      const themeId = data.theme || WZ.Save.data.settings.map || 'village'; M.theme = CFG.maps[themeId] && themeId !== 'order' ? themeId : 'village';
+      M.map = WZ.World.generate(data.runSeed, data.index, { tutorial, theme: M.theme });
       M.col = WZ.Collision.create(M.map);
       M.view = WZ.WorldView.build(M.map, M.scene, { quality: WZ.Quality.level });
       WZ.Particles.init(M.scene); WZ.Blobs.init(M.scene, 72);
@@ -27,7 +28,9 @@
       M.ctx = { scene: M.scene, map: M.map, col: M.col, jeep: M.jeep, enemies: WZ.Enemies, crates: M.crates, particles: WZ.Particles, fx: WZ.Fx, nana: null };
       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
-      WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
+      WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Jets.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
+      M.ctx.addTime = (s) => { M.timeLeft += s; };
+      WZ.Pickups.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 4242));
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
       M.inp = { x: 0, y: 0, mag: 0, boost: false };
@@ -53,7 +56,8 @@
       WZ.UI.hudShow(false); WZ.UI.resetHudCache();
       WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), weapon: () => WZ.Input.press('weapon'), wswap: () => WZ.Input.press('wnext'), wsel: (id) => { WZ.Input.pressed.wsel = id; }, pause: () => WZ.Main.togglePause() });
       WZ.Input.reset();
-      M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, tip: t(TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
+      const jurTips = ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], jurMap = M.theme === 'jurassic';
+      M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: jurMap ? t('brief.map', { m: t('maps.jurassic') }) : '', tip: t(jurMap && data.index % 3 !== 0 ? jurTips[(data.index - 1) % 3] : TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
       void Main;
     },
 
@@ -70,7 +74,7 @@
       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
-      WZ.Hazards.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Giants.dispose();
+      WZ.Hazards.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
       M.scene = null; WZ.Main.renderer.renderLists.dispose();
     },
 
@@ -155,10 +159,13 @@
         if (I.consume('bomb')) Wp.use('bomb');
         if (I.consume('heli')) Wp.use('heli');
         if (I.consume('tank')) Wp.use('tank');
+        if (I.consume('jet')) Wp.use('jet');
         if (I.consume('skip') && WZ.UI.dbgOn) { M.complete(); }
         M.time += dt;
       } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); M.drain(I); }
 
+      M.inWater = false;
+      if (M.map.water && J.alive && !J.captive && M.map.height(J.x, J.z) < M.map.water.level + 0.25) { M.inWater = true; J.slow = Math.min(J.slow, CFG.maps.jurassic.waterSlow); }   // wading through the river
       J.step(dt, M.inp, Cam.yaw);
       M.afterJeep(dt);
       N.step(dt);
@@ -169,6 +176,8 @@
       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
       WZ.Fire.update(dt);
       if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); WZ.Tanks.update(dt); }
+      if (M.phase === 'play' || M.phase === 'ending') WZ.Jets.update(dt);
+      if (M.phase === 'play') WZ.Pickups.update(dt);
       M.effects(dt);
       WZ.Audio.engineSet(Math.min(1, J.speed / J.P.boostSpeed), J.throttle, J.boosting);
 
@@ -179,7 +188,7 @@
       }
     },
 
-    drain(I) { for (const k of ['boost', 'mine', 'turret', 'heavy', 'bomb', 'heli', 'tank', 'weapon', 'wnext', 'wprev', 'wsel']) I.consume(k); },
+    drain(I) { for (const k of ['boost', 'mine', 'turret', 'heavy', 'bomb', 'heli', 'tank', 'jet', 'weapon', 'wnext', 'wprev', 'wsel']) I.consume(k); },
 
     afterJeep(dt) {
       const J = M.jeep, E = WZ.Enemies, P = WZ.Particles;
@@ -220,6 +229,10 @@
             P.emit(0, tmp.x, J.ry + 0.4, tmp.z, -J.vx * 0.1 + (Math.random() - 0.5), 0.8 + Math.random(), -J.vz * 0.1 + (Math.random() - 0.5), 0.55 + Math.random() * 0.4, 0.9, 2.6, 0.72, 0.6, 0.4, 0.45, 0, 0, 1.5);
           }
         }
+      }
+      if (M.inWater && sp > 2) {
+        M.splashT = (M.splashT || 0) - dt;
+        if (M.splashT <= 0) { M.splashT = 0.045; for (let s = -1; s <= 1; s += 2) { J.localToWorld(s * 1.5, 0.4, tmp); P.emit(0, tmp.x, J.ry + 0.5, tmp.z, -J.vx * 0.15 + (Math.random() - 0.5) * 3, 2.4 + Math.random() * 2.4, -J.vz * 0.15 + (Math.random() - 0.5) * 3, 0.6 + Math.random() * 0.3, 0.7, 2.2, 0.86, 0.95, 1, 0.7, 0, -7, 0.8); } }
       }
       if (J.boosting) {
         J.localToWorld(-1.0, -2.8, tmp);
@@ -358,6 +371,7 @@
       WZ.Blobs.begin();
       for (let i = 0; i < M.crates.list.length; i++) { const c = M.crates.list[i]; if (c.state === 'idle') WZ.Blobs.add(c.x, c.gy, c.z, 3.6); }
       WZ.Giants.render(alpha, M.t, dt);
+      WZ.Jets.blobs(WZ.Blobs);
       WZ.Enemies.render(alpha, M.t);
       WZ.Blobs.end();
       M.crates.update(dt, M.t, cam);
@@ -377,7 +391,7 @@
       M.view.followLight(J.rx, J.ry, J.rz);
       M.view.update(M.t, dt, cam);
       WZ.Gun.render(dt);
-      WZ.Heli.render(alpha, dt, M.t); WZ.Tanks.render(alpha, dt, M.t);
+      WZ.Heli.render(alpha, dt, M.t); WZ.Tanks.render(alpha, dt, M.t); WZ.Jets.render(alpha, dt, M.t); WZ.Pickups.render(dt, M.t);
       WZ.Particles.update(dt, cam);
       WZ.Fx.update(dt, cam, w, h);
 
@@ -421,6 +435,7 @@
           last = bi; lastD = bd; const c = list[bi]; M.arrow(n++, c.x, c.gy + 4, c.z, k === 0 ? 'crate' : 'crate far', w, h);
         }
       }
+      const pk = WZ.Pickups.arrows(J.x, J.z, M.pkList); for (let i = 0; i < pk.length && n < 11; i++) M.arrow(n++, pk[i].x, pk[i].gy + 4, pk[i].z, pk[i].K.arrow, w, h);
       const tp = WZ.Hazards.arrowPos(); if (tp) M.arrow(n++, tp.x, tp.y, tp.z, 'storm', w, h);
       void cam; WZ.UI.hideArrows(n);
     },

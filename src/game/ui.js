@@ -20,9 +20,15 @@
     heli: WI('<rect x="2" y="5" width="28" height="2.6" rx="1.3" fill="#23272A" ' + ST + '/><rect x="15" y="7" width="2.4" height="3.2" fill="#23272A"/><ellipse cx="14" cy="16.5" rx="9.5" ry="6" fill="#56733F" ' + ST + '/><path d="M6.5 14.5q1.5-4 6-3.6v6.2h-8.4z" fill="#8AD0FF" ' + ST + '/><rect x="21" y="14" width="9" height="3.2" rx="1.4" fill="#56733F" ' + ST + '/><rect x="27.5" y="9.5" width="2.6" height="6.2" rx="1" fill="#FFB400" ' + ST + '/><path d="M5 25h17M9 22v3M18 22v3" stroke="#0E0E0E" stroke-width="2" stroke-linecap="round"/>'),
     tank: WI('<rect x="2" y="21" width="28" height="7.5" rx="3.75" fill="#1B1D1F" ' + ST + '/><circle cx="6.5" cy="24.7" r="2.2" fill="#8d949c"/><circle cx="16" cy="24.7" r="2.2" fill="#8d949c"/><circle cx="25.5" cy="24.7" r="2.2" fill="#8d949c"/><path d="M5 21l2.5-5.5h17L27 21z" fill="#56733F" ' + ST + '/><rect x="10" y="9.5" width="12" height="7" rx="3" fill="#6B8A4C" ' + ST + '/><rect x="21" y="11" width="10" height="2.6" rx="1.2" fill="#16181A" ' + ST + '/><rect x="11" y="12.5" width="9" height="1.8" fill="#FFB400"/>'),
   };
+  W_ICO.jet = WI('<path d="M16 1.5l2.4 8.2 11 8.3v3.2l-11-3.2-.8 7.4 4.2 3v1.9L16 28.2l-5.8 2.1v-1.9l4.2-3-.8-7.4-11 3.2V18l11-8.3z" fill="#7F8C97" ' + ST + '/><path d="M16 5.6l1.3 5.2h-2.6z" fill="#0E0E0E"/><ellipse cx="16" cy="12.5" rx="1.7" ry="3.2" fill="#6EC6FF" ' + ST + '/><path d="M2.8 18.4l6.8-2M29.2 18.4l-6.8-2" stroke="#FFB400" stroke-width="2.2" stroke-linecap="round"/><rect x="10.8" y="29.2" width="3.2" height="2.2" rx="1" fill="#FF8A2A"/><rect x="18" y="29.2" width="3.2" height="2.2" rx="1" fill="#FF8A2A"/>');
   const SWAP_ICO = '<svg viewBox="0 0 24 24" class="wi"><path d="M4 8h13l-3-3M20 16H7l3 3" fill="none" stroke="#ECE9E1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const COIN_ICO = '<svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="10.5" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5f00" stroke-width="2"/><path d="M12 7.2l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z" fill="#8a5f00"/></svg>';
-  const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli', 'tank'];
+  const CFG_MAPS = () => WZ.CFG.maps.order;
+  const MAP_ICO = {
+    village: '<svg viewBox="0 0 120 56"><rect width="120" height="56" fill="#A9D3F2"/><path d="M0 40q30-14 60-4t60-6V56H0z" fill="#C2A866"/><rect x="22" y="26" width="30" height="20" fill="#E2D6C1" stroke="#0E0E0E" stroke-width="2"/><path d="M18 27l19-14 19 14z" fill="#B5503A" stroke="#0E0E0E" stroke-width="2"/><rect x="33" y="34" width="8" height="12" fill="#2A1F16"/><rect x="82" y="16" width="8" height="30" fill="#6B4A2B"/><path d="M78 16h16l-8-9z" fill="#B5503A" stroke="#0E0E0E" stroke-width="1.6"/></svg>',
+    jurassic: '<svg viewBox="0 0 120 56"><defs><linearGradient id="jg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FC6BE"/><stop offset="1" stop-color="#F3DFA8"/></linearGradient></defs><rect width="120" height="56" fill="url(#jg)"/><path d="M60 40L74 12h12l14 28z" fill="#4A3F3A"/><path d="M74 12h12l-2 5h-8z" fill="#FF6A1A"/><circle cx="84" cy="7" r="5" fill="#8D8780" opacity=".8"/><path d="M0 42q25-12 50-4t70-6V56H0z" fill="#4F9A45" stroke="#0E0E0E" stroke-width="1.6"/><path d="M0 50q40-6 120 0" stroke="#3F9CC6" stroke-width="5" fill="none"/><path d="M18 44V26M18 26l-9 4M18 26l9 3M18 26l-5-8M18 26l6-8" stroke="#2F7A42" stroke-width="3" stroke-linecap="round"/><path d="M40 46c2-12 8-16 15-17l4-4 8 3-3 5c-3 1-5 4-5 9z" fill="#5E9440" stroke="#0E0E0E" stroke-width="1.8" stroke-linejoin="round"/><path d="M58 28l6 1" stroke="#FF8A2A" stroke-width="3" stroke-linecap="round"/></svg>',
+  };
+  const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli', 'tank', 'jet'];
 
   const UI = {
     giantBarMax: 10, giantEls: [],
@@ -159,8 +165,9 @@
     /* (unused since KO coins are always paid out; kept for the HUD style) */ burnLoot() { const e = UI.h['hud-coins']; if (e) { e.classList.remove('pop'); e.classList.add('burn'); } },
 
     // ------------------------------------------------------------ giant HP bars (positions are projected by WZ.Giants.bars)
-    setGiantBar(i, x, y, pct, alert, hp) {
+    setGiantBar(i, x, y, pct, alert, hp, name) {
       const g = UI.giantEls[i]; if (!g) return;
+      const nm = name || t('hud.giant'); if (g.name !== nm) { g.name = nm; g.el.firstChild.textContent = nm; }
       if (!g.vis) { g.vis = true; g.el.classList.remove('hidden'); }
       g.el.style.transform = 'translate(' + x.toFixed(0) + 'px,' + y.toFixed(0) + 'px) translate(-50%,-100%)';
       const p = Math.round(Math.max(0, Math.min(1, pct)) * 100);
@@ -189,13 +196,15 @@
     showMenu(data, h) {
       UI.clearScreens();
       const lvl = Math.max(1, (data && data.level) || (WZ.Save && WZ.Save.data && WZ.Save.data.level) || 1);
+      const curMap = (WZ.Save && WZ.Save.data.settings.map) || 'village';
       const el = UI._screen('menu',
         '<div class="menu-logo"><canvas id="logo-canvas"></canvas></div>' +
-        '<div class="menu-bottom">' +
+        '<div class="menu-bottom"><div class="map-pick" id="map-pick">' + CFG_MAPS().map((id) => '<button class="map-card' + (id === curMap ? ' sel' : '') + '" data-map="' + id + '">' + MAP_ICO[id] + '<b>' + t('maps.' + id) + '</b><small>' + t('maps.' + id + '.sub') + '</small></button>').join('') + '</div>' +
         '<button class="play-btn" id="btn-play"><small class="play-lvl">' + t('menu.level', { n: lvl }) + '</small><span>' + t('menu.play') + '</span></button></div>' +
         '<button class="garage-btn" id="btn-garage"><svg viewBox="0 0 48 28"><path d="M3 20l3-8 8-4h14l8 4 8 2 2 6z" fill="#FFB400" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><circle cx="14" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/><circle cx="37" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/></svg><span>' + t('shop.title') + '</span></button>' +
         '<button class="mute-btn" id="btn-mute"></button>');
       UI.drawLogo($('logo-canvas'));
+      el.querySelectorAll('.map-card').forEach((b) => { b.onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); WZ.Save.data.settings.map = b.dataset.map; WZ.Save.save(); el.querySelectorAll('.map-card').forEach((o) => o.classList.toggle('sel', o === b)); }; });
       const mute = $('btn-mute');
       const paintMute = () => { mute.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="#ECE9E1"/>' + (WZ.Audio.muted ? '<path d="M15 9l6 6M21 9l-6 6" stroke="#FF5A3A" stroke-width="2.5" stroke-linecap="round"/>' : '<path d="M15.5 8.5a5 5 0 010 7M18 6a8.5 8.5 0 010 12" stroke="#ECE9E1" stroke-width="2" fill="none" stroke-linecap="round"/>') + '</svg>'; };
       paintMute();
@@ -210,6 +219,7 @@
       const el = UI._screen('briefing',
         '<div class="brief panel"><div class="brief-n">' + t('brief.mission', { n: info.index }) + '</div>' +
         (info.tutorial ? '<div class="brief-tag">' + t('brief.tutorial') + '</div>' : '') +
+        (info.mapName ? '<div class="brief-map">' + info.mapName + '</div>' : '') +
         '<div class="brief-row"><span>' + CRATE_ICO + t('brief.find', { n: info.crates }) + '</span><span>' + t('brief.time', { t: WZ.U.fmtTime(info.time) }) + '</span></div>' +
         '<div class="brief-tip">' + info.tip + '</div>' +
         '<button class="btn big" id="btn-go">' + t('brief.go') + '</button></div>');
@@ -233,7 +243,7 @@
       const el = UI._screen('summary',
         '<div class="sum panel ' + (win ? 'win' : 'fail') + '">' +
         '<div class="sum-title">' + (win ? t('sum.complete') : t('sum.failed')) + '</div>' +
-        (win ? '' : '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant' })[r.reason] || 'sum.fail.jeep') + '</div><div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>') +
+        (win ? '' : '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant', fire: 'sum.fail.fire' })[r.reason] || 'sum.fail.jeep') + '</div><div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>') +
         (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') +
         '<div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
         (win ? '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div>' : '') + '</div>' +
@@ -260,6 +270,8 @@
       mu.onclick = () => { WZ.Audio.setMuted(!WZ.Audio.muted); WZ.Save.data.settings.sound = WZ.Audio.muted ? 0 : 1; WZ.Save.save(); paint(); };
       return el;
     },
+    /** short flash on the timer when time is added */
+    pulseTimer() { const b = UI.h['hud-timer-box']; if (!b) return; b.classList.remove('bonus'); void b.offsetWidth; b.classList.add('bonus'); },
     removeScreen(cls) { const e = UI.h['wz-screens'].querySelector('.screen.' + cls); if (e) e.remove(); },
 
     toggleDebug(on) { UI.dbgOn = on == null ? !UI.dbgOn : on; UI.h['wz-debug'].classList.toggle('hidden', !UI.dbgOn); },
