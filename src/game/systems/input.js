@@ -52,9 +52,35 @@
         if (e.target && e.target.closest && e.target.closest('#wz-root')) e.preventDefault();
       }, { passive: false });
 
+      // ---- desktop mouse: WHEEL = switch weapon, RIGHT CLICK = place / use the selected weapon (left button drags the floating stick)
+      const playing = () => !!(WZ.UI && WZ.UI.root && WZ.UI.root.classList.contains('in-mission') && !(WZ.Main && WZ.Main.paused));
+      let wheelAcc = 0, wheelT = 0;
+      window.addEventListener('wheel', (e) => {
+        if (!playing()) return;
+        e.preventDefault();
+        const now = performance.now();
+        if (now - wheelT > 260) wheelAcc = 0;            // a new gesture
+        // normalise line / page deltas to pixels, accumulate so smooth trackpads and notched wheels both give ONE step per notch
+        const d = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+        wheelAcc += d; wheelT = now;
+        if (Math.abs(wheelAcc) >= 30) {
+          IN.pressed[wheelAcc > 0 ? 'wnext' : 'wprev'] = true; wheelAcc = 0;
+          if (e.pointerType !== 'touch') setDev('keys');
+        }
+      }, { passive: false });
+      // pointerdown (capture) instead of mousedown: cancelling a pointerdown anywhere suppresses the compatibility mousedown
+      window.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'mouse' || e.button !== 2 || !playing()) return;
+        if (e.target && e.target.closest && e.target.closest('button')) return;      // HUD buttons keep their own behaviour
+        e.preventDefault(); setDev('keys'); WZ.Audio.unlock();
+        IN.pressed.weapon = true;
+      }, true);
+      window.addEventListener('auxclick', (e) => { if (e.button === 1 && playing()) e.preventDefault(); });
+
       zone.addEventListener('pointerdown', (e) => {
         WZ.Audio.unlock();
         if (e.pointerType === 'touch') setDev('touch');
+        if (e.pointerType === 'mouse') { if (e.button !== 0) return; setDev('keys'); }   // only the LEFT button drives
         if (WZ.UI && WZ.UI.root && !WZ.UI.root.classList.contains('in-mission')) return;
         if (IN._touchId !== -1) return;
         IN._touchId = e.pointerId; IN._ox = IN._tx = e.clientX; IN._oy = IN._ty = e.clientY;

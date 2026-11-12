@@ -165,7 +165,15 @@
       } else { M.inp.x = M.inp.y = M.inp.mag = 0; M.inp.boost = false; I.consume('deploy'); M.drain(I); }
 
       M.inWater = false;
-      if (M.map.water && J.alive && !J.captive && M.map.height(J.x, J.z) < M.map.water.level + 0.25) { M.inWater = true; J.slow = Math.min(J.slow, CFG.maps.jurassic.waterSlow); }   // wading through the river
+      if (M.map.water && J.alive && !J.captive) {      // wading through the river: slower, heavier steering, and the current drags you downstream
+        const hh = M.map.height(J.x, J.z), lv = M.map.water.level;
+        if (hh < lv + 0.25) {
+          M.inWater = true;
+          const wd = U.clamp((lv + 0.6 - hh) / 1.4, 0.35, 1), rv = M.map.river, dz = rv && rv.dzc ? rv.dzc(J.x) : 0, l = Math.hypot(1, dz);
+          J.wade = wd; J.curX = 1 / l; J.curZ = dz / l;
+          J.slow = Math.min(J.slow, 1 - (1 - CFG.maps.jurassic.waterSlow) * wd);
+        }
+      }
       J.step(dt, M.inp, Cam.yaw);
       M.afterJeep(dt);
       N.step(dt);
@@ -333,7 +341,7 @@
         else Main.go('mission', { index: nextIdx, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
       };
       WZ.UI.showSummary({
-        kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft,
+        kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft, timeLimit: M.mission.timeLimit,
         coinsCrates: M.coinsCrates, coinsKills: M.coinsKills, burned: 0, coinsDone, coinsTime, wallet: S.coins, record,
       }, {
         main: goMain,

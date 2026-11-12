@@ -165,7 +165,7 @@
     // PICKUPS scattered over the map (very few per mission, off in the tutorial). Drive over them with the vehicle.
     //  heal: repairs `healPct` of the vehicle's max armor (is NOT used up while the armor is already full).  time: adds `bonus` seconds to the timer.
     pickups: {
-      fromMission: 2, radius: 3.0, minFromStart: 38, minFromCrate: 16, minFromExtract: 22, minGap: 55, bob: 0.35, hover: 2.6,
+      fromMission: 2, radius: 3.0, minFromStart: 110, minFromCrate: 16, minFromExtract: 22, minGap: 55, bob: 0.35, hover: 2.6,
       heal: { healPct: 0.4, count: (m) => Math.min(3, 1 + Math.floor((m + 1) / 4)) },
       time: { bonus: 60, count: (m) => (m >= 5 ? 2 : 1) },
       arrowRange: 95,
@@ -175,7 +175,7 @@
     maps: {
       order: ['village', 'jurassic'],
       village: { name: 'maps.village' },
-      jurassic: { name: 'maps.jurassic', waterLevel: -0.5, waterSlow: 0.72, hillAmp: 7.2, riverWidth: 7.4, bridges: 4 },
+      jurassic: { name: 'maps.jurassic', waterLevel: -0.5, waterSlow: 0.72, waterTurn: 0.3, waterGrip: 0.55, current: 6.5, hillAmp: 7.2, riverWidth: 7.4, bridges: 4 },
     },
     // DINOSAUR guardians (Jurassic map): they replace the club giants. Same chase / ram / HP-bar rules (these values are merged over CFG.giant),
     // but the weapon is a FIRE BREATH: the dino rears back with a glowing mouth (telegraph), then roars a cone of flame that sweeps toward its target.

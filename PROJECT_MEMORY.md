@@ -218,3 +218,12 @@ Open questions for the human: confirm single-file `dist/index.html` is acceptabl
 - **Red barrels** — `hazards.js` `boomBarrel` now calls `WZ.Fire.explode` (`src/game/systems/fire.js`): white flash, fireball dome, shock rings, fire column, smoke plume, sparks, flying burning debris, scorch mark, burning crater, orange screen flash, new `blast` sound. The vehicle is **no longer slowed or stopped** (the old `slow` multiplier was removed). After the hit `WZ.Fire.ignite(CFG.hazards.barrels.burn)` puts flame tongues on the vehicle body (+ flames/smoke/embers) for 5 s; they die down one by one. Chained barrels explode one after another (`chainDelay`). Purely visual fire: no extra damage. Particle pools were enlarged (460 soft / 460 glow).
 - **Coins on failure** — KO "loot" is now banked when a mission is **lost** too (`mission.js fail()`); crate coins were already saved on delivery. The summary shows the KO COINS row on a loss; HUD tooltip, tips and `sum.keptcoins` text updated. Nothing is burned any more.
 - Load order in `src/game/index.js`: `systems/fire.js` before `hazards.js`; `systems/tanks.js` after `heli.js`.
+
+---
+## Update — bug-fix pass (weapon icon, river, HUD, result screens, PC input, pickups, shop icon)
+- **Weapon button icon**: `UI.paintWeapons` no longer compares against `dataset.w` (markup default `gun` meant the icon was never painted); it uses `UI._wico`, reset in `resetHudCache`.
+- **Jurassic river**: `CFG.maps.jurassic.{waterSlow,waterTurn,waterGrip,current}`; mission sets `J.wade/curX/curZ`, `Jeep.step` adds a downstream current, lowers steering and side grip while wading.
+- **Result screens**: `UI.showSummary` — VICTORY (sunburst, confetti, LEVEL UP badge, 1–3 cosmetic stars from time left, counting coins) and DEFEAT (dark/smoky, FAILED stamp, reason icon, crate progress, tip). Styles at the end of `game.css`. Mission passes `timeLimit`.
+- **PC input** (`systems/input.js`): mouse WHEEL = previous/next weapon, RIGHT CLICK (capture `pointerdown`) = use selected weapon, only LEFT button drives the floating stick. The stick knob is now visible for mouse users (the `.dev-keys #stick-knob` hide rule was removed).
+- **Pickups**: `CFG.pickups.minFromStart` 38 → 110 (hearts/clocks are never near the start).
+- **Main-menu SHOP button**: storefront icon (`SHOP_ICO`) + coin counter. **HUD**: top bar width-limited so it never runs under the pause button; compact rules for ≤640 px, ≤360 px and short landscape screens.

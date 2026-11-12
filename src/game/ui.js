@@ -23,6 +23,10 @@
   W_ICO.jet = WI('<path d="M16 1.5l2.4 8.2 11 8.3v3.2l-11-3.2-.8 7.4 4.2 3v1.9L16 28.2l-5.8 2.1v-1.9l4.2-3-.8-7.4-11 3.2V18l11-8.3z" fill="#7F8C97" ' + ST + '/><path d="M16 5.6l1.3 5.2h-2.6z" fill="#0E0E0E"/><ellipse cx="16" cy="12.5" rx="1.7" ry="3.2" fill="#6EC6FF" ' + ST + '/><path d="M2.8 18.4l6.8-2M29.2 18.4l-6.8-2" stroke="#FFB400" stroke-width="2.2" stroke-linecap="round"/><rect x="10.8" y="29.2" width="3.2" height="2.2" rx="1" fill="#FF8A2A"/><rect x="18" y="29.2" width="3.2" height="2.2" rx="1" fill="#FF8A2A"/>');
   const SWAP_ICO = '<svg viewBox="0 0 24 24" class="wi"><path d="M4 8h13l-3-3M20 16H7l3 3" fill="none" stroke="#ECE9E1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const COIN_ICO = '<svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="10.5" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5f00" stroke-width="2"/><path d="M12 7.2l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z" fill="#8a5f00"/></svg>';
+  // storefront icon for the main-menu SHOP button: striped awning, wooden stall, counter, big coin
+  const SHOP_ICO = '<svg viewBox="0 0 48 48"><path d="M7 20h34v20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="#8A5A34" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><rect x="11" y="24.5" width="26" height="10" rx="1.5" fill="#2A1F16" stroke="#0E0E0E" stroke-width="1.6"/><path d="M12 31l5-4 4 3 4-4 6 5" fill="none" stroke="#FFB400" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><path d="M9 35h30" stroke="#C9A06A" stroke-width="3" stroke-linecap="round"/>' +
+    '<path d="M3.5 20.5L7 8h34l3.5 12.5z" fill="#ECE9E1" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><path d="M7 8h5.7l-2 12.5H3.5zM18.3 8H24v12.5h-6.7zM29.7 8h5.6l3.6 12.5h-6.7z" fill="#FF5A3A"/><path d="M3.5 20.5L7 8h34l3.5 12.5z" fill="none" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><path d="M3.5 20.5q3.4 4.4 6.8 0t6.8 0 6.8 0 6.8 0 6.8 0 6.8 0" fill="#ECE9E1" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/>' +
+    '<circle cx="38" cy="36.5" r="8" fill="#FFB400" stroke="#0E0E0E" stroke-width="2.2"/><circle cx="38" cy="36.5" r="4.8" fill="none" stroke="#8a5f00" stroke-width="1.8"/><path d="M38 33.4l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3z" fill="#8a5f00"/><path d="M13 3l1 2.6L16.6 6.6 14 7.6 13 10.2 12 7.6 9.4 6.6 12 5.6z" fill="#FFE27A" stroke="#0E0E0E" stroke-width=".8"/></svg>';
   const CFG_MAPS = () => WZ.CFG.maps.order;
   const MAP_ICO = {
     village: '<svg viewBox="0 0 120 56"><rect width="120" height="56" fill="#A9D3F2"/><path d="M0 40q30-14 60-4t60-6V56H0z" fill="#C2A866"/><rect x="22" y="26" width="30" height="20" fill="#E2D6C1" stroke="#0E0E0E" stroke-width="2"/><path d="M18 27l19-14 19 14z" fill="#B5503A" stroke="#0E0E0E" stroke-width="2"/><rect x="33" y="34" width="8" height="12" fill="#2A1F16"/><rect x="82" y="16" width="8" height="30" fill="#6B4A2B"/><path d="M78 16h16l-8-9z" fill="#B5503A" stroke="#0E0E0E" stroke-width="1.6"/></svg>',
@@ -55,7 +59,7 @@
         '  <div id="hud-giants"></div>' +
         '  <div id="hud-buttons"><div id="hud-defs">' +
         '<div id="w-wheel" class="hidden"><div id="w-label"></div><div class="w-strip">' + W_ORDER.map((id) => '<button class="wchip" data-w="' + id + '"><i class="cd"></i>' + W_ICO[id] + '<b>0</b><small class="k-keys">' + (W_ORDER.indexOf(id) + 1) + '</small></button>').join('') + '</div></div>' +
-        '<button id="btn-wswap" aria-label="swap weapon">' + SWAP_ICO + '<small class="k-keys">Q/E</small></button>' +
+        '<button id="btn-wswap" aria-label="swap weapon">' + SWAP_ICO + '<small class="k-keys">' + t('hud.key.wswap') + '</small></button>' +
         '<button id="btn-weapon" class="ready" data-w="gun"><i class="cd"></i><span id="w-ico"></span><span id="w-name">' + t('w.gun') + '</span><b id="w-n">0</b><small class="k-keys">' + t('hud.key.weapon') + '</small></button></div>' +
         '<div id="hud-main"><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div></div>' +
@@ -138,7 +142,7 @@
       if (c.loot !== s.loot) { const up = c.loot != null && s.loot > c.loot; c.loot = s.loot; h['hud-coins-n'].textContent = s.loot; if (up) { const e = h['hud-coins']; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); } }
       if (c.gun !== s.gunBoost) { c.gun = s.gunBoost; h['hud-gun'].classList.toggle('hidden', !s.gunBoost); }
     },
-    resetHudCache() { UI.c = {}; UI._wsig = ''; UI.h['hud-coins'].classList.remove('burn', 'pop'); UI.closeWheel(); },
+    resetHudCache() { UI.c = {}; UI._wsig = ''; UI._wico = ''; if (UI.h['w-ico']) UI.h['w-ico'].innerHTML = ''; UI.h['hud-coins'].classList.remove('burn', 'pop'); UI.closeWheel(); },
 
     // ------------------------------------------------------------ weapon selector (one USE button + a swap button + a strip of all items)
     paintWeapons(s) {
@@ -147,7 +151,8 @@
       for (let i = 0; i < W.length; i++) sig += W[i].n + ':' + Math.round(W[i].pct * 20) + ',';
       if (sig === UI._wsig) return; UI._wsig = sig;
       const si = W_ORDER.indexOf(sel), it = W[si], btn = h['btn-weapon'];
-      if (btn.dataset.w !== sel) { btn.dataset.w = sel; h['w-ico'].innerHTML = W_ICO[sel]; h['w-name'].textContent = t('w.' + sel); }
+      // NOTE: the button ships with data-w="gun" in the markup, so we must NOT compare against dataset.w (the default "gun" icon would never be painted).
+      if (UI._wico !== sel || !h['w-ico'].firstChild) { UI._wico = sel; btn.dataset.w = sel; h['w-ico'].innerHTML = W_ICO[sel]; h['w-name'].textContent = t('w.' + sel); }
       h['w-n'].textContent = it.n; h.wcd.style.height = (100 - it.pct * 100) + '%';
       btn.classList.toggle('ready', it.pct >= 1 && it.n > 0); btn.classList.toggle('off', !(it.n > 0));
       h.chips.forEach((ch, i) => {
@@ -201,7 +206,7 @@
         '<div class="menu-logo"><canvas id="logo-canvas"></canvas></div>' +
         '<div class="menu-bottom"><div class="map-pick" id="map-pick">' + CFG_MAPS().map((id) => '<button class="map-card' + (id === curMap ? ' sel' : '') + '" data-map="' + id + '">' + MAP_ICO[id] + '<b>' + t('maps.' + id) + '</b><small>' + t('maps.' + id + '.sub') + '</small></button>').join('') + '</div>' +
         '<button class="play-btn" id="btn-play"><small class="play-lvl">' + t('menu.level', { n: lvl }) + '</small><span>' + t('menu.play') + '</span></button></div>' +
-        '<button class="garage-btn" id="btn-garage"><svg viewBox="0 0 48 28"><path d="M3 20l3-8 8-4h14l8 4 8 2 2 6z" fill="#FFB400" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><circle cx="14" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/><circle cx="37" cy="21" r="4.2" fill="#23272A" stroke="#0E0E0E" stroke-width="2"/></svg><span>' + t('shop.title') + '</span></button>' +
+        '<button class="garage-btn" id="btn-garage" aria-label="' + t('shop.title') + '"><span class="gi">' + SHOP_ICO + '</span><span class="gt"><b>' + t('shop.title') + '</b><small>' + COIN_ICO.replace('class="ico"', 'class="coin"') + '<em id="garage-coins">' + ((WZ.Save && WZ.Save.data.coins) || 0) + '</em></small></span></button>' +
         '<button class="mute-btn" id="btn-mute"></button>');
       UI.drawLogo($('logo-canvas'));
       el.querySelectorAll('.map-card').forEach((b) => { b.onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); WZ.Save.data.settings.map = b.dataset.map; WZ.Save.save(); el.querySelectorAll('.map-card').forEach((o) => o.classList.toggle('sel', o === b)); }; });
@@ -229,27 +234,92 @@
       return el;
     },
 
+    /** count-up animation for every [data-count] inside `root` (stops by itself when the element leaves the DOM) */
+    _countUp(root) {
+      root.querySelectorAll('[data-count]').forEach((el) => {
+        const to = +el.dataset.count, from = +(el.dataset.from || 0), pre = el.dataset.pre || '', delay = +el.dataset.delay || 0, dur = 750;
+        el.textContent = pre + from;
+        setTimeout(() => {
+          if (!el.isConnected) return;
+          const t0 = performance.now();
+          const tick = (now) => {
+            if (!el.isConnected) return;
+            const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+            el.textContent = pre + Math.round(from + (to - from) * e);
+            if (k < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }, delay);
+      });
+    },
+
     showSummary(r, h) {
       UI.clearScreens();
       const win = r.kind === 'complete';
-      let rows = '';
+      const STAR = '<svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.5 5.7 21.2l1.5-7.1L1.8 9.2 9 8.4z"/></svg>';
+      const row = (label, n, delay, cls) => '<div class="sum-row ' + (cls || '') + '" style="--d:' + delay + 'ms"><span>' + label + '</span><b data-count="' + n + '" data-pre="+" data-delay="' + (delay + 350) + '">+0</b></div>';
+      const earned = (r.coinsCrates || 0) + (r.coinsKills || 0) + (win ? (r.coinsDone || 0) + (r.coinsTime || 0) : 0);
+      const totalRow = (delay) => '<div class="sum-row total" style="--d:' + delay + 'ms"><span>' + t('sum.coins.total') + '</span><b data-from="' + Math.max(0, r.wallet - earned) + '" data-count="' + r.wallet + '" data-delay="' + (delay + 300) + '">' + r.wallet + '</b></div>';
+      let el;
       if (win) {
-        rows = '<div class="sum-row"><span>' + t('sum.coins.crates') + '</span><b>+' + r.coinsCrates + '</b></div>' +
-          '<div class="sum-row"><span>' + t('sum.coins.kills') + '</span><b>+' + (r.coinsKills || 0) + '</b></div>' +
-          '<div class="sum-row"><span>' + t('sum.coins.done') + '</span><b>+' + r.coinsDone + '</b></div>' +
-          '<div class="sum-row"><span>' + t('sum.coins.time') + '</span><b>+' + r.coinsTime + '</b></div>';
-      } else rows = '<div class="sum-row"><span>' + t('sum.coins.crates') + '</span><b>+' + r.coinsCrates + '</b></div>' +
-        '<div class="sum-row"><span>' + t('sum.coins.kills') + '</span><b>+' + (r.coinsKills || 0) + '</b></div>';   // KO loot is banked even when the mission is lost
-      const el = UI._screen('summary',
-        '<div class="sum panel ' + (win ? 'win' : 'fail') + '">' +
-        '<div class="sum-title">' + (win ? t('sum.complete') : t('sum.failed')) + '</div>' +
-        (win ? '' : '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant', fire: 'sum.fail.fire' })[r.reason] || 'sum.fail.jeep') + '</div><div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>') +
-        (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') +
-        '<div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
-        (win ? '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div>' : '') + '</div>' +
-        '<div class="sum-coins">' + rows + '<div class="sum-row total"><span>' + t('sum.coins.total') + '</span><b>' + r.wallet + '</b></div></div>' +
-        (win ? '' : '<div class="sum-note">' + t('sum.keptcoins') + '</div>') +
-        '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + (win ? t('sum.next') : t('sum.retry')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+        // ---------------------------------------------------------------- VICTORY: golden sunburst, confetti, LEVEL UP badge, star rating, counting coins
+        const tl = r.timeLimit ? r.timeLeft / r.timeLimit : 0.3, stars = 1 + (tl >= 0.2 ? 1 : 0) + (tl >= 0.45 ? 1 : 0);
+        const COL = ['#FFB400', '#FF5A3A', '#4CFF6A', '#5AD6FF', '#ECE9E1', '#FF6AD0'];
+        let conf = ''; for (let i = 0; i < 30; i++) { const a = (i * 37 + 11) % 100, b = (i * 53 + 7) % 100; conf += '<b style="left:' + a + '%;--dl:' + (b % 22) / 10 + 's;--du:' + (2.6 + (a % 17) / 10) + 's;--c:' + COL[i % COL.length] + ';--w:' + (6 + b % 7) + 'px;--sw:' + ((a % 2 ? 1 : -1) * (20 + b % 40)) + 'px"></b>'; }
+        let rows = row(t('sum.coins.crates'), r.coinsCrates, 1500) + row(t('sum.coins.kills'), r.coinsKills || 0, 1650) + row(t('sum.coins.done'), r.coinsDone, 1800) + row(t('sum.coins.time'), r.coinsTime, 1950);
+        el = UI._screen('summary is-win',
+          '<div class="win-fx"><i class="rays"></i><i class="glowc"></i><div class="confetti">' + conf + '</div></div>' +
+          '<div class="sum panel win">' +
+          '<div class="sum-head">' +
+          '<div class="lvl-badge"><i class="lvl-ring"></i><i class="lvl-ring r2"></i><div class="lvl-core"><small>' + t('sum.levelup') + '</small>' +
+          '<div class="lvl-num"><span class="old">' + r.index + '</span><span class="new">' + (r.index + 1) + '</span></div></div></div>' +
+          '<div class="sum-title">' + t('sum.complete') + '</div>' +
+          '<div class="sum-stars">' + [0, 1, 2].map((i) => '<span class="star' + (i < stars ? ' got' : '') + '" style="--i:' + i + '">' + STAR + '</span>').join('') + '</div>' +
+          (stars === 3 ? '<div class="sum-perfect">' + t('sum.perfect') + '</div>' : '') +
+          (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') +
+          '<div class="sum-next">' + t('sum.unlocked', { n: r.index + 1 }) + '</div></div>' +
+          '<div class="sum-body"><div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
+          '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div></div>' +
+          '<div class="sum-coins">' + rows + totalRow(2100) + '</div></div>' +
+          '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + t('sum.next') + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+        // choreography: badge flips old level -> new level (with a sound), stars pop one after another
+        setTimeout(() => { if (!el.isConnected) return; el.querySelector('.lvl-badge').classList.add('up'); WZ.Audio.sfx('pickup'); }, 650);
+        el.querySelectorAll('.star').forEach((s, i) => setTimeout(() => { if (!el.isConnected) return; s.classList.add('on'); if (s.classList.contains('got')) WZ.Audio.sfx('deliver'); }, 1000 + i * 260));
+      } else {
+        // ---------------------------------------------------------------- DEFEAT: dark, smoky, red vignette, FAILED stamp, reason icon, crate progress, a tip
+        const rs = r.reason || 'jeep';
+        const IC = {
+          time: '<circle cx="24" cy="26" r="16" fill="#2a2a2c" stroke="#ECE9E1" stroke-width="3"/><path d="M24 14v12l8 5" stroke="#FF5A3A" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M18 6h12M24 6v4" stroke="#ECE9E1" stroke-width="3" stroke-linecap="round"/>',
+          boom: '<path d="M24 3l5 11 12-4-6 11 10 6-12 3 2 12-11-7-11 7 2-12L2 27l10-6L6 10l12 4z" fill="#FF8A2A" stroke="#0E0E0E" stroke-width="2.4" stroke-linejoin="round"/><path d="M24 14l3 7 7 1-6 5 2 7-6-4-6 4 2-7-6-5 7-1z" fill="#FFD84A"/>',
+          pit: '<ellipse cx="24" cy="30" rx="19" ry="9" fill="#0E0E0E" stroke="#6b4a2b" stroke-width="3"/><ellipse cx="24" cy="30" rx="12" ry="5" fill="#000"/><path d="M24 4v14M17 12l7 7 7-7" stroke="#FF5A3A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+          fire: '<path d="M24 3c2 10 13 14 13 27 0 8-6 14-13 14S11 38 11 30c0-6 4-9 5-14 3 3 4 5 5 7 2-6 1-14 3-20z" fill="#FF6A1A" stroke="#0E0E0E" stroke-width="2.4" stroke-linejoin="round"/><path d="M24 22c1 6 7 8 7 15 0 4-3 7-7 7s-7-3-7-7c0-4 3-6 4-9 2 2 2 3 3 4z" fill="#FFD84A"/>',
+          nana: '<circle cx="19" cy="25" r="14" fill="#3a3a3c" stroke="#0E0E0E" stroke-width="3"/><circle cx="19" cy="25" r="9" fill="#55555a"/><path d="M31 33l14 10" stroke="#ECE9E1" stroke-width="5" stroke-linecap="round"/><path d="M13 21l4 4m0-4l-4 4M22 21l4 4m0-4l-4 4" stroke="#FF5A3A" stroke-width="2.4" stroke-linecap="round"/>',
+          jeep: '<path d="M4 31l3-9 9-5h14l9 5 5 2 2 7z" fill="#6b6b6e" stroke="#0E0E0E" stroke-width="2.6" stroke-linejoin="round"/><circle cx="15" cy="33" r="5.4" fill="#23272A" stroke="#0E0E0E" stroke-width="2.4"/><circle cx="37" cy="33" r="5.4" fill="#23272A" stroke="#0E0E0E" stroke-width="2.4"/><path d="M19 9l-4 5M27 7v6M34 9l3 5" stroke="#9a9a9a" stroke-width="3" stroke-linecap="round"/>',
+        };
+        const ico = ({ time: 'time', nana: 'nana', mine: 'boom', barrel: 'boom', pit: 'pit', giant: 'jeep', fire: 'fire' })[rs] || 'jeep';
+        const hint = t('sum.hint.' + (['time', 'nana', 'mine', 'barrel', 'pit', 'giant', 'fire'].indexOf(rs) >= 0 ? rs : 'jeep'));
+        let segs = ''; const tot = Math.max(1, r.total || 1); for (let i = 0; i < tot; i++) segs += '<i class="' + (i < r.crates ? 'on' : '') + '" style="--i:' + i + '"></i>';
+        let smoke = ''; for (let i = 0; i < 9; i++) smoke += '<b style="left:' + (6 + i * 11) + '%;--dl:' + ((i * 7) % 5) * 0.55 + 's;--du:' + (5 + (i % 4)) + 's;--s:' + (90 + (i * 29) % 90) + 'px"></b>';
+        el = UI._screen('summary is-fail',
+          '<div class="fail-fx"><div class="smoke">' + smoke + '</div><i class="vig"></i></div>' +
+          '<div class="sum panel fail">' +
+          '<svg class="fail-cracks" viewBox="0 0 120 120" aria-hidden="true"><path d="M0 18l22 12-8 14 20 10M120 96l-28-10 6-16-18-8M60 0l-6 22 14 10" fill="none" stroke="rgba(255,90,58,.5)" stroke-width="2" stroke-linejoin="round"/></svg>' +
+          '<div class="sum-head">' +
+          '<div class="fail-icon"><svg viewBox="0 0 48 48">' + IC[ico] + '</svg></div>' +
+          '<div class="fail-stamp">' + t('sum.stamp') + '</div>' +
+          '<div class="sum-title">' + t('sum.failed') + '</div>' +
+          '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant', fire: 'sum.fail.fire' })[rs] || 'sum.fail.jeep') + '</div>' +
+          '<div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>' +
+          (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') + '</div>' +
+          '<div class="sum-body"><div class="fail-prog"><div class="fp-h"><span>' + t('sum.progress') + '</span><b>' + r.crates + '/' + r.total + '</b></div><div class="fp-bar">' + segs + '</div>' +
+          (r.crates >= r.total - 1 && r.total > 1 ? '<div class="fp-near">' + t('sum.nearly') + '</div>' : '') + '</div>' +
+          '<div class="sum-stats"><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '</b></div></div>' +
+          '<div class="sum-coins">' + row(t('sum.coins.crates'), r.coinsCrates, 700) + row(t('sum.coins.kills'), r.coinsKills || 0, 850) + totalRow(1000) + '</div>' +
+          '<div class="fail-tip"><b>' + t('sum.tip') + '</b><span>' + hint + '</span></div>' +
+          '<div class="sum-note">' + t('sum.keptcoins') + '</div></div>' +
+          '<div class="sum-btns"><button class="btn big retry" id="btn-sum-main">' + t('sum.tryagain') + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+      }
+      UI._countUp(el);
       $('btn-sum-main').onclick = () => { WZ.Audio.sfx('click'); h.main(); };
       $('btn-sum-menu').onclick = () => { WZ.Audio.sfx('click'); h.menu(); };
       $('btn-sum-shop').onclick = () => { WZ.Audio.sfx('click'); h.garage(); };

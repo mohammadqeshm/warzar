@@ -23,6 +23,8 @@
       this.t = 0; this.hop = 0;
       // tornado hooks (WZ.Hazards): captive = whirled around the funnel (no control), slow = top-speed multiplier for this step, lift/tilt = visual
       this.captive = null; this.slow = 1; this.lift = 0; this.tiltX = 0; this.tiltZ = 0;
+      // river hooks (Jurassic map, set by the mission each step): wade 0..1 = how deep in the water we are, curX/curZ = unit flow direction
+      this.wade = 0; this.curX = 1; this.curZ = 0;
     }
     get boostReady() { return this.boostCd <= 0 && this.boostT <= 0; }
     get boostPct() { return this.boostT > 0 ? 1 : 1 - Math.max(0, this.boostCd) / (J.boostCooldown); }
@@ -58,6 +60,7 @@
         return;
       }
       const slow = this.slow; this.slow = 1;
+      const wade = this.wade; this.wade = 0;
       let mag = inp.mag;
       if (mag > 0.05) {
         const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
@@ -74,12 +77,13 @@
       let h = this.h, diff = 0;
       if (active) {
         diff = U.angDiff(h, this.targetH);
-        const maxTurn = J.turnRate * J.handling * (0.55 + 0.45 * U.clamp(this.speed / 8, 0, 1)) * (boosting ? 0.8 : 1);
+        const maxTurn = J.turnRate * J.handling * (0.55 + 0.45 * U.clamp(this.speed / 8, 0, 1)) * (boosting ? 0.8 : 1) * (1 - CFG.maps.jurassic.waterTurn * wade);   // heavier steering when wading
         h += U.clamp(diff, -maxTurn * dt, maxTurn * dt);
       }
       this.steer = U.damp(this.steer, U.clamp(diff * 0.6, -0.5, 0.5), 12, dt);
       this.h = h;
       const fx = Math.sin(h), fz = Math.cos(h), rx = -Math.cos(h), rz = Math.sin(h);
+      if (wade > 0) { const c = CFG.maps.jurassic.current * wade; this.vx += this.curX * c * dt; this.vz += this.curZ * c * dt; }   // the river current drags the vehicle downstream
       let sF = this.vx * fx + this.vz * fz, sL = this.vx * rx + this.vz * rz;
       const sF0 = sF;
       if (active) {
@@ -87,7 +91,7 @@
         const want = (boosting ? J.boostSpeed : J.topSpeed) * (boosting ? 1 : mag) * (0.35 + 0.65 * align) * slow;
         if (sF < want) sF = Math.min(want, sF + J.accel * (boosting ? 1.7 : 1) * dt); else sF = Math.max(want, sF - J.brake * dt);
       } else sF = sF > 0 ? Math.max(0, sF - J.coast * dt) : Math.min(0, sF + J.coast * dt);
-      sL *= Math.exp(-J.grip * dt);
+      sL *= Math.exp(-J.grip * (1 - CFG.maps.jurassic.waterGrip * wade) * dt);   // less side grip in the water => it slides a little
       this.acc = U.damp(this.acc, (sF - sF0) / dt, 10, dt);
       this.vx = fx * sF + rx * sL; this.vz = fz * sF + rz * sL;
       this.sF = sF; this.sL = sL;
