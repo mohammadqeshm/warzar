@@ -118,10 +118,12 @@
     scene.background = new T.Color(har ? 0xBBCDD2 : fro ? 0xD6E4F0 : vol ? 0x6A3626 : jur ? 0xCFE0AC : 0xA9D3F2);
     const hemi = har ? new T.HemisphereLight(0xDDE9EE, 0x6F7C80, 0.78) : fro ? new T.HemisphereLight(0xE4F0FF, 0x8FA2BA, 0.7) : vol ? new T.HemisphereLight(0xFFC9A0, 0x6A4636, 0.98) : jur ? new T.HemisphereLight(0xE4F4D0, 0x4E6B34, 0.72) : new T.HemisphereLight(0xCFE6FF, 0xA88C5E, 0.64); scene.add(hemi);
     const sun = new T.DirectionalLight(har ? 0xFFE6C2 : fro ? 0xFFF4E2 : vol ? 0xFFC890 : jur ? 0xFFD9A0 : 0xFFE3B8, har ? 0.82 : fro ? 0.78 : vol ? 0.95 : jur ? 0.92 : 0.86);
+    const initShSize = CFG.quality.shadow[q] || 1024;
     sun.castShadow = CFG.quality.shadow[q] > 0;
-    if (sun.castShadow) {
-      const ss = sun.shadow; ss.mapSize.set(CFG.quality.shadow[q], CFG.quality.shadow[q]);
-      const c = ss.camera; c.left = -20; c.right = 20; c.top = 20; c.bottom = -20; c.near = 10; c.far = 220;
+    {
+      const ss = sun.shadow;
+      ss.mapSize.set(initShSize, initShSize);
+      const c = ss.camera; c.left = -22; c.right = 22; c.top = 22; c.bottom = -22; c.near = 10; c.far = 220;
       ss.bias = -0.0006; ss.normalBias = 0.35;
     }
     scene.add(sun); scene.add(sun.target);
@@ -157,19 +159,46 @@
     sets.forEach((s) => P.setMeshes(s, group));
     const cl = P.newSet(); if (har) WZ.Harbo.cliffs(cl, half, rng, map); else if (fro) WZ.Froze.cliffs(cl, half, rng); else if (vol) WZ.Volca.cliffs(cl, half, rng); else if (jur) WZ.Jura.cliffs(cl, half, rng); else P.cliffs(cl, half, rng); P.setMeshes(cl, group);
 
-    // grass tufts
-    const nGrass = Math.min(map.grass.length, CFG.quality.grass[q]);
-    if (nGrass > 0) {
-      const gm = new T.InstancedMesh(tuftGeo(jur, vol, fro), new T.MeshLambertMaterial({ vertexColors: true }), nGrass);
+    // grass tufts (allocated up to max quality tier so runtime quality changes can scale count smoothly)
+    const maxGrass = Math.min(map.grass.length, CFG.quality.grass[2]);
+    const nGrass = Math.min(maxGrass, CFG.quality.grass[q]);
+    if (maxGrass > 0) {
+      const gm = new T.InstancedMesh(tuftGeo(jur, vol, fro), new T.MeshLambertMaterial({ vertexColors: true }), maxGrass);
       gm.frustumCulled = false;
       const d = new T.Object3D(), c = new T.Color();
-      for (let i = 0; i < nGrass; i++) {
+      for (let i = 0; i < maxGrass; i++) {
         const o = map.grass[i];
         d.position.set(o.x, map.height(o.x, o.z) - 0.05, o.z); d.rotation.set(0, o.r, 0); d.scale.set(o.s, o.s * (0.8 + (i % 5) * 0.12), o.s); d.updateMatrix();
         gm.setMatrixAt(i, d.matrix); const v = 0.8 + ((i * 37) % 30) / 100; c.setRGB(v, v, v * 0.95); gm.setColorAt(i, c);
       }
+      gm.count = nGrass;
+      gm.visible = nGrass > 0;
       group.add(gm);
+      view.grassMesh = gm;
+      view.maxGrass = maxGrass;
     }
+
+    view.applyQuality = (lv, renderer) => {
+      const shSize = CFG.quality.shadow[lv] || 0;
+      const wantShadow = shSize > 0;
+      sun.castShadow = wantShadow;
+      if (wantShadow) {
+        const ss = sun.shadow;
+        if (ss.mapSize.x !== shSize || ss.mapSize.y !== shSize) {
+          ss.mapSize.set(shSize, shSize);
+          if (ss.map) { ss.map.dispose(); ss.map = null; }
+        }
+      }
+      if (renderer && renderer.shadowMap) {
+        renderer.shadowMap.enabled = wantShadow;
+        renderer.shadowMap.needsUpdate = true;
+      }
+      if (view.grassMesh) {
+        const cnt = Math.min(view.maxGrass, CFG.quality.grass[lv] || 0);
+        view.grassMesh.count = cnt;
+        view.grassMesh.visible = cnt > 0;
+      }
+    };
 
     // sky, mountains, clouds, sun glow
     view.sky = har ? WZ.Harbo.skyDome() : fro ? WZ.Froze.skyDome() : vol ? WZ.Volca.skyDome() : jur ? WZ.Jura.skyDome() : skyDome(); scene.add(view.sky);

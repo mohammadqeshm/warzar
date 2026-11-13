@@ -70,9 +70,47 @@
         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div></div>' +
         '</div>' +
         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
-        '<div id="wz-load"><div class="load-in"><div class="load-title">WARZAR</div><div class="load-bar"><i id="load-fill"></i></div><div class="load-sub">' + t('load.title') + '</div></div></div>';
+        '<div id="wz-load"><div class="load-in">' +
+        '  <div class="load-title">WARZAR</div>' +
+        '  <div class="load-car-wrap">' +
+        '    <svg class="load-car-svg" viewBox="0 0 240 110" aria-hidden="true">' +
+        '      <defs>' +
+        '        <clipPath id="load-car-clip"><rect id="load-car-rect" x="0" y="0" width="0" height="110"/></clipPath>' +
+        '        <linearGradient id="load-yel" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFE46B"/><stop offset="55%" stop-color="#FFB400"/><stop offset="100%" stop-color="#D98A00"/></linearGradient>' +
+        '        <g id="load-jeep-shape">' +
+        '          <rect x="82" y="8" width="22" height="10" rx="3"/>' +
+        '          <rect x="104" y="10" width="44" height="5" rx="2"/>' +
+        '          <rect x="90" y="18" width="8" height="12"/>' +
+        '          <path d="M22 68 L28 42 L68 42 L78 26 L136 26 L152 44 L204 48 L212 68 L218 68 L218 78 L16 78 L16 68 Z"/>' +
+        '          <path d="M84 31 L130 31 L142 44 L76 44 Z" fill-opacity="0.35"/>' +
+        '          <rect x="34" y="28" width="32" height="14" rx="2"/>' +
+        '          <rect x="14" y="50" width="10" height="18" rx="3"/>' +
+        '          <path d="M210 48 L222 44 L222 74 L210 74 Z"/>' +
+        '          <circle cx="62" cy="82" r="20"/>' +
+        '          <circle cx="174" cy="82" r="20"/>' +
+        '        </g>' +
+        '      </defs>' +
+        '      <use href="#load-jeep-shape" fill="#1F2329" stroke="#525864" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '      <circle cx="62" cy="82" r="8" fill="#121417" stroke="#525864" stroke-width="2"/>' +
+        '      <circle cx="174" cy="82" r="8" fill="#121417" stroke="#525864" stroke-width="2"/>' +
+        '      <g clip-path="url(#load-car-clip)">' +
+        '        <use href="#load-jeep-shape" fill="url(#load-yel)" stroke="#0E0E0E" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '        <path d="M84 31 L130 31 L142 44 L76 44 Z" fill="#16191E" stroke="#0E0E0E" stroke-width="2"/>' +
+        '        <path d="M38 35 H62 M50 29 V41" stroke="#0E0E0E" stroke-width="2.2"/>' +
+        '        <circle cx="62" cy="82" r="19" fill="#1B1E22" stroke="#FFB400" stroke-width="3" stroke-dasharray="7 4"/>' +
+        '        <circle cx="62" cy="82" r="8" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/>' +
+        '        <circle cx="174" cy="82" r="19" fill="#1B1E22" stroke="#FFB400" stroke-width="3" stroke-dasharray="7 4"/>' +
+        '        <circle cx="174" cy="82" r="8" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/>' +
+        '        <circle cx="208" cy="56" r="4" fill="#FFF8C8"/>' +
+        '      </g>' +
+        '    </svg>' +
+        '    <div class="load-pct" id="load-pct">0%</div>' +
+        '  </div>' +
+        '  <div class="load-bar"><i id="load-fill"></i></div>' +
+        '  <div class="load-sub">' + t('load.title') + '</div>' +
+        '</div></div>';
 
-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-weapon', 'btn-wswap', 'w-wheel', 'w-label', 'w-ico', 'w-name', 'w-n', 'hud-coins', 'hud-coins-n', 'hud-giants', 'hud-soldiers', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
+      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-weapon', 'btn-wswap', 'w-wheel', 'w-label', 'w-ico', 'w-name', 'w-n', 'hud-coins', 'hud-coins-n', 'hud-giants', 'hud-soldiers', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'load-car-rect', 'load-pct', 'btn-pause']) UI.h[id] = $(id);
       UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.wcd = UI.h['btn-weapon'].querySelector('.cd'); UI.h.chips = Array.from(UI.h['w-wheel'].querySelectorAll('.wchip')); UI.h.strikes = UI.h['hud-hp'].querySelectorAll('.strikes u');
       UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
       // arrows
@@ -111,7 +149,10 @@
 
     loading(p) {
       if (p === false) { UI.h['wz-load'].classList.add('done'); setTimeout(() => UI.h['wz-load'].classList.add('hidden'), 450); return; }
-      UI.h['load-fill'].style.width = Math.round(p * 100) + '%';
+      const pct = Math.max(0, Math.min(100, Math.round(p * 100)));
+      if (UI.h['load-fill']) UI.h['load-fill'].style.width = pct + '%';
+      if (UI.h['load-car-rect']) UI.h['load-car-rect'].setAttribute('width', (240 * pct / 100).toFixed(1));
+      if (UI.h['load-pct']) UI.h['load-pct'].textContent = pct + '%';
     },
 
     // ------------------------------------------------------------ HUD
@@ -255,6 +296,8 @@
       if (sn) sn.textContent = t('maps.current', { s: sNum });
       if (n) n.textContent = t('maps.' + id);
       if (th) th.innerHTML = UI._mapThumb(id);
+      const lc = $('logo-canvas');
+      if (lc) UI.drawLogo(lc);
     },
     /** a real 3D render of a map finished: drop it into its card (and the menu chip) */
     setMapShot(id, url) {
@@ -515,10 +558,13 @@
       for (let i = 0; i < 9; i++) { const a = i / 9 * 6.28 + rng(), r = 24 + rng() * 34; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax + Math.cos(a) * r, ay + Math.sin(a) * r); g.stroke(); }
       g.fillStyle = '#0A0A0A'; g.beginPath(); g.arc(ax, ay, 15, 0, 7); g.fill();
       g.strokeStyle = 'rgba(236,233,225,.9)'; g.lineWidth = 2.5; g.beginPath(); g.arc(ax, ay, 17, 0.2, 5.2); g.stroke();
-      // yellow label
+      // yellow label: displays current Season number + map name
+      const curMap = (WZ.Save && WZ.Save.data && WZ.Save.data.settings && WZ.Save.data.settings.map) || 'village';
+      const sNum = Math.max(1, CFG_MAPS().indexOf(curMap) + 1);
+      const seasonLabel = t('maps.season', { n: sNum }) + '  ·  ' + t('maps.' + curMap);
       g.save(); g.translate(W / 2, 372); g.rotate(-0.012);
       g.fillStyle = '#FFB400'; g.fillRect(-250, -26, 500, 52);
-      g.fillStyle = '#0E0E0E'; g.font = '700 31px ' + F; g.fillText(t('logo.label'), 0, 11, 466); g.restore();
+      g.fillStyle = '#0E0E0E'; g.font = '700 31px ' + F; g.fillText(seasonLabel, 0, 11, 466); g.restore();
     },
 
     drawBrandGlobal() { /* reserved */ },

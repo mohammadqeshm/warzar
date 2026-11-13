@@ -6,9 +6,9 @@
     en: {
       'logo.tag1': 'TWO SOLDIERS. ONE MISSION.',
       'logo.tag2': 'TOTAL CHAOS.',
-      'logo.label': 'FUNNY. EPIC. UNPREDICTABLE.',
+      'logo.label': 'SEASON {n}',
       'logo.slogan': 'WHERE STRATEGY MEETS STUPIDITY.',
-      'menu.play': 'JOIN THE CHAOS!',
+      'menu.play': 'START GAME',
       'menu.level': 'LEVEL {n}',
       'menu.best': 'BEST: LEVEL {n}',
       'menu.coins': 'COINS: {n}',

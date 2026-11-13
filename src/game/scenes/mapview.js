@@ -61,8 +61,11 @@
       const a = Math.hypot(F.x, F.z) > 30 ? Math.atan2(-F.x, -F.z) + 0.35 : 0.6, dx = Math.sin(a), dz = Math.cos(a), rx = dz, rz = -dx;     // camera sits between the focus and the map centre
       const hm = map.height, D = 58, cx = F.x + dx * D, cz = F.z + dz * D, cam = new T.PerspectiveCamera(50, SHOT.w / SHOT.h, 1, 1500);
       cam.position.set(cx, Math.max(hm(cx, cz), hm(F.x, F.z)) + 21, cz); cam.lookAt(F.x - dx * 4, hm(F.x, F.z) + 3.2, F.z - dz * 4); cam.updateMatrixWorld(true);
-      // the vehicle (with its driver) and the guardian stand in the scene
-      const jeep = WZ.Vehicles.jeep(), cmdr = WZ.Heroes.commander(); jeep.seatCmdr.add(cmdr.root); cmdr.setMode('sit');
+      // the vehicle (with both Commander and Nana riding inside) and the guardian stand in the scene
+      const jeep = WZ.Vehicles.jeep(), cmdr = WZ.Heroes.commander(), nana = WZ.Heroes.nana();
+      jeep.seatCmdr.add(cmdr.root); cmdr.setMode('sit'); cmdr.update(0.1);
+      if (nana.pan) nana.pan.visible = false;
+      jeep.seatNana.add(nana.root); nana.setMode('sit'); nana.update(0.1);
       const jx = F.x + rx * 7.5 + dx * 12, jz = F.z + rz * 7.5 + dz * 12; jeep.root.position.set(jx, hm(jx, jz), jz); jeep.root.rotation.y = Math.atan2(-dx, -dz) + 2.55; scene.add(jeep.root);
       const mat = new T.MeshLambertMaterial({ vertexColors: true }), rig = WZ.Giants.rigFor(theme, mat, 0);
       const gx = F.x - rx * 6 - dx * 3, gz = F.z - rz * 6 - dz * 3; rig.root.position.set(gx, hm(gx, gz), gz); rig.root.rotation.y = Math.atan2(dx, dz) + 0.45; rig.armR.rotation.x = -0.45; rig.armL.rotation.x = -0.2; scene.add(rig.root);
@@ -71,7 +74,7 @@
       try { view.update(2.2, 0.016, cam); } finally { if (P) P.ready = pr; }
       const url = MP._render(scene, cam, SHOT.w, SHOT.h, 1, (px) => MP._canvas(px, SHOT.w, SHOT.h, SHOT.ow, SHOT.oh, 'image/jpeg', false));
       // clean up
-      if (rig.dispose) rig.dispose(); mat.dispose(); G.disposeTree(jeep.root); if (cmdr.dispose) cmdr.dispose(); view.dispose(); scene.clear();
+      if (rig.dispose) rig.dispose(); mat.dispose(); G.disposeTree(jeep.root); if (cmdr.dispose) cmdr.dispose(); if (nana.dispose) nana.dispose(); view.dispose(); scene.clear();
       WZ.Main.renderer.renderLists.dispose();
       return url;
     },

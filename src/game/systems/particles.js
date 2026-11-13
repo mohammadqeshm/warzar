@@ -96,18 +96,21 @@
     },
 
     // ----- convenience recipes (density scales with quality)
-    dens() { return WZ.Quality ? WZ.THREEQ || 1 : 1; },
+    dens() { return WZ.Quality ? (WZ.CFG.quality.particles[WZ.Quality.level] || 1) : 1; },
     dust(x, y, z, n, vx, vz) {
-      for (let i = 0; i < n; i++) PT.emit(SOFT, x + (Math.random() - 0.5) * 1.2, y + 0.3, z + (Math.random() - 0.5) * 1.2, (vx || 0) * 0.15 + (Math.random() - 0.5) * 2, 1 + Math.random() * 1.5, (vz || 0) * 0.15 + (Math.random() - 0.5) * 2, 0.7 + Math.random() * 0.4, 0.8, 2.8, 0.72, 0.6, 0.4, 0.5, 0, 0, 1.2);
+      const cnt = Math.max(1, Math.round(n * PT.dens()));
+      for (let i = 0; i < cnt; i++) PT.emit(SOFT, x + (Math.random() - 0.5) * 1.2, y + 0.3, z + (Math.random() - 0.5) * 1.2, (vx || 0) * 0.15 + (Math.random() - 0.5) * 2, 1 + Math.random() * 1.5, (vz || 0) * 0.15 + (Math.random() - 0.5) * 2, 0.7 + Math.random() * 0.4, 0.8, 2.8, 0.72, 0.6, 0.4, 0.5, 0, 0, 1.2);
     },
     poof(x, y, z, n, size) {
-      for (let i = 0; i < n; i++) {
+      const cnt = Math.max(1, Math.round(n * PT.dens()));
+      for (let i = 0; i < cnt; i++) {
         const a = Math.random() * 6.28, sp = 2 + Math.random() * 4;
         PT.emit(SOFT, x, y, z, Math.cos(a) * sp, 1 + Math.random() * 3, Math.sin(a) * sp, 0.5 + Math.random() * 0.3, (size || 1) * 0.8, (size || 1) * 3.2, 0.95, 0.95, 0.95, 0.85, 0, 0, 3);
       }
     },
     sparks(x, y, z, n, r, g, b) {
-      for (let i = 0; i < n; i++) {
+      const cnt = Math.max(1, Math.round(n * PT.dens()));
+      for (let i = 0; i < cnt; i++) {
         const a = Math.random() * 6.28, sp = 3 + Math.random() * 7;
         PT.emit(GLOW, x, y, z, Math.cos(a) * sp, 2 + Math.random() * 6, Math.sin(a) * sp, 0.25 + Math.random() * 0.25, 0.5, 0.1, r == null ? 1 : r, g == null ? 0.8 : g, b == null ? 0.3 : b, 1, 0, -22, 1);
       }

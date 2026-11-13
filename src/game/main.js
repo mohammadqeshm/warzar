@@ -56,10 +56,18 @@
         WZ.Events.on('game:resume', () => { Main.platformPaused = false; Main.last = performance.now() / 1000; if (Main.userPaused) WZ.Audio.suspend(); });
         await WZ.Platform.init();
 
-        for (let i = 0; i < TEX.length; i++) { WZ.Assets.tex(TEX[i]); WZ.UI.loading((i + 1) / (TEX.length + 2)); if (i % 4 === 3) await new Promise((res) => setTimeout(res, 0)); }
-        await new Promise((res) => setTimeout(res, 16));
+        WZ.UI.loading(0);
+        for (let i = 0; i < TEX.length; i++) {
+          WZ.Assets.tex(TEX[i]);
+          WZ.UI.loading((i + 1) / (TEX.length + 2));
+          if (i % 2 === 1) await new Promise((res) => setTimeout(res, 14));
+        }
+        WZ.UI.loading((TEX.length + 1) / (TEX.length + 2));
+        await new Promise((res) => setTimeout(res, 24));
         Main.go('menu');
-        WZ.UI.loading(1); WZ.UI.loading(false);
+        WZ.UI.loading(1);
+        await new Promise((res) => setTimeout(res, 140));
+        WZ.UI.loading(false);
         WZ.Platform.gameReady(); // first interactive screen is up
         Main.last = performance.now() / 1000;
         requestAnimationFrame(Main.frame);
@@ -71,12 +79,33 @@
     go(name, data) {
       if (Main.cur) Main.cur.exit();
       WZ.Input.reset(); WZ.Fx.clear(); Main.userPaused = false; Main.acc = 0;
+      if (WZ.Quality && WZ.Quality.notifyTransition) WZ.Quality.notifyTransition(2.0);
       Main.cur = Main.scenes[name];
       Main.cur.enter(data || {});
+      Main.applyQualityRuntime(WZ.Quality ? WZ.Quality.level : 2);
       WZ.Events.emit('scene:change', name);
     },
 
-    applyQualityRuntime(lv) { const s = Main.cur; if (s && s.view && s.view.sun && lv === 0) s.view.sun.castShadow = false; },
+    applyQualityRuntime(lv) {
+      const r = Main.renderer, s = Main.cur;
+      const shSize = (CFG.quality && CFG.quality.shadow && CFG.quality.shadow[lv]) || 0;
+      const shadowsOn = shSize > 0;
+      if (r && r.shadowMap) {
+        r.shadowMap.enabled = shadowsOn;
+        r.shadowMap.needsUpdate = true;
+      }
+      if (s && s.view) {
+        if (s.view.applyQuality) s.view.applyQuality(lv, r);
+        else if (s.view.sun) {
+          s.view.sun.castShadow = shadowsOn;
+          if (shadowsOn && s.view.sun.shadow) {
+            s.view.sun.shadow.mapSize.set(shSize, shSize);
+            if (s.view.sun.shadow.map) { s.view.sun.shadow.map.dispose(); s.view.sun.shadow.map = null; }
+          }
+        }
+      }
+      Main.resize();
+    },
 
     resize() {
       const w = Math.max(1, window.innerWidth), h = Math.max(1, window.innerHeight);
@@ -103,6 +132,7 @@
         });
       } else {
         WZ.UI.removeScreen('pause'); if (!Main.platformPaused) WZ.Audio.resume();
+        if (WZ.Quality && WZ.Quality.notifyTransition) WZ.Quality.notifyTransition(1.2);
         Main.last = performance.now() / 1000; Main.acc = 0; WZ.Input.reset();
       }
       void silent;

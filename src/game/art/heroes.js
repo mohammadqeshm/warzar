@@ -128,26 +128,37 @@
 
   function animate(rig, dt) {
     const t = (rig.t += dt), tg = rig.tgt, P = rig.pose, nana = rig.type === 'nana';
-    const panUp = nana ? -2.15 : 0;
-    tg.legL = 0; tg.legR = 0; tg.armLx = 0; tg.armRx = panUp; tg.armLz = 0.1; tg.armRz = -0.1; tg.lean = 0; tg.bob = 0;
+    const panReady = nana ? -0.92 : 0;
+    tg.legL = 0; tg.legR = 0; tg.armLx = 0; tg.armRx = panReady; tg.armLz = 0.1; tg.armRz = -0.1; tg.lean = 0; tg.bob = 0;
     tg.headX = 0; tg.headZ = 0; tg.headY = rig.lookYaw; tg.rootRx = 0; tg.rootY = 0; tg.twist = 0;
     switch (rig.mode) {
       case 'idle':
-        tg.bob = Math.sin(t * 2.4) * 0.025; tg.armLx = Math.sin(t * 2) * 0.07;
-        tg.armRx = nana ? panUp + Math.sin(t * 2.7) * 0.14 : -Math.sin(t * 2) * 0.07;
-        tg.headZ = Math.sin(t * 1.3) * (nana ? 0.1 : 0.04); break;
+        tg.bob = Math.sin(t * 2.2) * 0.02; tg.armLx = -0.18 + Math.sin(t * 1.8) * 0.04;
+        tg.armRx = nana ? panReady + Math.sin(t * 1.8) * 0.05 : -0.18 - Math.sin(t * 1.8) * 0.04;
+        tg.headZ = Math.sin(t * 1.2) * 0.03; break;
       case 'run': case 'carry': {
         const ph = t * rig.runRate * (0.6 + 0.4 * rig.speed01), s = Math.sin(ph);
         tg.legL = s * 0.95; tg.legR = -s * 0.95; tg.bob = Math.abs(s) * 0.14; tg.lean = 0.16; tg.twist = s * 0.12;
-        tg.headZ = Math.sin(ph * 0.5) * (nana ? 0.12 : 0.03);
+        tg.headZ = Math.sin(ph * 0.5) * 0.04;
         if (rig.mode === 'carry') { tg.armLx = -2.9; tg.armRx = -2.9; tg.armLz = 0.25; tg.armRz = -0.25; tg.lean = 0.08; }
-        else { tg.armLx = -s * 0.9; tg.armRx = nana ? panUp + Math.sin(ph * 2) * 0.2 : s * 0.9; }
+        else { tg.armLx = -s * 0.9; tg.armRx = nana ? -1.25 + Math.sin(ph * 2) * 0.18 : s * 0.9; }
         break;
       }
       case 'sit':
-        tg.legL = -1.45; tg.legR = -1.45; tg.bob = Math.sin(t * 2.4) * 0.015;
-        tg.armLx = -1.15; tg.armRx = nana ? panUp + Math.sin(t * 3) * 0.15 : -1.15;
-        tg.headZ = Math.sin(t * 1.3) * (nana ? 0.12 : 0.02); break;
+        tg.legL = -1.45; tg.legR = -1.45; tg.bob = Math.sin(t * 3.2) * 0.014;
+        tg.lean = 0.05;
+        if (nana) {
+          tg.armLx = -1.04; tg.armRx = -1.08; tg.armLz = 0.14; tg.armRz = -0.16;
+          tg.headY = rig.lookYaw + Math.sin(t * 0.75 + 1.1) * 0.12;
+          tg.headZ = Math.sin(t * 1.4) * 0.025;
+        } else {
+          tg.armLx = -1.16 + Math.sin(t * 1.7) * 0.04;
+          tg.armRx = -1.16 - Math.sin(t * 1.7) * 0.04;
+          tg.armLz = -0.16; tg.armRz = 0.16;
+          tg.headY = rig.lookYaw + Math.sin(t * 0.85) * 0.1;
+          tg.headZ = Math.sin(t * 1.3) * 0.02;
+        }
+        break;
       case 'grab':
         tg.legL = -0.9; tg.legR = 0.5; tg.bob = -0.28; tg.lean = 0.6;
         tg.armLx = -1.4 + Math.sin(t * 26) * 0.12; tg.armRx = -1.4 - Math.sin(t * 26) * 0.12; tg.headZ = Math.sin(t * 20) * 0.08; break;

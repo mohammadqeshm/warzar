@@ -197,13 +197,18 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .pause-box .btn { width: 100%; transform: none; text-align: center; }
 .pause-title { font-size: clamp(34px, 8vw, 46px); color: var(--y); text-shadow: 0 4px 0 #000; text-align: center; }
 
-#wz-load { position: absolute; inset: 0; z-index: 40; background: radial-gradient(ellipse at center, #2a2a2c, #0E0E0E); display: flex; align-items: center; justify-content: center; transition: opacity 0.4s; }
+#wz-load { position: absolute; inset: 0; z-index: 40; background: radial-gradient(ellipse at center, #252830 0%, #121418 55%, #090A0C 100%); display: flex; align-items: center; justify-content: center; transition: opacity 0.42s ease-out; }
 #wz-load.done { opacity: 0; pointer-events: none; }
-.load-in { text-align: center; width: min(70vw, 360px); }
-.load-title { font-size: clamp(48px, 12vw, 72px); color: var(--w); text-shadow: 0 5px 0 #000; letter-spacing: 0.08em; }
-.load-bar { height: 14px; border: 3px dashed var(--w); border-radius: 4px; margin: 10px 0; overflow: hidden; }
-.load-bar i { display: block; height: 100%; width: 0%; background: var(--y); transition: width 0.15s; }
-.load-sub { font-size: 16px; color: var(--y); }
+.load-in { text-align: center; width: min(82vw, 380px); padding: 22px 24px; background: rgba(14, 14, 14, 0.72); border: 3px dashed rgba(236, 233, 225, 0.75); border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 3px rgba(0, 0, 0, 0.6); }
+.load-title { font-size: clamp(46px, 11vw, 68px); line-height: 1; color: var(--w); text-shadow: 0 5px 0 #000, 0 0 24px rgba(255, 180, 0, 0.25); letter-spacing: 0.08em; margin-bottom: 4px; }
+.load-car-wrap { position: relative; display: flex; flex-direction: column; align-items: center; margin: 6px auto 8px; }
+.load-car-svg { width: min(64vw, 240px); height: auto; display: block; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.65)); animation: loadCarBob 0.55s ease-in-out infinite alternate; }
+#load-car-rect { transition: width 0.14s ease-out; }
+.load-pct { margin-top: 4px; font-size: clamp(26px, 6.5vw, 36px); line-height: 1; color: var(--y); text-shadow: 0 3px 0 #000, 0 0 14px rgba(255, 180, 0, 0.45); letter-spacing: 0.06em; }
+.load-bar { height: 14px; background: rgba(0, 0, 0, 0.55); border: 2.5px dashed rgba(236, 233, 225, 0.85); border-radius: 5px; margin: 8px 0 8px; overflow: hidden; padding: 1px; }
+.load-bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #E09000, #FFB400, #FFE46B); border-radius: 3px; box-shadow: 0 0 10px rgba(255, 180, 0, 0.65); transition: width 0.14s ease-out; }
+.load-sub { font-size: 14px; letter-spacing: 0.14em; color: var(--w); opacity: 0.85; }
+@keyframes loadCarBob { 0% { transform: translateY(0px); } 100% { transform: translateY(-3px); } }
 
 @keyframes blink { from { opacity: 1; } to { opacity: 0.55; } }
 @keyframes pop { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.03); } }
