@@ -13,8 +13,9 @@
   const WI = (body) => '<svg viewBox="0 0 32 32" class="wi">' + body + '</svg>';
   const ST = 'stroke="#0E0E0E" stroke-width="1.6" stroke-linejoin="round"';
   const W_ICO = {
-    mine: WI('<ellipse cx="16" cy="20" rx="12.5" ry="6" fill="#3e4430" ' + ST + '/><ellipse cx="16" cy="17" rx="12.5" ry="6" fill="#6b7348" ' + ST + '/><circle cx="16" cy="16.6" r="3" fill="#ff3a22" ' + ST + '/><path d="M6 13l-2-3M26 13l2-3M16 10V6" stroke="#0E0E0E" stroke-width="2" stroke-linecap="round"/>'),
-    gun: WI('<rect x="5" y="23" width="22" height="5" rx="2" fill="#FFB400" ' + ST + '/><rect x="9" y="13" width="14" height="10" rx="3" fill="#4A525A" ' + ST + '/><rect x="11.5" y="3.5" width="3.4" height="11" rx="1" fill="#16181A" ' + ST + '/><rect x="17.2" y="3.5" width="3.4" height="11" rx="1" fill="#16181A" ' + ST + '/><rect x="13" y="16" width="6" height="3" rx="1" fill="#4cff6a"/>'),
+    mine: WI('<ellipse cx="16" cy="21.5" rx="13" ry="5.5" fill="#23272A" ' + ST + '/><ellipse cx="16" cy="19" rx="12" ry="5.2" fill="#4B5A38" ' + ST + '/><ellipse cx="16" cy="16.8" rx="9" ry="3.8" fill="#2A2E34" ' + ST + '/><rect x="5.5" y="17.5" width="3" height="3" rx="0.8" fill="#FFB400"/><rect x="23.5" y="17.5" width="3" height="3" rx="0.8" fill="#FFB400"/><ellipse cx="16" cy="15.8" rx="4.5" ry="2.2" fill="#9CA3AB" ' + ST + '/><circle cx="16" cy="15.2" r="2.3" fill="#FF3A22" ' + ST + '/>'),
+    gun: WI('<path d="M4 26l4-4h16l4 4z" fill="#2B3036" ' + ST + '/><rect x="6" y="23" width="20" height="4" rx="1.5" fill="#FFB400" ' + ST + '/><rect x="8.5" y="13" width="15" height="10" rx="2.5" fill="#3E4650" ' + ST + '/><rect x="14" y="2" width="4" height="12" rx="1.2" fill="#111315" ' + ST + '/><rect x="13" y="8" width="6" height="4" rx="1" fill="#2B3036" ' + ST + '/><rect x="13.2" y="1.5" width="5.6" height="2.4" rx="0.8" fill="#59636E" ' + ST + '/><circle cx="11.5" cy="17.5" r="1.8" fill="#38F2FF"/><rect x="14.5" y="16.2" width="5" height="2.5" rx="1" fill="#4CFF6A"/>'),
+    soldier: WI('<path d="M6 28c0-5 4-8 10-8s10 3 10 8z" fill="#1F68B5" ' + ST + '/><rect x="6" y="21" width="4" height="3.5" rx="1" fill="#FFB400" ' + ST + '/><rect x="22" y="21" width="4" height="3.5" rx="1" fill="#FFB400" ' + ST + '/><rect x="9.5" y="10" width="13" height="10.5" rx="3" fill="#DCA06A" ' + ST + '/><path d="M8.5 12c0-5.5 3.2-8.5 7.5-8.5s7.5 3 7.5 8.5z" fill="#143C70" ' + ST + '/><rect x="14.2" y="3.2" width="3.6" height="5" rx="1" fill="#FFB400"/><rect x="10.5" y="12.2" width="11" height="4.4" rx="2" fill="#38F2FF" ' + ST + '/><rect x="14" y="22.5" width="14" height="3.2" rx="1" fill="#162436" ' + ST + '/>'),
     heavy: WI('<rect x="4" y="23" width="24" height="5" rx="2" fill="#FFB400" ' + ST + '/><rect x="8" y="15" width="16" height="9" rx="3" fill="#59636E" ' + ST + '/><rect x="13" y="1.5" width="7" height="15" rx="2" fill="#16181A" ' + ST + ' transform="rotate(22 16 16)"/><rect x="12.5" y="1.5" width="8" height="3.4" rx="1" fill="#ff7a4a" ' + ST + ' transform="rotate(22 16 16)"/>'),
     bomb: WI('<circle cx="14.5" cy="19.5" r="10" fill="#2f2f3d" ' + ST + '/><ellipse cx="11" cy="15.5" rx="3" ry="2" fill="#6b6b84" transform="rotate(-30 11 15.5)"/><rect x="17" y="5.5" width="6" height="5" rx="1.5" fill="#8a8a95" ' + ST + ' transform="rotate(28 20 8)"/><path d="M22.5 6.5q4-4 6-0.5" stroke="#c9a06a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="28.5" cy="5" r="2.6" fill="#FFB400" ' + ST + '/>'),
     heli: WI('<rect x="2" y="5" width="28" height="2.6" rx="1.3" fill="#23272A" ' + ST + '/><rect x="15" y="7" width="2.4" height="3.2" fill="#23272A"/><ellipse cx="14" cy="16.5" rx="9.5" ry="6" fill="#56733F" ' + ST + '/><path d="M6.5 14.5q1.5-4 6-3.6v6.2h-8.4z" fill="#8AD0FF" ' + ST + '/><rect x="21" y="14" width="9" height="3.2" rx="1.4" fill="#56733F" ' + ST + '/><rect x="27.5" y="9.5" width="2.6" height="6.2" rx="1" fill="#FFB400" ' + ST + '/><path d="M5 25h17M9 22v3M18 22v3" stroke="#0E0E0E" stroke-width="2" stroke-linecap="round"/>'),
@@ -35,10 +36,10 @@
   };
   MAP_ICO.frozen = '<svg viewBox="0 0 120 56"><defs><linearGradient id="fzg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FB0D2"/><stop offset="1" stop-color="#DCE9F4"/></linearGradient></defs><rect width="120" height="56" fill="url(#fzg)"/><path d="M-4 38L24 10l16 18 14-22 22 32 14-14 28 16v18H-4z" fill="#7C8FA8" stroke="#0E0E0E" stroke-width="1.6" stroke-linejoin="round"/><path d="M24 10l-7 8 4-2 3 4 3-5 3 3zM54 6l-8 12 5-2 3 5 4-5 5 3z" fill="#F3F8FD"/><path d="M0 44q30-8 60-3t60-4v19H0z" fill="#E8F0F7" stroke="#0E0E0E" stroke-width="1.6"/><ellipse cx="62" cy="49" rx="30" ry="5" fill="#9FDBF2" stroke="#0E0E0E" stroke-width="1.4"/><path d="M48 48l10-1.5M66 50l12-2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M14 46V34M14 34l-6 8h12zM14 28l-5 8h10z" fill="#2F5A47" stroke="#0E0E0E" stroke-width="1.3" stroke-linejoin="round"/><path d="M100 46V32M100 32l-7 9h14zM100 25l-6 9h12z" fill="#2F5A47" stroke="#0E0E0E" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   MAP_ICO.harbor = '<svg viewBox="0 0 120 56"><defs><linearGradient id="hbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9DBDF"/><stop offset="1" stop-color="#9DB9C4"/></linearGradient></defs><rect width="120" height="56" fill="url(#hbg)"/><rect y="40" width="120" height="16" fill="#2F7C99"/><path d="M0 44q15-3 30 0t30 0 30 0 30 0" stroke="#8FD0E0" stroke-width="1.6" fill="none"/><rect x="0" y="34" width="70" height="22" fill="#7A8083" stroke="#0E0E0E" stroke-width="1.6"/><rect x="6" y="22" width="16" height="12" fill="#A8432F" stroke="#0E0E0E" stroke-width="1.6"/><rect x="22" y="22" width="14" height="12" fill="#35607F" stroke="#0E0E0E" stroke-width="1.6"/><rect x="10" y="12" width="15" height="10" fill="#D6B038" stroke="#0E0E0E" stroke-width="1.6"/><rect x="38" y="26" width="14" height="8" fill="#3F7A52" stroke="#0E0E0E" stroke-width="1.6"/><path d="M62 34V6M62 6h-22M62 6h30M92 6v5" stroke="#E0602A" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="88" y="11" width="8" height="5" fill="#C9772E" stroke="#0E0E0E" stroke-width="1.2"/><rect x="72" y="36" width="44" height="6" fill="#8D9291" stroke="#0E0E0E" stroke-width="1.4"/><path d="M92 36l6 6" stroke="#E8B71A" stroke-width="2.4"/><path d="M96 49l12-4 6 3-14 5z" fill="#34414A" stroke="#0E0E0E" stroke-width="1.4"/></svg>';
-  const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli', 'tank', 'jet'];
+  const W_ORDER = ['mine', 'gun', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet'];
 
   const UI = {
-    giantBarMax: 10, giantEls: [],
+    giantBarMax: 10, giantEls: [], soldierBarMax: 16, soldierEls: [],
     root: null, c: {}, arrowEls: [], dbgOn: false, h: {},
 
     mount(host) {
@@ -60,6 +61,7 @@
         '  <div id="hud-gun" class="hidden">' + BOLT_ICO + 'GUN BOOST</div>' +
         '  <div id="hud-arrows"></div>' +
         '  <div id="hud-giants"></div>' +
+        '  <div id="hud-soldiers"></div>' +
         '  <div id="hud-buttons"><div id="hud-defs">' +
         '<div id="w-wheel" class="hidden"><div id="w-label"></div><div class="w-strip">' + W_ORDER.map((id) => '<button class="wchip" data-w="' + id + '"><i class="cd"></i>' + W_ICO[id] + '<b>0</b><small class="k-keys">' + (W_ORDER.indexOf(id) + 1) + '</small></button>').join('') + '</div></div>' +
         '<button id="btn-wswap" aria-label="swap weapon">' + SWAP_ICO + '<small class="k-keys">' + t('hud.key.wswap') + '</small></button>' +
@@ -70,7 +72,7 @@
         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
         '<div id="wz-load"><div class="load-in"><div class="load-title">WARZAR</div><div class="load-bar"><i id="load-fill"></i></div><div class="load-sub">' + t('load.title') + '</div></div></div>';
 
-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-weapon', 'btn-wswap', 'w-wheel', 'w-label', 'w-ico', 'w-name', 'w-n', 'hud-coins', 'hud-coins-n', 'hud-giants', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
+      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-weapon', 'btn-wswap', 'w-wheel', 'w-label', 'w-ico', 'w-name', 'w-n', 'hud-coins', 'hud-coins-n', 'hud-giants', 'hud-soldiers', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'btn-pause']) UI.h[id] = $(id);
       UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.wcd = UI.h['btn-weapon'].querySelector('.cd'); UI.h.chips = Array.from(UI.h['w-wheel'].querySelectorAll('.wchip')); UI.h.strikes = UI.h['hud-hp'].querySelectorAll('.strikes u');
       UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
       // arrows
@@ -85,6 +87,14 @@
         const g = document.createElement('div'); g.className = 'gbar hidden';
         g.innerHTML = '<div class="gb-name">' + t('hud.giant') + '</div><div class="gb-bar"><i></i></div><em></em>';
         UI.h['hud-giants'].appendChild(g); UI.giantEls.push({ el: g, fill: g.querySelector('i'), hp: g.querySelector('em'), vis: false, pct: -1, alert: -1, n: -1 });
+      }
+      // soldier HP + stamina bars (pooled)
+      UI.soldierEls = [];
+      for (let i = 0; i < UI.soldierBarMax; i++) {
+        const s = document.createElement('div'); s.className = 'sbar hidden';
+        s.innerHTML = '<div class="sb-name">' + t('hud.soldierTag') + '</div><div class="sb-hp"><i></i></div><div class="sb-life"><i></i></div>';
+        UI.h['hud-soldiers'].appendChild(s);
+        UI.soldierEls.push({ el: s, hpFill: s.querySelector('.sb-hp i'), lifeFill: s.querySelector('.sb-life i'), vis: false, hpPct: -1, lifePct: -1 });
       }
       // film grain
       try {
@@ -105,7 +115,7 @@
     },
 
     // ------------------------------------------------------------ HUD
-    hudShow(on) { UI.h['wz-hud'].classList.toggle('hidden', !on); UI.root.classList.toggle('in-mission', on); if (!on) { UI.hideArrows(0); UI.hideGiantBars(0); UI.closeWheel(); if (WZ.Input && WZ.Input.reset) WZ.Input.reset(); } },
+    hudShow(on) { UI.h['wz-hud'].classList.toggle('hidden', !on); UI.root.classList.toggle('in-mission', on); if (!on) { UI.hideArrows(0); UI.hideGiantBars(0); UI.hideSoldierBars(0); UI.closeWheel(); if (WZ.Input && WZ.Input.reset) WZ.Input.reset(); } },
     bindHud(handlers) {
       const dep = UI.h['btn-deploy'], bst = UI.h['btn-boost'], pz = UI.h['btn-pause'];
       const press = (el, fn) => { el.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); WZ.Audio.unlock(); fn(true); }; };
@@ -185,6 +195,17 @@
     },
     hideGiantBars(from) { for (let i = from; i < UI.giantEls.length; i++) { const g = UI.giantEls[i]; if (g.vis) { g.vis = false; g.el.classList.add('hidden'); } } },
 
+    setSoldierBar(i, x, y, hpPct, lifePct) {
+      const s = UI.soldierEls[i]; if (!s) return;
+      if (!s.vis) { s.vis = true; s.el.classList.remove('hidden'); }
+      s.el.style.transform = 'translate(' + x.toFixed(0) + 'px,' + y.toFixed(0) + 'px) translate(-50%,-100%)';
+      const hp = Math.round(Math.max(0, Math.min(1, hpPct)) * 100);
+      if (s.hpPct !== hp) { s.hpPct = hp; s.hpFill.style.width = hp + '%'; s.el.classList.toggle('low', hp < 35); }
+      const lf = Math.round(Math.max(0, Math.min(1, lifePct)) * 100);
+      if (s.lifePct !== lf) { s.lifePct = lf; s.lifeFill.style.width = lf + '%'; }
+    },
+    hideSoldierBars(from) { for (let i = from; i < UI.soldierEls.length; i++) { const s = UI.soldierEls[i]; if (s.vis) { s.vis = false; s.el.classList.add('hidden'); } } },
+
     /** off-screen / on-screen arrows to targets */
     setArrow(i, x, y, rotDeg, label, kind, onscreen) {
       const a = UI.arrowEls[i]; if (!a) return;
@@ -205,9 +226,10 @@
       UI.clearScreens();
       const lvl = Math.max(1, (data && data.level) || (WZ.Save && WZ.Save.data && WZ.Save.data.level) || 1);
       const curMap = (WZ.Save && WZ.Save.data.settings.map) || 'village';
+      const sNum = Math.max(1, CFG_MAPS().indexOf(curMap) + 1);
       const el = UI._screen('menu',
         '<div class="menu-logo"><canvas id="logo-canvas"></canvas></div>' +
-        '<div class="menu-bottom"><button class="map-chip" id="btn-maps" aria-label="' + t('maps.change') + '"><span class="mc-thumb" id="mc-thumb">' + UI._mapThumb(curMap) + '</span><span class="mc-t"><small>' + t('maps.current') + '</small><b id="mc-name">' + t('maps.' + curMap) + '</b></span><span class="mc-go">' + t('maps.change') + '</span></button>' +
+        '<div class="menu-bottom"><button class="map-chip" id="btn-maps" aria-label="' + t('maps.change') + '"><span class="mc-thumb" id="mc-thumb">' + UI._mapThumb(curMap) + '</span><span class="mc-t"><small id="mc-season">' + t('maps.current', { s: sNum }) + '</small><b id="mc-name">' + t('maps.' + curMap) + '</b></span><span class="mc-go">' + t('maps.change') + '</span></button>' +
         '<button class="play-btn" id="btn-play"><small class="play-lvl">' + t('menu.level', { n: lvl }) + '</small><span>' + t('menu.play') + '</span></button></div>' +
         '<button class="garage-btn" id="btn-garage" aria-label="' + t('shop.title') + '"><span class="gi">' + SHOP_ICO + '</span><span class="gt"><b>' + t('shop.title') + '</b><small>' + COIN_ICO.replace('class="ico"', 'class="coin"') + '<em id="garage-coins">' + ((WZ.Save && WZ.Save.data.coins) || 0) + '</em></small></span></button>' +
         '<button class="mute-btn" id="btn-mute"></button>');
@@ -228,7 +250,12 @@
       return url ? '<img alt="" src="' + url + '">' : (MAP_ICO[id] || '').replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ');
     },
     /** keeps the main-menu map chip in sync with the selected map */
-    mapChipUpdate(id) { const n = $('mc-name'), th = $('mc-thumb'); if (n) n.textContent = t('maps.' + id); if (th) th.innerHTML = UI._mapThumb(id); },
+    mapChipUpdate(id) {
+      const n = $('mc-name'), th = $('mc-thumb'), sn = $('mc-season'), sNum = Math.max(1, CFG_MAPS().indexOf(id) + 1);
+      if (sn) sn.textContent = t('maps.current', { s: sNum });
+      if (n) n.textContent = t('maps.' + id);
+      if (th) th.innerHTML = UI._mapThumb(id);
+    },
     /** a real 3D render of a map finished: drop it into its card (and the menu chip) */
     setMapShot(id, url) {
       const box = UI.root && UI.root.querySelector('.ms-shot[data-shot="' + id + '"]');
@@ -245,14 +272,15 @@
       requestAnimationFrame(() => { d.classList.add('on'); setTimeout(() => { try { fn(); } finally { requestAnimationFrame(() => { d.classList.remove('on'); setTimeout(() => d.remove(), 260); }); } }, 190); });
     },
 
-    /** Map selection screen: a horizontal snap carousel of every map in CFG.maps.order. h = { select(id), close() } */
+    /** Map selection screen: a horizontal carousel of every map in CFG.maps.order.
+     *  IMPORTANT: Scrolling does NOT auto-select a map; the user must explicitly tap/click a card (or arrow/dot) to select it. */
     showMapSelect(cur, h) {
       const ids = CFG_MAPS(), DIFF = { village: 1, jurassic: 2, frozen: 3, harbor: 3, volcanic: 4 };
       const stars = (n) => { let o = ''; for (let i = 0; i < 4; i++) o += '<i' + (i < n ? ' class="on"' : '') + '></i>'; return o; };
-      const card = (id) => '<article class="ms-card' + (id === cur ? ' sel' : '') + '" data-map="' + id + '">' +
+      const card = (id, i) => '<article class="ms-card' + (id === cur ? ' sel' : '') + '" data-map="' + id + '">' +
         '<div class="ms-shot" data-shot="' + id + '">' + (MAP_ICO[id] || '').replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ') +
-        '<span class="ms-badge">' + t('maps.selected') + '</span><div class="ms-diff" title="' + t('maps.diff') + '">' + stars(DIFF[id] || 1) + '</div><div class="ms-load">' + t('maps.loading') + '</div></div>' +
-        '<div class="ms-info"><div><div class="ms-name">' + t('maps.' + id) + '</div><div class="ms-sub">' + t('maps.' + id + '.sub') + '</div></div>' +
+        '<span class="ms-badge">' + (id === cur ? t('maps.selected') : t('maps.tapSelect')) + '</span><div class="ms-diff" title="' + t('maps.diff') + '">' + stars(DIFF[id] || 1) + '</div><div class="ms-load">' + t('maps.loading') + '</div></div>' +
+        '<div class="ms-info"><div class="ms-head-block"><span class="ms-season">' + t('maps.season', { n: i + 1 }) + '</span><div class="ms-name">' + t('maps.' + id) + '</div><div class="ms-sub">' + t('maps.' + id + '.sub') + '</div></div>' +
         '<div class="ms-guard"><div class="ms-portrait" data-portrait="' + id + '"></div><div class="ms-gt"><small>' + t('maps.guardian') + '</small><b>' + t('maps.' + id + '.guard') + '</b><em>' + t('maps.' + id + '.guard.sub') + '</em></div></div>' +
         '<div class="ms-haz"><b>' + t('maps.hazards') + '</b><span>' + t('maps.' + id + '.haz') + '</span></div></div></article>';
       const el = UI._screen('mapsel',
@@ -264,20 +292,46 @@
       const idx = () => Math.max(0, ids.indexOf(cur));
       const center = (i, smooth) => { const c = cards[i]; if (c) track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' }); };
       const paint = () => {
-        const i = idx(); cards.forEach((c) => c.classList.toggle('sel', c.dataset.map === cur)); dots.forEach((d, k) => d.classList.toggle('on', k === i));
-        $('ms-count').textContent = (i + 1) + ' / ' + ids.length; $('ms-prev').classList.toggle('off', i === 0); $('ms-next').classList.toggle('off', i === ids.length - 1);
+        const i = idx();
+        cards.forEach((c) => {
+          const isSel = c.dataset.map === cur;
+          c.classList.toggle('sel', isSel);
+          const b = c.querySelector('.ms-badge');
+          if (b) b.textContent = isSel ? t('maps.selected') : t('maps.tapSelect');
+        });
+        dots.forEach((d, k) => d.classList.toggle('on', k === i));
+        $('ms-count').textContent = t('maps.season', { n: i + 1 }) + ' (' + (i + 1) + '/' + ids.length + ')';
+        $('ms-prev').classList.toggle('off', i === 0);
+        $('ms-next').classList.toggle('off', i === ids.length - 1);
       };
-      const apply = (id, scroll) => { if (id !== cur) { cur = id; WZ.Audio.sfx('click'); paint(); h.select(id); } if (scroll) center(idx(), true); };
-      cards.forEach((c) => { c.onclick = () => { WZ.Audio.unlock(); apply(c.dataset.map, true); }; });
-      dots.forEach((d) => { d.onclick = () => apply(d.dataset.map, true); });
-      $('ms-prev').onclick = () => apply(ids[Math.max(0, idx() - 1)], true);
-      $('ms-next').onclick = () => apply(ids[Math.min(ids.length - 1, idx() + 1)], true);
-      let settle = 0;
-      track.addEventListener('scroll', () => {            // the card that settles in the middle becomes the selection
-        clearTimeout(settle);
-        settle = setTimeout(() => { const mid = track.scrollLeft + track.clientWidth / 2; let best = 0, bd = 1e9; cards.forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } }); apply(ids[best], false); }, 170);
-      }, { passive: true });
-      track.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { track.scrollBy({ left: e.deltaY, behavior: 'auto' }); e.preventDefault(); } }, { passive: false });
+      const apply = (id, scroll) => {
+        if (id !== cur) {
+          cur = id;
+          WZ.Audio.sfx('click');
+          paint();
+          h.select(id);
+        }
+        if (scroll) center(idx(), true);
+      };
+      // Only select a card when the user explicitly clicks/taps it (ignore scroll drags)
+      let downX = 0, downY = 0;
+      cards.forEach((c) => {
+        c.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; }, { passive: true });
+        c.onclick = (e) => {
+          if (Math.hypot(e.clientX - downX, e.clientY - downY) > 14) return;
+          WZ.Audio.unlock();
+          apply(c.dataset.map, true);
+        };
+      });
+      dots.forEach((d) => { d.onclick = () => { WZ.Audio.unlock(); apply(d.dataset.map, true); }; });
+      $('ms-prev').onclick = () => { WZ.Audio.unlock(); apply(ids[Math.max(0, idx() - 1)], true); };
+      $('ms-next').onclick = () => { WZ.Audio.unlock(); apply(ids[Math.min(ids.length - 1, idx() + 1)], true); };
+      track.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          track.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
       const key = (e) => {
         if (!el.isConnected) { window.removeEventListener('keydown', key); return; }
         if (e.code === 'ArrowLeft') apply(ids[Math.max(0, idx() - 1)], true); else if (e.code === 'ArrowRight') apply(ids[Math.min(ids.length - 1, idx() + 1)], true);

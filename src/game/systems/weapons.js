@@ -8,11 +8,12 @@
   const ITEMS = [
     { id: 'mine', name: 'w.mine', key: '1' },
     { id: 'gun', name: 'w.gun', key: '2' },
-    { id: 'heavy', name: 'w.heavy', key: '3' },
-    { id: 'bomb', name: 'w.bomb', key: '4' },
-    { id: 'heli', name: 'w.heli', key: '5' },
-    { id: 'tank', name: 'w.tank', key: '6' },
-    { id: 'jet', name: 'w.jet', key: '7' },
+    { id: 'soldier', name: 'w.soldier', key: '3' },
+    { id: 'heavy', name: 'w.heavy', key: '4' },
+    { id: 'bomb', name: 'w.bomb', key: '5' },
+    { id: 'heli', name: 'w.heli', key: '6' },
+    { id: 'tank', name: 'w.tank', key: '7' },
+    { id: 'jet', name: 'w.jet', key: '8' },
   ];
   const W = {
     items: ITEMS, sel: 1, snapshot: ITEMS.map((it) => ({ id: it.id, n: 0, pct: 1 })),
@@ -27,6 +28,7 @@
       switch (id) {
         case 'mine': return WZ.Landmines.count;
         case 'gun': return WZ.Turrets.stock('gun');
+        case 'soldier': return WZ.Soldiers ? WZ.Soldiers.stock() : 0;
         case 'heavy': return WZ.Turrets.stock('heavy');
         case 'bomb': return WZ.Turrets.stock('bomb');
         case 'heli': return WZ.Heli.stock();
@@ -39,6 +41,7 @@
       switch (id) {
         case 'mine': { const c = WZ.Landmines.cd; return c <= 0 ? 1 : Math.max(0, 1 - c / Math.max(0.45, CFG.mine.cooldown)); }
         case 'gun': case 'heavy': case 'bomb': return WZ.Turrets.cdPct(id);
+        case 'soldier': return WZ.Soldiers ? WZ.Soldiers.cdPct() : 1;
         case 'heli': return WZ.Heli.cdPct();
         case 'tank': return WZ.Tanks.cdPct();
         case 'jet': return WZ.Jets.cdPct();
@@ -67,6 +70,7 @@
       switch (id) {
         case 'mine': return WZ.Landmines.plant();
         case 'gun': return WZ.Turrets.plant('gun');
+        case 'soldier': return WZ.Soldiers ? WZ.Soldiers.deploy() : false;
         case 'heavy': return WZ.Turrets.plant('heavy');
         case 'bomb': return WZ.Turrets.plant('bomb');
         case 'heli': return WZ.Heli.call();

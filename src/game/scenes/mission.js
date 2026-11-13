@@ -33,7 +33,8 @@
       WZ.Volcano.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 6161));     // volcanic map only (no-op elsewhere)
       WZ.Harbor.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 7373));                                 // harbor map only: broken piers, crane-blocked lanes, Harbor Mech weapons (no-op elsewhere)
       WZ.Ice.init(M.ctx);                                                                                                       // frozen map only (no-op elsewhere)
-      WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Jets.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
+      WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Soldiers.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Jets.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
+      if (WZ.Audio.setMusic) WZ.Audio.setMusic('mission', M.theme);
       M.ctx.addTime = (s) => { M.timeLeft += s; };
       WZ.Pickups.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 4242));
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
@@ -62,7 +63,8 @@
       WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), weapon: () => WZ.Input.press('weapon'), wswap: () => WZ.Input.press('wnext'), wsel: (id) => { WZ.Input.pressed.wsel = id; }, pause: () => WZ.Main.togglePause() });
       WZ.Input.reset();
       const mapTips = { jurassic: ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], volcanic: ['brief.tipV1', 'brief.tipV2', 'brief.tipV3', 'brief.tipV4'], frozen: ['brief.tipF1', 'brief.tipF2', 'brief.tipF3', 'brief.tipF4'], harbor: ['brief.tipH1', 'brief.tipH2', 'brief.tipH3', 'brief.tipH4'] }, mt = mapTips[M.theme];
-      M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: mt ? t('brief.map', { m: t('maps.' + M.theme) }) : '', tip: t(mt && data.index % 3 !== 0 ? mt[(data.index - 1) % mt.length] : TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
+      const seasonIdx = Math.max(1, CFG.maps.order.indexOf(M.theme) + 1);
+      M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: t('maps.season', { n: seasonIdx }) + ' · ' + t('maps.' + M.theme), tip: t(mt && data.index % 3 !== 0 ? mt[(data.index - 1) % mt.length] : TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
       void Main;
     },
 
@@ -79,7 +81,7 @@
       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
-      WZ.Hazards.dispose(); WZ.Volcano.dispose(); WZ.Ice.dispose(); WZ.Harbor.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
+      WZ.Hazards.dispose(); WZ.Volcano.dispose(); WZ.Ice.dispose(); WZ.Harbor.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Soldiers.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
       M.scene = null; WZ.Main.renderer.renderLists.dispose();
     },
 
@@ -161,6 +163,7 @@
         if (I.consume('weapon')) Wp.use();                       // the ONE use button: deploys the selected item
         if (I.consume('mine')) Wp.use('mine');                   // direct desktop shortcuts
         if (I.consume('turret')) Wp.use('gun');
+        if (I.consume('soldier')) Wp.use('soldier');
         if (I.consume('heavy')) Wp.use('heavy');
         if (I.consume('bomb')) Wp.use('bomb');
         if (I.consume('heli')) Wp.use('heli');
@@ -200,7 +203,7 @@
       WZ.Ice.update(dt, M.ctx, M.phase === 'play');
       WZ.Harbor.update(dt, M.ctx, M.phase === 'play');
       WZ.Fire.update(dt);
-      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); WZ.Tanks.update(dt); }
+      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Soldiers.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); WZ.Tanks.update(dt); }
       if (M.phase === 'play' || M.phase === 'ending') WZ.Jets.update(dt);
       if (M.phase === 'play') WZ.Pickups.update(dt);
       M.effects(dt);
@@ -213,7 +216,7 @@
       }
     },
 
-    drain(I) { for (const k of ['boost', 'mine', 'turret', 'heavy', 'bomb', 'heli', 'tank', 'jet', 'weapon', 'wnext', 'wprev', 'wsel']) I.consume(k); },
+    drain(I) { for (const k of ['boost', 'mine', 'turret', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet', 'weapon', 'wnext', 'wprev', 'wsel']) I.consume(k); },
 
     afterJeep(dt) {
       const J = M.jeep, E = WZ.Enemies, P = WZ.Particles;
@@ -426,9 +429,9 @@
       WZ.Particles.update(dt, cam);
       WZ.Fx.update(dt, cam, w, h);
 
-      if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); WZ.Giants.bars(cam, w, h); }
+      if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); WZ.Giants.bars(cam, w, h); WZ.Soldiers.bars(cam, w, h); }
       if (WZ.UI.dbgOn) M.debugText();
-      WZ.Hazards.render(dt, M.t); WZ.Volcano.render(dt, M.t); WZ.Ice.render(dt); WZ.Harbor.render(dt, M.t); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
+      WZ.Hazards.render(dt, M.t); WZ.Volcano.render(dt, M.t); WZ.Ice.render(dt); WZ.Harbor.render(dt, M.t); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t); WZ.Soldiers.render(alpha, dt, M.t);
       Main.renderer.render(M.scene, cam);
     },
 

@@ -15,6 +15,49 @@
 
   function makeParts() {
     const base = B(), head = B(), bar = B(), lamp = B();
+    const gBase = B(), gHead = B(), gBar = B();
+
+    // ---- Redesigned GUN SENTRY TURRET (single-barrel rapid-fire tactical sentry)
+    gBase.add(G.cyl(8), { sx: 1.55, sy: 0.22, sz: 1.55, y: 0.11, color: STEEL });
+    gBase.add(G.cyl(8), { sx: 1.72, sy: 0.08, sz: 1.72, y: 0.04, color: YEL });
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const cx = Math.cos(a), cz = Math.sin(a);
+      gBase.beam(cx * 0.38, 0.95, cz * 0.38, cx * 1.48, 0.18, cz * 1.48, 0.18, 0.18, 0x353B42);
+      gBase.add(rb(0.42, 0.16, 0.42, 0.04), { x: cx * 1.52, z: cz * 1.52, y: 0.08, ry: -a, color: DARK });
+      gBase.add(rb(0.36, 0.06, 0.22, 0.02), { x: cx * 1.45, z: cz * 1.45, y: 0.19, ry: -a, color: YEL });
+    }
+    gBase.add(G.cyl(12), { sx: 0.46, sy: 1.05, sz: 0.46, y: 0.68, color: 0x2F353C });
+    gBase.add(G.cyl(12), { sx: 0.58, sy: 0.14, sz: 0.58, y: 1.15, color: YEL });
+    // side ammo drum + brass feed chute
+    gBase.add(rb(0.66, 0.48, 0.56, 0.07), { x: 0.96, y: 0.48, z: 0.15, ry: 0.2, color: 0x3E4E34 });
+    gBase.add(rb(0.68, 0.1, 0.58, 0.03), { x: 0.96, y: 0.72, z: 0.15, ry: 0.2, color: YEL });
+
+    // angular sentry turret receiver head + sloped front shield + optical targeting pod
+    gHead.add(rb(0.96, 0.62, 1.24, 0.16), { color: 0x3E4650 });
+    gHead.add(rb(0.76, 0.16, 1.02, 0.05), { y: 0.36, z: -0.04, color: PLATE });
+    // sloped ballistic front gun shield with yellow chevron stripe
+    gHead.add(rb(1.16, 0.68, 0.16, 0.05), { y: 0.06, z: 0.56, rx: -0.22, color: STEEL });
+    gHead.add(rb(1.12, 0.14, 0.17, 0.03), { y: 0.3, z: 0.54, rx: -0.22, color: YEL });
+    for (const s of [1, -1]) {
+      gHead.add(rb(0.14, 0.58, 0.98, 0.05), { x: 0.52 * s, y: 0.02, z: -0.02, color: PLATE });
+    }
+    // side optical target tracker + cyan lens
+    gHead.add(rb(0.32, 0.28, 0.52, 0.06), { x: -0.62, y: 0.14, z: 0.18, color: DARK });
+    gHead.add(G.cyl(10), { x: -0.62, y: 0.14, z: 0.46, rx: Math.PI / 2, sx: 0.11, sy: 0.06, sz: 0.11, color: 0x38F2FF });
+    // rear ammo/battery pack + cooling fins
+    gHead.add(rb(0.68, 0.44, 0.42, 0.08), { y: 0.0, z: -0.74, color: DARK });
+    gHead.add(rb(0.46, 0.12, 0.36, 0.03), { x: 0.54, y: -0.04, z: 0.1, color: 0xE5A822 }); // brass ammo belt feed
+
+    // SINGLE centered rapid-fire barrel with perforated cooling shroud & muzzle brake
+    gBar.add(rb(0.46, 0.38, 0.54, 0.07), { y: 0.04, z: 0.52, color: DARK });               // central gun mantlet
+    gBar.add(G.cyl(12), { y: 0.04, z: 1.05, rx: Math.PI / 2, sx: 0.19, sy: 0.78, sz: 0.19, color: STEEL }); // heavy barrel shroud
+    gBar.add(G.cyl(12), { y: 0.04, z: 1.25, rx: Math.PI / 2, sx: 0.21, sy: 0.12, sz: 0.21, color: YEL });   // gold barrel ring
+    gBar.add(G.cyl(10), { y: 0.04, z: 1.72, rx: Math.PI / 2, sx: 0.11, sy: 1.15, sz: 0.11, color: 0x0E0E0E }); // single precision barrel
+    gBar.add(rb(0.28, 0.24, 0.32, 0.05), { y: 0.04, z: 2.32, color: STEEL });              // single muzzle brake
+    gBar.add(G.cyl(8), { y: -0.13, z: 1.12, rx: Math.PI / 2, sx: 0.07, sy: 0.65, sz: 0.07, color: 0x59636E }); // under-barrel gas tube
+
+    // ---- HEAVY & BOMB turret parts
     base.add(G.cyl(6), { sx: 1.7, sy: 0.2, sz: 1.7, y: 0.1, color: STEEL });
     base.add(G.cyl(6), { sx: 1.86, sy: 0.08, sz: 1.86, y: 0.04, color: YEL });
     for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.52; base.add(rb(0.34, 0.12, 0.2, 0.03), { x: Math.cos(a) * 1.5, z: Math.sin(a) * 1.5, y: 0.24, ry: -a, color: i % 2 ? DARK : YEL }); }
@@ -31,21 +74,27 @@
     bar.add(rb(0.62, 0.34, 0.5, 0.06), { z: 0.55, color: DARK });
     for (const s of [1, -1]) { bar.add(rb(0.15, 0.15, 1.5, 0.05), { x: 0.2 * s, y: 0.06, z: 1.25, color: 0x0E0E0E }); bar.add(rb(0.22, 0.22, 0.24, 0.05), { x: 0.2 * s, y: 0.06, z: 2.0, color: STEEL }); }
     lamp.add(G.sph(10, 8), { sx: 0.17, sy: 0.17, sz: 0.17, color: 0xFFFFFF });
-    return { base: base.build(), head: head.build(), bar: bar.build(), lamp: lamp.build() };
+    return {
+      base: base.build(), head: head.build(), bar: bar.build(),
+      gBase: gBase.build(), gHead: gHead.build(), gBar: gBar.build(),
+      lamp: lamp.build(),
+    };
   }
 
   /** a complete turret (also used for offline previews): returns { root, headG, barG, lamp } */
   function model(kind) {
     if (!parts) { parts = makeParts(); VM = new T.MeshLambertMaterial({ vertexColors: true }); HVM = new T.MeshLambertMaterial({ vertexColors: true, color: 0xFF9C84 }); BVM = new T.MeshLambertMaterial({ vertexColors: true, color: 0xB79CFF }); }
-    const heavy = kind === 'heavy', bomb = kind === 'bomb', VM_ = heavy ? HVM : bomb ? BVM : VM;
+    const heavy = kind === 'heavy', bomb = kind === 'bomb', isGun = !heavy && !bomb, VM_ = heavy ? HVM : bomb ? BVM : VM;
     const root = new T.Group(), headG = new T.Group(), barG = new T.Group();
     headG.position.y = 1.45; root.add(headG); headG.add(barG);
-    const meshes = [new T.Mesh(parts.base, VM_), new T.Mesh(parts.head, VM_), new T.Mesh(parts.bar, VM_)];
+    const meshes = isGun
+      ? [new T.Mesh(parts.gBase, VM_), new T.Mesh(parts.gHead, VM_), new T.Mesh(parts.gBar, VM_)]
+      : [new T.Mesh(parts.base, VM_), new T.Mesh(parts.head, VM_), new T.Mesh(parts.bar, VM_)];
     if (heavy) barG.scale.set(1.6, 1.6, 1.0);
     if (bomb) { barG.scale.set(1.5, 1.5, 0.8); barG.rotation.x = -0.95; barG.position.y = 0.25; }   // fat mortar tube pitched up
     root.add(meshes[0]); headG.add(meshes[1]); barG.add(meshes[2]);
     for (const m of meshes) m.castShadow = true;
-    const lamp = new T.Mesh(parts.lamp, new T.MeshBasicMaterial({ vertexColors: true, color: 0x4cff6a })); lamp.position.set(0, 0.5, 0.6); headG.add(lamp);
+    const lamp = new T.Mesh(parts.lamp, new T.MeshBasicMaterial({ vertexColors: true, color: 0x4cff6a })); lamp.position.set(0, 0.52, isGun ? 0.35 : 0.6); headG.add(lamp);
     return { root, headG, barG, lamp, scale: heavy ? CFG.heavy.scale : bomb ? CFG.bomb.scale : 1 };
   }
   const easeBack = (k) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
@@ -179,7 +228,9 @@
         }
         if (tg && Math.abs(err) < C.aim && t.cdF <= 0) {
           t.cdF = 1 / (C.rate * rm); t.side = -t.side; t.kick = 1;
-          const sn = Math.sin(t.yaw), cs = Math.cos(t.yaw), mx = t.x + sn * 2.1 * t.sc + cs * 0.2 * t.side, mz = t.z + cs * 2.1 * t.sc - sn * 0.2 * t.side, my = t.gy + 1.52 * t.sc;
+          const sn = Math.sin(t.yaw), cs = Math.cos(t.yaw);
+          const lat = t.kind === 'gun' ? 0 : 0.2 * t.side; // gun turret fires straight from its single centered barrel
+          const mx = t.x + sn * 2.3 * t.sc + cs * lat, mz = t.z + cs * 2.3 * t.sc - sn * lat, my = t.gy + 1.52 * t.sc;
           const gy = c.map.height(tg.x, tg.z) + 1.8, dx = tg.x - t.x, dz = tg.z - t.z, dl = Math.hypot(dx, dz) || 1;
           WZ.Gun._tracer(mx, my, mz, tg.x + (Math.random() - 0.5) * 0.6, gy, tg.z + (Math.random() - 0.5) * 0.6);
           c.particles.muzzle(mx, my, mz);

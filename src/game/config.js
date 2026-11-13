@@ -31,19 +31,23 @@
     // Landmines the player buys and plants (inventory persists between missions; used mines are gone for good)
     shop: {
       mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3 },
-      turrets: { packs: [{ n: 1, price: 90 }, { n: 3, price: 240 }, { n: 6, price: 450 }], cap: 15, starter: 2 },
-      heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 8, starter: 0 },
+      turrets: { packs: [{ n: 1, price: 90 }, { n: 3, price: 240 }, { n: 6, price: 450 }], cap: 20, starter: 2 },
+      soldiers: { packs: [{ n: 1, price: 110 }, { n: 3, price: 300 }, { n: 6, price: 560 }], cap: 25, starter: 2 },
+      heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 12, starter: 0 },
       bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1 },
-      heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 8, starter: 1 },
-      tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 8, starter: 1 },
-      jet: { packs: [{ n: 1, price: 520 }, { n: 2, price: 960 }, { n: 4, price: 1800 }], cap: 8, starter: 1 },
+      heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 10, starter: 1 },
+      tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 10, starter: 1 },
+      jet: { packs: [{ n: 1, price: 520 }, { n: 2, price: 960 }, { n: 4, price: 1800 }], cap: 10, starter: 1 },
     },
     mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
     // DEFENSE turrets. Bought with coins in the Shop (inventory in Save.inv); every deployment consumes one.
     // NO placement limit: place as many as you own, anywhere. `cooldown` is only a tiny anti double-tap delay.
-    // GUN turret: auto-targeting twin gun, ~10 dps (the jeep gun does ~16, ~30 when stopped).
-    turret: { cooldown: 0.4, life: 32, range: 30, rate: 6, damage: 1.7, knock: 1.2, turnSpeed: 7, aim: 0.14, behind: 3.2, build: 0.7 },
+    // GUN turret: rapid-fire single-barrel sentry gun.
+    turret: { cooldown: 0.35, life: 32, range: 32, rate: 8.5, damage: 1.85, knock: 1.35, turnSpeed: 9.5, aim: 0.16, behind: 3.2, build: 0.65 },
+    // COMBAT SOLDIER (bought in the Shop, one consumed per deployment): drops at your location, patrols and shoots enemies/giants with his rifle.
+    // Has an HP & lifetime gauge; enemies shoot/melee him and giants can smash him. Does not stay forever on the map. No placement limit.
+    soldier: { cooldown: 0.4, life: 42, hp: 55, speed: 7.5, range: 30, patrol: 24, stopDist: 10.5, rate: 5.8, damage: 2.2, knock: 1.4, turnSpeed: 10, aim: 0.22, behind: 3.0, radius: 0.85, scale: 0.92 },
     // HEAVY cannon: slow, big splash damage, longer reach.
     heavy: { cooldown: 0.4, life: 28, range: 36, rate: 1.1, damage: 7, splash: 4.6, knock: 9, turnSpeed: 4, aim: 0.1, behind: 3.9, build: 0.9, scale: 1.4 },
     // BOMB turret (mortar): lobs a bomb in an arc at the biggest group of enemies; the blast KOs everything inside `blast`.

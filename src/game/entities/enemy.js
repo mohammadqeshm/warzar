@@ -101,15 +101,27 @@
         const jd = Math.hypot(e.x - jeep.x, e.z - jeep.z);
         if (jd > CFG.spawn.cullDist) { E._kill(e); continue; }
 
-        // pick the closer target (jeep or Nana)
+        // pick the closer target (jeep, Nana, or an allied Combat Soldier)
         e.tgtT -= dt;
-        if (e.tgtT <= 0) {
+        if (e.tgtT <= 0 || (e.target === 2 && (!e.tSol || !e.tSol.active))) {
           e.tgtT = 0.25;
-          e.target = nanaTarget && Math.hypot(e.x - nana.x, e.z - nana.z) < jd ? 1 : 0;
+          let bestT = 0, bestD = jd;
+          if (nanaTarget) {
+            const nd = Math.hypot(e.x - nana.x, e.z - nana.z);
+            if (nd < bestD) { bestT = 1; bestD = nd; }
+          }
+          const sol = WZ.Soldiers ? WZ.Soldiers.nearest(e.x, e.z, 34) : null;
+          if (sol) {
+            const sd = Math.hypot(e.x - sol.x, e.z - sol.z);
+            if (sd < bestD) { bestT = 2; bestD = sd; e.tSol = sol; }
+          }
+          e.target = bestT;
         }
-        const tx = e.target === 1 ? nana.x : jeep.x, tz = e.target === 1 ? nana.z : jeep.z;
+        const solT = e.target === 2 && e.tSol && e.tSol.active ? e.tSol : null;
+        const tx = e.target === 1 ? nana.x : solT ? solT.x : jeep.x;
+        const tz = e.target === 1 ? nana.z : solT ? solT.z : jeep.z;
         let dx = tx - e.x, dz = tz - e.z; const d = Math.hypot(dx, dz) || 1;
-        const range = e.target === 1 ? def.nanaRange : def.jeepRange;
+        const range = (e.target === 1 || solT) ? def.nanaRange : def.jeepRange;
         e.h += U.clamp(U.angDiff(e.h, Math.atan2(dx, dz)), -11 * dt, 11 * dt);
         e.moving = false;
 
@@ -118,7 +130,7 @@
 
         if (e.state === CHASE) {
           if (d <= range) { e.state = ATTACK; e.windup = def.windup; e.cd = Math.max(e.cd, 0.15); }
-          else if (e.holder && def.shootRange > 0 && e.target === 1 && d < def.shootStop) { e.armT = Math.max(0, e.armT - dt * 4); } // stands off and shoots
+          else if (e.holder && def.shootRange > 0 && (e.target === 1 || solT) && d < def.shootStop) { e.armT = Math.max(0, e.armT - dt * 4); } // stands off and shoots
           else {
             let mx = dx / d, mz = dz / d;
             if (e.hitWall > 0) {
@@ -140,22 +152,24 @@
               if (e.windup <= 0) {
                 e.cd = def.cooldown; e.windup = def.windup; e.armT = 0;
                 if (e.target === 1) nana.hurt(def.damage * E.mods.dmg, e);
+                else if (solT && WZ.Soldiers) WZ.Soldiers.hurt(solT, def.damage * E.mods.dmg, (solT.x - e.x) * 3, (solT.z - e.z) * 3);
                 else jeep.hurt(def.damage * E.mods.dmg * (jeep.P ? jeep.P.enemyDamageMul : CFG.jeep.enemyDamageMul));
                 WZ.Audio.sfx('hit', 0.6);
               }
             } else e.armT = Math.max(0, e.armT - dt * 5);
           }
         }
-        // ranged attack: shoot at Nana when she is within range (never while meleeing)
-        if (def.shootRange > 0 && nanaTarget && e.state === CHASE && WZ.Bullets) {
+        // ranged attack: shoot at Nana or an allied Combat Soldier when within range (never while meleeing)
+        const shootTgt = solT ? solT : (nanaTarget ? nana : null);
+        if (def.shootRange > 0 && shootTgt && e.state === CHASE && WZ.Bullets) {
           e.shootCd -= dt;
           if (e.armT > 0) e.armT = Math.max(0, e.armT - dt * 3.5);
-          const nd = Math.hypot(e.x - nana.x, e.z - nana.z);
+          const nd = Math.hypot(e.x - shootTgt.x, e.z - shootTgt.z);
           if (e.shootCd <= 0 && nd < def.shootRange) {
             e.shootCd = def.shootCd * (0.8 + Math.random() * 0.5) / (1 + (E.mods.rush - 1) * 0.6);
             const bs = def.bulletSpeed, lead = nd / bs * 0.6 / Math.max(dt, 1e-3);
-            e.h = Math.atan2(nana.x - e.x, nana.z - e.z); e.armT = 1;
-            WZ.Bullets.fire(e.x + Math.sin(e.h) * 0.9, 1.9 * e.scale + 0.1, e.z + Math.cos(e.h) * 0.9, nana.x + (nana.x - nana.px) * lead, nana.z + (nana.z - nana.pz) * lead, bs, def.shootDamage * E.mods.dmg, e.type === 'brute');
+            e.h = Math.atan2(shootTgt.x - e.x, shootTgt.z - e.z); e.armT = 1;
+            WZ.Bullets.fire(e.x + Math.sin(e.h) * 0.9, 1.9 * e.scale + 0.1, e.z + Math.cos(e.h) * 0.9, shootTgt.x + (shootTgt.x - shootTgt.px) * lead, shootTgt.z + (shootTgt.z - shootTgt.pz) * lead, bs, def.shootDamage * E.mods.dmg, e.type === 'brute');
             if (nd < 24) WZ.Audio.sfx('tshot', 0.5);
           }
         }

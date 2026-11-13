@@ -58,7 +58,7 @@
       for (const x of [-0.42, 0.42]) pb.add(rb(0.3, 0.2, 0.12, 0.05), { x, y: 0.66, z: 0.48, color: o.pouch }); // upper utility pouches
       pb.add(rb(0.3, 0.14, 0.05, 0.02), { x: o.type === 'nana' ? -0.3 : -0.3, y: 0.66, z: 0.465, color: 0x3A3D40 }); // ID panel
       for (const s of [1, -1]) {
-        pb.add(rb(0.5, 0.2, 0.56, 0.08), { x: 0.74 * s, y: 0.97, color: BLACK });     // shoulder pad
+        pb.add(rb(0.5, 0.2, 0.56, 0.08), { x: 0.74 * s, y: 0.97, color: o.pad || BLACK });     // shoulder pad
         pb.add(rb(0.1, 0.64, 0.06, 0.03), { x: 0.5 * s, y: 0.6, z: 0.46, color: BLACK }); // vest strap
       }
       pb.add(rb(0.9, 0.7, 0.3, 0.1), { y: 0.55, z: -0.58, color: o.pouch });          // back panel
@@ -167,7 +167,21 @@
       case 'hold': // menu pose: commander clutching his rifle
         tg.armLx = -1.2; tg.armRx = -1.45; tg.armLz = -0.8; tg.armRz = 0.55; tg.bob = Math.sin(t * 2) * 0.02;
         tg.headZ = Math.sin(t * 1.1) * 0.03; break;
+      case 'aim': { // combat soldier aiming his assault rifle forward
+        const kick = rig.shootKick || 0;
+        tg.armLx = -1.35 + kick * 0.22; tg.armRx = -1.48 + kick * 0.28; tg.armLz = -0.58; tg.armRz = 0.32;
+        tg.lean = 0.08 - kick * 0.08; tg.bob = Math.sin(t * 3.2) * 0.02;
+        break;
+      }
       default: break;
+    }
+    if (rig.type === 'soldier' && (rig.mode === 'run' || rig.mode === 'idle')) {
+      const kick = rig.shootKick || 0;
+      tg.armLx = -1.15 + kick * 0.2; tg.armRx = -1.32 + kick * 0.25; tg.armLz = -0.52; tg.armRz = 0.35;
+    }
+    if (rig.shootKick > 0) rig.shootKick = Math.max(0, rig.shootKick - dt * 9);
+    if (rig.rifle && rig.type === 'soldier') {
+      rig.rifle.position.z = 0.72 - (rig.shootKick || 0) * 0.16;
     }
     if (rig.swing >= 0 && nana) {
       const k = Math.min(1, rig.swing), e = 1 - (1 - k) * (1 - k);
@@ -292,5 +306,54 @@
     return finish(rig);
   }
 
-  WZ.Heroes = { commander, nana };
+  // ------------------------------------------------------------------ Allied Combat Soldier (Spec-Ops Blue & Gold)
+  function soldier() {
+    const rig = buildBody({ camo: 'camoSoldier', vest: 0x0F2642, pouch: 0xFFB400, pad: 0xFFB400, hair: 0x101824, type: 'soldier' });
+    const hb = rig._hb, cb = B(), db = B(), bb = B();
+    addFace(rig, 'faceSoldier', 0.54, 0.38, 0.15);
+    if (!domeGeo) domeGeo = G.mark(new T.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.56));
+    // tactical ballistic helmet in Spec-Ops Blue with bright Gold crest & side rails
+    const DX = 0.92, DY = 0.68, DZ = 0.94, DC = 1.02;
+    cb.add(domeGeo, { y: DC, sx: DX, sy: DY, sz: DZ });
+    hb.add(G.cyl(22), { y: 1.0, sx: 0.97, sy: 0.08, sz: 0.99, color: 0x0D223A });
+    hb.add(rb(0.32, 0.18, 1.48, 0.05), { y: 1.56, z: 0.0, color: 0xFFB400 });              // bright gold identification crest
+    for (const s of [1, -1]) {
+      hb.add(rb(0.14, 0.16, 0.7, 0.04), { x: 0.82 * s, y: 1.15, z: 0.05, color: 0xFFB400 }); // side accessory rails
+      hb.add(rb(0.1, 0.36, 0.14, 0.03), { x: 0.68 * s, y: 0.38, z: 0.42, color: 0x0D223A }); // chinstrap
+    }
+    hb.beam(-0.68, 0.36, 0.1, -0.28, 0.2, 0.62, 0.05, 0.05, 0xFFB400);                       // tactical radio mic
+    // star emblem on front of helmet and back of vest
+    db.add(G.plane1, { y: 1.32, z: 0.86, rx: -0.28, sx: 0.46, sy: 0.46, color: 0xFFB400 });
+    bb.add(G.plane1, { y: 0.56, z: -0.75, ry: Math.PI, sx: 0.52, sy: 0.52, color: 0xFFB400 });
+    // backpack radio antenna with glowing cyan tip
+    const tb = B();
+    tb.beam(-0.32, 0.85, -0.58, -0.36, 2.35, -0.68, 0.045, 0.045, 0x0E0E0E);
+    tb.add(G.sph(8, 6), { x: -0.36, y: 2.38, z: -0.68, sx: 0.11, sy: 0.11, sz: 0.11, color: 0x38F2FF });
+    mkMesh(tb, rig.mats.plain, rig.torso, false);
+
+    mountFace(rig);
+    mkMesh(hb, rig.mats.plain, rig.head, true);
+    mkMesh(cb, rig.mats.camo, rig.head, true);
+    const sm = new T.MeshLambertMaterial({ map: A.tex('star'), alphaTest: 0.45, vertexColors: true });
+    mkMesh(db, sm, rig.head, false);
+    mkMesh(bb, sm, rig.torso, false);
+
+    // heavy Spec-Ops pulse/assault rifle with cyan optic & gold barrel shroud
+    const rf = B();
+    rf.add(rb(0.24, 0.32, 0.95, 0.05), { z: 0.05, color: 0x162436 });                        // receiver
+    rf.add(rb(0.28, 0.28, 0.78, 0.06), { z: 0.84, color: 0xFFB400 });                        // high-vis gold handguard
+    rf.add(rb(0.11, 0.11, 0.78, 0.02), { z: 1.58, color: 0x0E0E0E });                        // barrel
+    rf.add(rb(0.17, 0.17, 0.24, 0.04), { z: 1.98, color: 0x2B3036 });                        // muzzle brake
+    rf.add(rb(0.18, 0.18, 0.48, 0.05), { y: 0.27, z: 0.18, color: 0x0E0E0E });               // holographic sight
+    rf.add(rb(0.14, 0.12, 0.12, 0.02), { y: 0.28, z: 0.4, color: 0x38F2FF });                // glowing cyan lens
+    rf.add(rb(0.16, 0.52, 0.26, 0.04), { y: -0.38, z: 0.22, rx: 0.24, color: 0x0E0E0E });    // curved magazine
+    rf.add(rb(0.22, 0.34, 0.6, 0.06), { y: -0.04, z: -0.92, color: 0x162436 });              // stock
+    const rifle = new T.Group(); rifle.position.set(0.08, 0.48, 0.72); rifle.rotation.set(-0.04, -0.08, 0); rifle.scale.setScalar(1.15);
+    mkMesh(rf, rig.mats.plain, rifle, true);
+    rig.torso.add(rifle); rig.rifle = rifle; rifle.visible = true;
+    rig.shootKick = 0;
+    return finish(rig);
+  }
+
+  WZ.Heroes = { commander, nana, soldier };
 })(window.WZ = window.WZ || {});

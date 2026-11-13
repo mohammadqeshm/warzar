@@ -63,6 +63,7 @@
     camoDark: () => camo(['#0F100E', '#1B1D1A', '#2E3226', '#4A4F36'], 9),
     camoCmdr: () => camoPix(['#0E0B08', '#231A10', '#3D2F1E', '#5C4A30'], 5, 20),   // Commander: black / brown / tan
     camoNana: () => camoPix(['#070706', '#13110D', '#231C12', '#3E3220'], 12, 20),  // Nana: darker, mostly black
+    camoSoldier: () => camoPix(['#0A1C36', '#143C70', '#1F68B5', '#3CA0F0'], 29, 20), // Allied Soldier: vivid Spec-Ops Blue / Cyan camo
 
     wood() {
       const c = cv(256, 256), g = c.getContext('2d'), r = R.mulberry32(11);
@@ -272,6 +273,35 @@
       g.globalAlpha = 0.18; g.fillStyle = '#B5682F'; // cheek shading
       for (const s of [-1, 1]) { g.beginPath(); g.ellipse(224 + s * 150, 300, 32, 20, 0, 0, 7); g.fill(); }
       g.globalAlpha = 1;
+      return tex(c, { clamp: true });
+    },
+    faceSoldier() { // Allied Spec-Ops Commando: glowing cyan tactical visor goggles + confident smirk
+      const c = cv(448, 400), g = c.getContext('2d');
+      g.lineJoin = 'round'; g.lineCap = 'round';
+      // visor frame
+      g.fillStyle = '#0D131A';
+      g.beginPath();
+      if (g.roundRect) g.roundRect(36, 118, 376, 148, 42); else g.rect(36, 118, 376, 148);
+      g.fill();
+      g.lineWidth = 12; g.strokeStyle = '#FFB400'; g.stroke();
+      // glowing cyan lens
+      const gr = g.createLinearGradient(0, 130, 0, 256);
+      gr.addColorStop(0, '#72F6FF'); gr.addColorStop(0.5, '#15B8E8'); gr.addColorStop(1, '#096898');
+      g.fillStyle = gr;
+      g.beginPath();
+      if (g.roundRect) g.roundRect(52, 134, 344, 116, 32); else g.rect(52, 134, 344, 116);
+      g.fill();
+      // HUD crosshair & reflection streaks on visor
+      g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 6;
+      g.beginPath(); g.moveTo(86, 154); g.lineTo(170, 154); g.moveTo(290, 154); g.lineTo(356, 154); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 4;
+      g.beginPath(); g.arc(140, 194, 24, 0, 7); g.arc(308, 194, 24, 0, 7); g.stroke();
+      // nose bridge notch
+      g.fillStyle = '#0D131A';
+      g.beginPath(); g.moveTo(196, 266); g.lineTo(224, 232); g.lineTo(252, 266); g.closePath(); g.fill();
+      // confident tactical smirk
+      g.strokeStyle = '#2A1510'; g.lineWidth = 13;
+      g.beginPath(); g.moveTo(156, 344); g.quadraticCurveTo(228, 362, 296, 330); g.stroke();
       return tex(c, { clamp: true });
     },
     faceNana() { // goofy: huge round eyes, raised brows, buck-toothed grin, tongue out, band-aid

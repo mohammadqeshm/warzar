@@ -203,13 +203,29 @@
   /** shared geometry/material parts for the planted-mine model (used by the Garage showcase and by WZ.Landmines) */
   function mineParts() {
     const body = B(), top = B(), lamp = B();
-    body.add(G.cyl(20), { sx: 1.25, sy: 0.34, sz: 1.25, y: 0.17, color: 0x4B5A3A });
-    body.add(G.cyl(20), { sx: 1.05, sy: 0.12, sz: 1.05, y: 0.4, color: 0x2F3A26 });
-    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; body.add(rb(0.22, 0.2, 0.34, 0.04), { x: Math.cos(a) * 1.18, z: Math.sin(a) * 1.18, y: 0.32, ry: -a + Math.PI / 2, color: 0x2B2E31 }); }
-    top.add(G.cyl(12), { sx: 0.55, sy: 0.22, sz: 0.55, y: 0.54, color: 0xB9BDC2 });
-    top.add(G.cyl(6), { sx: 0.18, sy: 0.4, sz: 0.18, y: 0.7, color: 0x23272A });
-    top.add(G.plane1, { y: 0.462, rx: -Math.PI / 2, sx: 1.4, sy: 1.4, color: 0xECE9E1 });
-    lamp.add(G.sph(10, 8), { y: 0.95, sx: 0.2, sy: 0.2, sz: 0.2, color: 0x35C8FF });
+    // heavy bottom steel rim + olive-drab stepped military casing
+    body.add(G.cyl(24), { sx: 1.14, sy: 0.08, sz: 1.14, y: 0.04, color: DARK });
+    body.add(G.cyl(24), { sx: 1.06, sy: 0.22, sz: 1.06, y: 0.17, color: 0x4B5A38 });
+    body.add(G.cyl(24), { sx: 0.92, sy: 0.11, sz: 0.92, y: 0.31, color: 0x364228 });
+    // 8 radial reinforcement ribs & hazard-striped locking lugs around the casing
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const cx = Math.cos(a), cz = Math.sin(a);
+      body.add(rb(0.16, 0.22, 0.28, 0.03), { x: cx * 1.0, z: cz * 1.0, y: 0.19, ry: -a, color: STEEL });
+      body.add(rb(0.14, 0.06, 0.22, 0.02), { x: cx * 0.96, z: cz * 0.96, y: 0.32, ry: -a, color: i % 2 ? YEL : DARK });
+    }
+    // dark gunmetal pressure plate + radial pressure ridges + fuse collar & bolts
+    top.add(G.cyl(20), { sx: 0.72, sy: 0.09, sz: 0.72, y: 0.39, color: 0x262A2F });
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      top.add(rb(0.08, 0.05, 0.56, 0.02), { x: Math.cos(a) * 0.36, z: Math.sin(a) * 0.36, y: 0.44, ry: -a, color: 0x3C424A });
+      top.add(G.cyl(6), { x: Math.cos(a + 0.52) * 0.58, z: Math.sin(a + 0.52) * 0.58, y: 0.44, sx: 0.055, sy: 0.04, sz: 0.055, color: CHROME });
+    }
+    top.add(G.cyl(16), { sx: 0.34, sy: 0.09, sz: 0.34, y: 0.46, color: CHROME });
+    top.add(G.cyl(16), { sx: 0.25, sy: 0.06, sz: 0.25, y: 0.51, color: DARK });
+    // central armed LED beacon dome
+    lamp.add(G.cyl(14), { sx: 0.19, sy: 0.05, sz: 0.19, y: 0.54, color: 0xFF3A22 });
+    lamp.add(G.sph(12, 8), { y: 0.56, sx: 0.16, sy: 0.11, sz: 0.16, color: 0xFF6A2A });
     return { body, top, lamp };
   }
   function mineModel() {

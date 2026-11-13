@@ -13,6 +13,7 @@
     enter(data) {
       const S = WZ.Save.data;
       Menu.t = 0; Menu.theme = Menu.themeOf(); Menu.want = Menu.theme; Menu.fading = false; Menu.mapOpen = false;
+      if (WZ.Audio.setMusic) WZ.Audio.setMusic('menu', Menu.theme);
       Menu.build(Menu.theme);
       const lvl = Math.max(1, S.level || S.best.mission || 1);
       S.level = lvl; WZ.Main.startIndex = lvl;
@@ -103,6 +104,7 @@
     /** a map card was chosen: remember it and switch the 3D scene behind the screen to that map */
     pick(id) {
       WZ.Save.data.settings.map = id; WZ.Save.save(); Menu.want = id;
+      if (WZ.Audio.setMusic) WZ.Audio.setMusic('menu', id);
       if (Menu.fading || id === Menu.theme) return;
       Menu.fading = true;
       WZ.UI.themeFade(() => {

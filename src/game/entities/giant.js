@@ -193,17 +193,20 @@
         g.cd -= dt; g.ramCd -= dt; if (g.agro > 0) g.agro -= dt; if (g.fireCd > 0) g.fireCd -= dt; if (g.rockCd > 0) g.rockCd -= dt; if (g.chCd > 0) g.chCd -= dt;
         const x0 = g.x, z0 = g.z;
         const dj = Math.hypot(g.x - J.x, g.z - J.z), dn = nanaOut ? Math.hypot(g.x - N.x, g.z - N.z) : 1e9;
-        // target: Nana has priority while she is outside, then the vehicle, otherwise stay/return home
+        const sol = WZ.Soldiers ? WZ.Soldiers.nearest(g.x, g.z, C.aggro) : null, ds = sol ? Math.hypot(g.x - sol.x, g.z - sol.z) : 1e9;
+        // target: Nana has priority while she is outside, then a nearby allied soldier or the vehicle, otherwise stay/return home
         let kind = 0;
         if (nanaOut && dn < C.nanaAggro) kind = 2;
+        else if (sol && ds < Math.min(dj, C.aggro)) { kind = 3; g.tSol = sol; g.agro = C.agroTime; }
         else if (J.alive && dj < C.leash && (dj < C.aggro || g.agro > 0)) { kind = 1; if (dj < C.aggro) g.agro = C.agroTime; }
         if (kind && g.mode === 0) {
           g.mode = 1; WZ.Audio.sfx('roar'); WZ.Fx.text('!', g.x, g.ry + C.height + 3, g.z, 'warn'); WZ.Fx.shake(0.12);
         } else if (!kind && g.mode === 1) g.mode = 2;
 
+        const tgtObj = kind === 2 ? N : (kind === 3 && g.tSol && g.tSol.active ? g.tSol : J);
         if (g.mech && !kind && WZ.Harbor) WZ.Harbor.mechReset(g);       // no target: drop every telegraph / crouch, then the idle code below takes over
         if (g.mech && kind && WZ.Harbor) {
-          WZ.Harbor.mech(g, C, dt, kind, J, N, nanaOut, dj, dn);          // HARBOR MECH: cannon / missiles / cover / stomp (systems/harbor.js)
+          WZ.Harbor.mech(g, C, dt, kind === 3 ? 1 : kind, tgtObj === g.tSol ? g.tSol : J, N, nanaOut, kind === 3 ? ds : dj, dn); // HARBOR MECH
         } else if (g.dino && g.fire) {
           Gi._fire(g, C, dt, kind, J, N, nanaOut);
         } else if (g.beast && g.ch) {
@@ -213,12 +216,12 @@
         } else if (g.swing > 0) {
           // winding up / smashing: stand still and face the victim
           g.swing += dt;
-          const tx = kind === 2 ? N.x : J.x, tz = kind === 2 ? N.z : J.z;
+          const tx = tgtObj.x, tz = tgtObj.z;
           if (kind) g.h += U.clamp(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z)), -3.2 * dt, 3.2 * dt);
           if (!g.hit && g.swing >= C.windup) { g.hit = true; Gi.impact(g, J, N, nanaOut); }
           if (g.swing >= C.windup + C.swing) { g.swing = 0; g.cd = C.cooldown; }
         } else if (kind) {
-          const tx = kind === 2 ? N.x : J.x, tz = kind === 2 ? N.z : J.z, d = kind === 2 ? dn : dj, reach = kind === 2 ? C.nanaReach : C.reach;
+          const tx = tgtObj.x, tz = tgtObj.z, d = kind === 2 ? dn : kind === 3 ? ds : dj, reach = kind === 2 || kind === 3 ? C.nanaReach : C.reach;
           if (d < reach && g.cd <= 0) {
             g.swing = 1e-4; g.hit = false;
             g.h = Math.atan2(tx - g.x, tz - g.z); WZ.Audio.sfx('swish');
@@ -312,6 +315,9 @@
           if (((g.fireSfx >> 2) & 1) === 0) WZ.Fx.text('-' + dmg, J.rx, J.ry + 5, J.rz, 'warn');
         }
         if (nanaOut && hit(N.x, N.z, 0.9)) { N.iframes = 0; N.hurt(F.nanaTick * tk); P.sparks(N.x, N.ry + 1.5, N.z, 5, 1, 0.5, 0.1); }
+        if (WZ.Soldiers && WZ.Soldiers.list.length) {
+          for (const s of WZ.Soldiers.list) if (s.active && hit(s.x, s.z, 0.9)) WZ.Soldiers.hurt(s, F.nanaTick * tk * 1.4, sn * 4, cs * 4);
+        }
       }
       if (g.fireT >= F.dur || !J.alive) { g.fire = 0; g.fireT = 0; g.fireCd = F.cooldown * (0.85 + Math.random() * 0.3) * (g.tutMul < 1 ? 1.6 : 1); }
     },
@@ -382,6 +388,9 @@
           WZ.Fx.text('-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt'); WZ.Fx.shake(0.55); WZ.Fx.hitstop(0.05); P.sparks(J.x, J.ry + 1.8, J.z, 10, 0.7, 0.95, 1); slam = true;
         }
         if (nanaOut && !N.isKO && Math.hypot(N.x - g.x, N.z - g.z) < g.radius + 1.2) { N.iframes = 0; N.hurt(C.nanaDeathDamage); WZ.Fx.text(WZ.I18n.t('hud.smashed'), N.rx, N.ry + 5, N.rz, 'warn'); slam = true; }
+        if (WZ.Soldiers && WZ.Soldiers.list.length) {
+          for (const s of WZ.Soldiers.list) if (s.active && Math.hypot(s.x - g.x, s.z - g.z) < g.radius + 1.3) { WZ.Soldiers.hurt(s, 999, sn * 14, cs * 14); slam = true; }
+        }
         if (slam) { Gi._slamWave(g, C, 1); g.ch = 3; g.chT = 0; g.chCd = CH.cooldown * (0.85 + Math.random() * 0.3) * (g.tutMul < 1 ? 1.6 : 1); }
         return;
       }
@@ -407,6 +416,7 @@
         N.iframes = 0; N.hurt(C.nanaDeathDamage);
         WZ.Fx.text(WZ.I18n.t('hud.smashed'), N.rx, N.ry + 5, N.rz, 'warn');
       }
+      if (WZ.Soldiers) WZ.Soldiers.splashHurt(cx, cz, C.nanaReach + 1.5, 999);
       if (J.alive && Math.hypot(g.x - J.x, g.z - J.z) < C.reach + 1.5) {
         const dmg = Math.round(C.jeepDamage * (1 + C.dmgPerMission * Gi.mission.index) * J.P.enemyDamageMul * 2);
         if (dmg >= J.hp) J.deathCause = 'giant';

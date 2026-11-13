@@ -51,7 +51,25 @@
               WZ.Fx.text('-' + Math.max(1, Math.round(d * WZ.CFG.nana.damageMul)), N.rx, N.ry + 4.4, N.rz, 'warn');
             }
             B.remove(i);
+            continue;
           }
+        }
+        if (WZ.Soldiers && WZ.Soldiers.list.length) {
+          let hitSol = false;
+          for (let k = 0; k < WZ.Soldiers.list.length; k++) {
+            const s = WZ.Soldiers.list[k];
+            if (!s.active || s.dying) continue;
+            const dx = B.x[i] - s.x, dz = B.z[i] - s.z;
+            if (dx * dx + dz * dz < HIT_R * HIT_R * B.size[i]) {
+              const d = B.dmg[i];
+              WZ.Soldiers.hurt(s, d, B.vx[i] * 0.12, B.vz[i] * 0.12);
+              WZ.Fx.text('-' + Math.max(1, Math.round(d)), s.rx, s.ry + 4.0, s.rz, 'warn');
+              B.remove(i);
+              hitSol = true;
+              break;
+            }
+          }
+          if (hitSol) continue;
         }
       }
       for (let i = 0; i < B.n; i++) {

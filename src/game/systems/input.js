@@ -3,7 +3,7 @@
 (function (WZ) {
   'use strict';
   const IN = {
-    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false, heavy: false, bomb: false, heli: false, tank: false, jet: false, weapon: false, wnext: false, wprev: false, wsel: false },
+    stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false, soldier: false, heavy: false, bomb: false, heli: false, tank: false, jet: false, weapon: false, wnext: false, wprev: false, wsel: false },
     boostHeld: false, bot: null, enabled: true, _touchId: -1, _ox: 0, _oy: 0, _tx: 0, _ty: 0, _R: 70, _baseEl: null, _knobEl: null,
 
     init(zone, baseEl, knobEl) {
@@ -26,12 +26,13 @@
           case 'KeyF': IN.pressed.weapon = true; break;                      // USE the selected weapon
           case 'KeyE': IN.pressed.wnext = true; break; case 'KeyQ': IN.pressed.wprev = true; break;
           case 'Digit1': case 'Numpad1': IN.pressed.wsel = 'mine'; break; case 'Digit2': case 'Numpad2': IN.pressed.wsel = 'gun'; break;
-          case 'Digit3': case 'Numpad3': IN.pressed.wsel = 'heavy'; break; case 'Digit4': case 'Numpad4': IN.pressed.wsel = 'bomb'; break;
-          case 'Digit5': case 'Numpad5': IN.pressed.wsel = 'heli'; break; case 'Digit6': case 'Numpad6': IN.pressed.wsel = 'tank'; break;
-          case 'Digit7': case 'Numpad7': IN.pressed.wsel = 'jet'; break;
+          case 'Digit3': case 'Numpad3': IN.pressed.wsel = 'soldier'; break; case 'Digit4': case 'Numpad4': IN.pressed.wsel = 'heavy'; break;
+          case 'Digit5': case 'Numpad5': IN.pressed.wsel = 'bomb'; break; case 'Digit6': case 'Numpad6': IN.pressed.wsel = 'heli'; break;
+          case 'Digit7': case 'Numpad7': IN.pressed.wsel = 'tank'; break; case 'Digit8': case 'Numpad8': IN.pressed.wsel = 'jet'; break;
           // direct shortcuts (desktop): deploy a specific item without changing the selection
           case 'KeyM': IN.pressed.mine = true; break;
           case 'KeyT': IN.pressed.turret = true; break;
+          case 'KeyC': IN.pressed.soldier = true; break;
           case 'KeyH': case 'KeyG': IN.pressed.heavy = true; break;
           case 'KeyB': IN.pressed.bomb = true; break;
           case 'KeyV': IN.pressed.heli = true; break;

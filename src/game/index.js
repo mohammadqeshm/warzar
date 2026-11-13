@@ -52,6 +52,7 @@ import './systems/frost.js';
 import './systems/harbor.js';
 import './systems/landmines.js';
 import './systems/turrets.js';
+import './systems/soldiers.js';
 import './systems/bullets.js';
 import './systems/heli.js';
 import './systems/tanks.js';

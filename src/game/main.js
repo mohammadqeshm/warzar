@@ -3,7 +3,7 @@
 (function (WZ) {
   'use strict';
   const T = THREE, CFG = WZ.CFG;
-  const TEX = ['camoGreen', 'camoDark', 'wood', 'crate', 'stone', 'plaster', 'roofRust', 'sandbag', 'soft', 'glow', 'blob', 'star', 'beam', 'eye', 'faceEnemy', 'chevron', 'smiley', 'nanaDecals', 'camoCmdr', 'camoNana', 'cmdrEmblem', 'faceCmdr', 'faceNana'];
+  const TEX = ['camoGreen', 'camoDark', 'wood', 'crate', 'stone', 'plaster', 'roofRust', 'sandbag', 'soft', 'glow', 'blob', 'star', 'beam', 'eye', 'faceEnemy', 'chevron', 'smiley', 'nanaDecals', 'camoCmdr', 'camoNana', 'camoSoldier', 'cmdrEmblem', 'faceCmdr', 'faceNana', 'faceSoldier'];
 
   WZ.Debug = WZ.Debug || {}; // QA hooks (e.g. WZ.Debug.cam) - empty in production
 
