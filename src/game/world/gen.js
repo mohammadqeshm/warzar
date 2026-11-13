@@ -207,6 +207,7 @@
     opts = opts || {};
     if (opts.theme === 'jurassic' && WZ.WorldJ) return WZ.WorldJ.generate(runSeed, missionIndex, opts);   // see world/gen_jurassic.js
     if (opts.theme === 'volcanic' && WZ.WorldV) return WZ.WorldV.generate(runSeed, missionIndex, opts);   // see world/gen_volcanic.js
+    if (opts.theme === 'frozen' && WZ.WorldF) return WZ.WorldF.generate(runSeed, missionIndex, opts);     // see world/gen_frozen.js
     const tutorial = opts.tutorial != null ? opts.tutorial : missionIndex <= CFG.mission.tutorialIndex;
     const base = R.hash(runSeed >>> 0, missionIndex);
     let map = null, attempt = 0;
@@ -218,8 +219,8 @@
     return map;
   }
 
-  /** menu backdrop: a village without objectives */
-  function backdrop(seed) { return generate(seed, 3, { tutorial: false }); }
+  /** menu backdrop: a map of the chosen theme (default: the village) without objectives */
+  function backdrop(seed, theme) { return generate(seed, 3, { tutorial: false, theme: theme || 'village' }); }
 
   WZ.World = { generate, backdrop };
 })(window.WZ = window.WZ || {});

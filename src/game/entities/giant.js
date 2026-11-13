@@ -79,7 +79,7 @@
       Gi.dispose(); Gi.ctx = ctx; Gi.list = []; Gi.mission = mission;
       const rng = WZ.RNG.create(WZ.RNG.hash((ctx.map.seed | 0) >>> 0, 7717)), col = ctx.col, hm = ctx.map.height;
       const tut = !!mission.tutorial, hpMul = tut ? C.tutorialHp : mission.hpMul, spd = tut ? C.tutorialSpeed : 1;
-      const jur = ctx.map.theme === 'jurassic', vol = ctx.map.theme === 'volcanic', Cg = vol ? CFG.titanStats : jur ? CFG.dinoStats : C;     // Jurassic map: fire-breathing dinosaurs; Volcanic map: Magma Titans
+      const jur = ctx.map.theme === 'jurassic', vol = ctx.map.theme === 'volcanic', ice = ctx.map.theme === 'frozen', Cg = ice ? CFG.beastStats : vol ? CFG.titanStats : jur ? CFG.dinoStats : C;     // Jurassic map: fire-breathing dinosaurs; Volcanic map: Magma Titans
       ctx.map.crates.forEach((cr, i) => {
         let sx = cr.x + Cg.home, sz = cr.z, ok = false;
         for (let k = 0; k < 24 && !ok; k++) {
@@ -87,12 +87,12 @@
           sx = cr.x + Math.cos(a) * r; sz = cr.z + Math.sin(a) * r;
           ok = col.free(sx, sz, Cg.radius + 0.5) && Math.hypot(sx - ctx.map.start.x, sz - ctx.map.start.z) > 20;
         }
-        const mat = new T.MeshLambertMaterial({ vertexColors: true }), rig = vol ? WZ.MagmaArt.rig(mat, i) : jur ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
+        const mat = new T.MeshLambertMaterial({ vertexColors: true }), rig = ice ? WZ.FrostArt.rig(mat, i) : vol ? WZ.MagmaArt.rig(mat, i) : jur ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
         ctx.scene.add(rig.root);
         const g = {
           giant: true, active: true, state: 0, dying: false, dead: false, id: i, crateIdx: i, x: sx, z: sz, px: sx, pz: sz, h: Math.atan2(cr.x - sx, cr.z - sz), ph: 0, hx: sx, hz: sz,
-          radius: Cg.radius, hp: Cg.hp * hpMul, maxHp: Cg.hp * hpMul, spd, C: Cg, dino: jur, fire: 0, fireT: 0, fireCd: jur ? (tut ? 6 : 2.5) + rng.range(0, 2) : 0, fireTick: 0, fireSfx: 0, tutMul: tut && jur ? Cg.fire.tutorialMul : tut && vol ? Cg.rock.tutorialMul : 1,
-          titan: vol, tk: 0, tkT: 0, rockCd: vol ? (tut ? 7 : 3.2) + rng.range(0, 2) : 0, trailT: 0, step: 0, emT: 0, flash: 0, walk: rng.range(0, 6), mv: 0, rx: sx, ry: hm(sx, sz), rz: sz,
+          radius: Cg.radius, hp: Cg.hp * hpMul, maxHp: Cg.hp * hpMul, spd, C: Cg, dino: jur, fire: 0, fireT: 0, fireCd: jur ? (tut ? 6 : 2.5) + rng.range(0, 2) : 0, fireTick: 0, fireSfx: 0, tutMul: tut && jur ? Cg.fire.tutorialMul : tut && vol ? Cg.rock.tutorialMul : tut && ice ? Cg.charge.tutorialMul : 1,
+          titan: vol, beast: ice, ch: 0, chT: 0, chKind: 0, chCd: ice ? (tut ? 7 : 3.5) + rng.range(0, 2) : 0, chHit: false, homeT: 0, tk: 0, tkT: 0, rockCd: vol ? (tut ? 7 : 3.2) + rng.range(0, 2) : 0, trailT: 0, step: 0, emT: 0, flash: 0, walk: rng.range(0, 6), mv: 0, rx: sx, ry: hm(sx, sz), rz: sz,
           mat, rig, swing: 0, hit: true, cd: 1, agro: 0, mode: 0, ramCd: 0, koT: 0, navT: 0, direct: true, path: null, pi: 0, wanderT: rng.range(1, 4), wx: sx, wz: sz,
           stuckT: 0, lx: sx, lz: sz, armK: -0.28, leanK: 0,
         };
@@ -100,6 +100,11 @@
         Gi.list.push(g);
       });
       Gi.alive = Gi.list.length;
+    },
+
+    /** build the guardian rig of a map theme (used by the map-select screen to render the guardian portraits) */
+    rigFor(theme, mat, i) {
+      return theme === 'frozen' ? WZ.FrostArt.rig(mat, i) : theme === 'volcanic' ? WZ.MagmaArt.rig(mat, i) : theme === 'jurassic' ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
     },
 
     /** the living giant that guards this crate (or null) */
@@ -137,11 +142,11 @@
 
     kill(g, cause) {
       const c = Gi.ctx, P = c.particles, E = c.enemies;
-      g.active = false; g.state = 2; g.dying = true; g.koT = 0; g.hp = 0; Gi.alive--;
+      g.active = false; g.state = 2; g.dying = true; g.koT = 0; g.hp = 0; Gi.alive--; if (g.beast && WZ.Ice) WZ.Ice.aimOff(g.id);
       const y = g.ry;
       WZ.Audio.sfx('boom', 0.8); WZ.Audio.sfx('roar'); WZ.Fx.shake(0.55); WZ.Fx.hitstop(0.07);
       P.poof(g.x, y + 3, g.z, 14, 3); P.stars(g.x, y + 9, g.z, 8); P.dust(g.x, y, g.z, 10);
-      WZ.Fx.text(WZ.I18n.t(g.titan ? 'hud.titandown' : g.dino ? 'hud.dinodown' : 'hud.giantdown'), g.x, y + 10, g.z, 'good');
+      WZ.Fx.text(WZ.I18n.t(g.beast ? 'hud.beastdown' : g.titan ? 'hud.titandown' : g.dino ? 'hud.dinodown' : 'hud.giantdown'), g.x, y + 10, g.z, 'good');
       if (g.titan && WZ.Fire && WZ.Fire.ctx) WZ.Fire.explode(g.x, y + 2.5, g.z, { scale: 1.3, debris: 0, groundFire: 0, shake: 0.4, scorch: 1.1, mute: true });      // the Titan crumbles in a burst of embers (visual only)
       E.kos++;
       WZ.Events.emit('enemy:ko', { enemy: g, cause, giant: true });
@@ -183,7 +188,7 @@
         if (g.flash > 0) g.flash = Math.max(0, g.flash - dt * 6);
         if (g.dying) { g.koT += dt; continue; }
         if (!g.active) continue;
-        g.cd -= dt; g.ramCd -= dt; if (g.agro > 0) g.agro -= dt; if (g.fireCd > 0) g.fireCd -= dt; if (g.rockCd > 0) g.rockCd -= dt;
+        g.cd -= dt; g.ramCd -= dt; if (g.agro > 0) g.agro -= dt; if (g.fireCd > 0) g.fireCd -= dt; if (g.rockCd > 0) g.rockCd -= dt; if (g.chCd > 0) g.chCd -= dt;
         const x0 = g.x, z0 = g.z;
         const dj = Math.hypot(g.x - J.x, g.z - J.z), dn = nanaOut ? Math.hypot(g.x - N.x, g.z - N.z) : 1e9;
         // target: Nana has priority while she is outside, then the vehicle, otherwise stay/return home
@@ -196,6 +201,8 @@
 
         if (g.dino && g.fire) {
           Gi._fire(g, C, dt, kind, J, N, nanaOut);
+        } else if (g.beast && g.ch) {
+          Gi._charge(g, C, dt, kind, J, N, nanaOut);
         } else if (g.titan && g.tk) {
           Gi._throw(g, C, dt, kind, J, N, nanaOut);
         } else if (g.swing > 0) {
@@ -214,14 +221,19 @@
             g.fire = 1; g.fireT = 0; WZ.Audio.sfx('dino', 1); WZ.Fx.text('!', g.x, g.ry + C.height + 3, g.z, 'warn'); WZ.Fx.shake(0.12);
           } else if (g.titan && g.rockCd <= 0 && J.alive && WZ.Volcano && WZ.Volcano.playing && d >= C.rock.minRange && d <= (kind === 2 ? C.rock.nanaRange : C.rock.range) && Math.abs(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z))) < 0.9) {
             g.tk = 1; g.tkT = 0; g.tkKind = kind; WZ.Audio.sfx('roar'); WZ.Fx.text('!', g.x, g.ry + C.height + 3, g.z, 'warn'); WZ.Fx.shake(0.12);       // BOULDER wind-up (the telegraph)
+          } else if (g.beast && g.chCd <= 0 && (J.alive || nanaOut) && d >= C.charge.minRange && d <= (kind === 2 ? C.charge.nanaRange : C.charge.range) && Math.abs(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z))) < 0.9) {
+            g.ch = 1; g.chT = 0; g.chKind = kind; WZ.Audio.sfx('roar'); WZ.Fx.text('!', g.x, g.ry + C.height + 3, g.z, 'warn'); WZ.Fx.shake(0.12);       // CHARGE wind-up (the telegraph: a cyan lane on the ground)
           } else if (d > reach * 0.8) Gi._goTo(g, tx, tz, dt, C.speed * g.spd * (kind === 2 ? 1.12 : 1));
           else g.h += U.clamp(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z)), -4 * dt, 4 * dt);
         } else {
           // idle: wander a little near home; return home (and heal) after losing the target
           const dh = Math.hypot(g.hx - g.x, g.hz - g.z);
-          if (g.mode === 2 && dh > 2.5) Gi._goTo(g, g.hx, g.hz, dt, C.speed * g.spd * 0.8);
-          else {
-            g.mode = 0; g.wanderT -= dt;
+          if (g.mode === 2 && dh > 2.5) {
+            g.homeT += dt;
+            Gi._goTo(g, g.hx, g.hz, dt, C.speed * g.spd * (dh > 30 ? 1.15 : 0.9));
+            Gi._homeWatch(g, C, dh, J, N, nanaOut);
+          } else {
+            g.mode = 0; g.homeT = 0; g.wanderT -= dt;
             if (g.wanderT <= 0) { g.wanderT = 2.5 + Math.random() * 3.5; const a = Math.random() * 6.283, r = Math.random() * 2.6; g.wx = g.hx + Math.cos(a) * r; g.wz = g.hz + Math.sin(a) * r; }
             if (Math.hypot(g.wx - g.x, g.wz - g.z) > 0.6) Gi._goTo(g, g.wx, g.wz, dt, C.speed * g.spd * 0.28);
           }
@@ -326,12 +338,65 @@
       if (g.tkT >= 0.4) { g.tk = 0; g.tkT = 0; }
     },
 
+    /** Guardians never abandon their crate: when a guardian has been walking home for much longer than the trip should take (snagged on scenery, a bad nav path),
+     *  it is put back at its post - but ONLY while neither the vehicle nor Nana can see it (far outside the screen), so the player never sees a teleport. */
+    _homeWatch(g, C, dh, J, N, nanaOut) {
+      const eta = dh / (C.speed * g.spd * 0.85) * 1.5 + 6;
+      if (g.homeT < eta) return;
+      const far = (x, z) => Math.hypot(g.x - x, g.z - z) > 72;
+      if (!far(J.x, J.z) || (nanaOut && !far(N.x, N.z))) { g.homeT = Math.max(0, g.homeT - 1.5); return; }      // someone could see it: keep trying
+      const c = Gi.ctx, f = c.map.nav.jeep.nearestFree(g.hx, g.hz, 6);
+      g.x = f ? f.x : g.hx; g.z = f ? f.z : g.hz; g.homeT = 0; g.path = null; g.navT = 0; g.direct = true; g.stuckT = 0;
+    },
+
+    /** ICE BEAST charge. ch 1 = wind-up (rears back, a cyan lane is painted toward the victim = the telegraph), ch 2 = DASH (fast, can barely turn),
+     *  ch 3 = recover (catches its breath). The dash ends in a slam that sends out an ICE WAVE (also when it hits the vehicle, Nana or a wall). */
+    _charge(g, C, dt, kind, J, N, nanaOut) {
+      const CH = C.charge, c = Gi.ctx, Ice = WZ.Ice, P = c.particles;
+      g.chT += dt;
+      const who = g.chKind === 2 && nanaOut ? 2 : 1, tx = who === 2 ? N.x : J.x, tz = who === 2 ? N.z : J.z;
+      if (g.ch === 1) {
+        if (kind || who === 2) g.h += U.clamp(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z)), -2.4 * dt, 2.4 * dt);
+        if (Ice) Ice.aim(g.id, g.x + Math.sin(g.h) * (g.radius + 0.5), g.z + Math.cos(g.h) * (g.radius + 0.5), g.h, CH.speed * CH.dur, Math.min(1, g.chT / 0.25), 5.4);
+        if (g.chT >= CH.windup) {
+          if (!J.alive && !nanaOut) { g.ch = 0; g.chCd = CH.cooldown; if (Ice) Ice.aimOff(g.id); return; }
+          g.ch = 2; g.chT = 0; g.chHit = false; if (Ice) Ice.aimOff(g.id); WZ.Audio.sfx('roar'); WZ.Fx.shake(0.18);
+        }
+        return;
+      }
+      if (g.ch === 2) {
+        g.h += U.clamp(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z)), -CH.turn * dt, CH.turn * dt);
+        const sp = CH.speed * g.spd * (g.tutMul < 1 ? 0.8 : 1), sn = Math.sin(g.h), cs = Math.cos(g.h);
+        g.x += sn * sp * dt; g.z += cs * sp * dt;
+        const wall = c.col.resolve(g, g.radius);
+        let slam = wall || g.chT >= CH.dur || (!J.alive && !nanaOut);
+        if (J.alive && Math.hypot(J.x - g.x, J.z - g.z) < g.radius + CH.hit + 1.7) {        // the dash runs the vehicle over
+          const dmg = Math.round(CH.hitDamage * g.tutMul * (1 + C.dmgPerMission * Gi.mission.index) * J.P.enemyDamageMul * 2);
+          if (dmg >= J.hp) J.deathCause = 'beast';
+          J.hurt(dmg); const dx = J.x - g.x, dz = J.z - g.z, l = Math.hypot(dx, dz) || 1; J.vx += dx / l * CH.hitKnock; J.vz += dz / l * CH.hitKnock; J.hop = 0.5;
+          WZ.Fx.text('-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt'); WZ.Fx.shake(0.55); WZ.Fx.hitstop(0.05); P.sparks(J.x, J.ry + 1.8, J.z, 10, 0.7, 0.95, 1); slam = true;
+        }
+        if (nanaOut && !N.isKO && Math.hypot(N.x - g.x, N.z - g.z) < g.radius + 1.2) { N.iframes = 0; N.hurt(C.nanaDeathDamage); WZ.Fx.text(WZ.I18n.t('hud.smashed'), N.rx, N.ry + 5, N.rz, 'warn'); slam = true; }
+        if (slam) { Gi._slamWave(g, C, 1); g.ch = 3; g.chT = 0; g.chCd = CH.cooldown * (0.85 + Math.random() * 0.3) * (g.tutMul < 1 ? 1.6 : 1); }
+        return;
+      }
+      if (g.chT >= CH.recover) { g.ch = 0; g.chT = 0; }
+    },
+
+    /** the Ice Beast's ground-slam: an expanding ice wave + (full size only) a slippery ice patch. size 1 = charge finish, <1 = melee smash */
+    _slamWave(g, C, size) {
+      const W = C.wave, Ice = WZ.Ice; if (!Ice || !Ice.on) return;
+      const sn = Math.sin(g.h), cs = Math.cos(g.h), cx = g.x + sn * (g.radius + 1.0), cz = g.z + cs * (g.radius + 1.0);
+      Ice.wave(cx, cz, { radius: W.radius * size, speed: W.speed, width: W.width, damage: W.damage, nanaDamage: W.nanaDamage, knock: W.knock, patchR: size < 1 ? 0 : W.patchR, patchLife: W.patchLife, mul: g.tutMul * (size < 1 ? W.small : 1) });
+    },
+
     /** the club lands */
     impact(g, J, N, nanaOut) {
       const C = g.C, c = Gi.ctx, P = c.particles, sn = Math.sin(g.h), cs = Math.cos(g.h);
       const cx = g.x + sn * 4.2, cz = g.z + cs * 4.2, y = c.map.height(cx, cz);
       P.dust(cx, y, cz, 10); P.poof(cx, y + 0.8, cz, 7, 2.2); P.sparks(cx, y + 0.6, cz, 8, 1, 0.8, 0.4);
       if (g.titan && WZ.Volcano) WZ.Volcano.slam(cx, cz, C.slam);          // the Titan's smash splits the ground into magma pools
+      if (g.beast) Gi._slamWave(g, C, 0.62);                               // the Ice Beast's smash throws a smaller ice wave
       WZ.Audio.sfx('club'); if (Math.hypot(g.x - J.x, g.z - J.z) < 55) WZ.Fx.shake(0.32);
       if (nanaOut && Math.hypot(g.x - N.x, g.z - N.z) < C.nanaReach + 0.9) {
         N.iframes = 0; N.hurt(C.nanaDeathDamage);
@@ -358,7 +423,8 @@
         const x = U.lerp(g.px, g.x, alpha), z = U.lerp(g.pz, g.z, alpha), h = g.ph + U.angDiff(g.ph, g.h) * alpha, gy = hm(x, z);
         g.rx = x; g.ry = gy; g.rz = z;
         R.root.position.set(x, gy, z); R.root.rotation.set(0, h, 0);
-        if (g.titan) WZ.MagmaArt.pose(g, C, t, dt);
+        if (g.beast) WZ.FrostArt.pose(g, C, t, dt);
+        else if (g.titan) WZ.MagmaArt.pose(g, C, t, dt);
         else if (g.dino) WZ.DinoArt.pose(g, C, t, dt);
         else {
         const am = Math.min(1, g.mv / C.speed), w = g.walk;
@@ -377,7 +443,7 @@
         R.torso.rotation.y = g.swing > 0 && g.swing < C.windup ? Math.sin(g.swing / C.windup * 1.6) * 0.25 : 0;
         }
         // flash: white on hit, red pulse during the wind-up (telegraph)
-        const telegraph = g.swing > 0 && g.swing < C.windup ? 0.3 + 0.3 * Math.sin(g.swing * 30) : (g.fire === 1 ? 0.2 + 0.4 * (g.fireT / C.fire.windup) + 0.15 * Math.sin(g.fireT * 28) : (g.tk === 1 ? 0.2 + 0.45 * Math.min(1, g.tkT / C.rock.windup) + 0.15 * Math.sin(g.tkT * 28) : 0));
+        const telegraph = g.swing > 0 && g.swing < C.windup ? 0.3 + 0.3 * Math.sin(g.swing * 30) : (g.fire === 1 ? 0.2 + 0.4 * (g.fireT / C.fire.windup) + 0.15 * Math.sin(g.fireT * 28) : (g.tk === 1 ? 0.2 + 0.45 * Math.min(1, g.tkT / C.rock.windup) + 0.15 * Math.sin(g.tkT * 28) : (g.ch === 1 ? 0.2 + 0.4 * Math.min(1, g.chT / C.charge.windup) + 0.15 * Math.sin(g.chT * 28) : 0)));
         const f = g.flash * 0.6;
         g.mat.emissive.setRGB(f + telegraph * 0.9, f + telegraph * 0.08, f + telegraph * 0.05);
         if (g.dying) {
@@ -397,7 +463,7 @@
         const g = Gi.list[i]; if (!g.active) continue;
         v3.set(g.rx, g.ry + g.C.height + 1.6, g.rz).project(cam);
         if (v3.z > 1 || Math.abs(v3.x) > 1.12 || v3.y > 1.1 || v3.y < -1.1) continue;
-        if (n < UI.giantBarMax) UI.setGiantBar(n++, (v3.x * 0.5 + 0.5) * w, (-v3.y * 0.5 + 0.5) * h, g.hp / g.maxHp, g.mode === 1 ? 1 : (g.fire ? 1 : 0), g.hp, g.titan ? WZ.I18n.t('hud.titan') : g.dino ? WZ.I18n.t('hud.dino') : null);
+        if (n < UI.giantBarMax) UI.setGiantBar(n++, (v3.x * 0.5 + 0.5) * w, (-v3.y * 0.5 + 0.5) * h, g.hp / g.maxHp, g.mode === 1 ? 1 : (g.fire ? 1 : 0), g.hp, g.beast ? WZ.I18n.t('hud.beast') : g.titan ? WZ.I18n.t('hud.titan') : g.dino ? WZ.I18n.t('hud.dino') : null);
       }
       UI.hideGiantBars(n);
     },

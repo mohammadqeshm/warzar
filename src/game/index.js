@@ -24,12 +24,14 @@ import './art/dino.js';
 import './art/jurassic.js';
 import './art/volcanic.js';
 import './art/magma.js';
+import './art/frozen.js';
 
 import './world/navgrid.js';
 import './world/collision.js';
 import './world/gen.js';
 import './world/gen_jurassic.js';
 import './world/gen_volcanic.js';
+import './world/gen_frozen.js';
 import './world/worldview.js';
 
 import './systems/particles.js';
@@ -43,6 +45,7 @@ import './systems/missions.js';
 import './systems/fire.js';
 import './systems/hazards.js';
 import './systems/volcano.js';
+import './systems/frost.js';
 import './systems/landmines.js';
 import './systems/turrets.js';
 import './systems/bullets.js';
@@ -60,6 +63,7 @@ import './entities/giant.js';
 import './entities/nana.js';
 
 import './ui.js';
+import './scenes/mapview.js';
 import './scenes/menu.js';
 import './scenes/shop.js';
 import './scenes/mission.js';

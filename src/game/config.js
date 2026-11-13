@@ -173,7 +173,7 @@
 
     // MAPS (selected in the main menu, stored in Save.data.settings.map). `village` = the original desert village.
     maps: {
-      order: ['village', 'jurassic', 'volcanic'],
+      order: ['village', 'jurassic', 'volcanic', 'frozen'],
       village: { name: 'maps.village' },
       jurassic: { name: 'maps.jurassic', waterLevel: -0.5, waterSlow: 0.72, waterTurn: 0.3, waterGrip: 0.55, current: 6.5, hillAmp: 7.2, riverWidth: 7.4, bridges: 4 },
       // VOLCANIC WASTELAND (harder than the Jurassic map): two LAVA RIVERS (wade / waterSlow / waterTurn / waterGrip / current are read by the vehicle exactly like the
@@ -181,7 +181,25 @@
       // erupting vents + rockfall (CFG.volcano) and the MAGMA TITAN guardians (CFG.titan). spawnMul / hpMul toughen the enemy waves a little (not in the tutorial).
       volcanic: { name: 'maps.volcanic', waterLevel: -0.5, waterSlow: 0.6, waterTurn: 0.22, waterGrip: 0.4, current: 2.6, hillAmp: 5.4, riverWidth: 9.6, riverWidth2: 6.8, bridges: 9,
         lavaPct: 0.13, lavaPctPerMission: 0.004, lavaPctMax: 0.22, lavaTick: 0.25, lavaNana: 11, spawnMul: 1.15, hpMul: 1.1 },
+      // FROZEN FRONTIER: snowy mountains, a frozen lake, pine forests and a drifting snowstorm. Glossy ICE (the lake + ice patches + the patches the Ice Beast leaves behind)
+      // takes the grip away from the vehicle: `iceGrip` = share of the normal side grip that is left (low = it slides), `iceTurn` = share of the steering authority left,
+      // `iceAccel` / `iceBrake` / `iceCoast` = share of acceleration / braking / rolling resistance left. Ice is never lethal and never blocks - it only costs control.
+      // The map is a little harder than the village (spawnMul / hpMul). Guardians: ICE BEAST (CFG.beast).
+      frozen: { name: 'maps.frozen', iceGrip: 0.07, iceTurn: 0.5, iceAccel: 0.45, iceBrake: 0.16, iceCoast: 0.2, hillAmp: 5.2, lakes: 2, patches: 15, patchR: [6.5, 12.5], spawnMul: 1.08, hpMul: 1.05 },
     },
+    // ICE BEAST guardians (frozen map): replace the club giants. Heavy, and it closes the gap with a fast CHARGE:
+    //  - CHARGE: it rears back and a cyan lane is painted on the ground toward the target (`windup`, the telegraph), then it dashes along the lane at `speed` for up to `dur` s
+    //    (it can only turn slowly, so a moving vehicle can sidestep). When the dash ends (or it hits the vehicle / Nana / a wall) it slams the ground and sends out an ICE WAVE.
+    //  - ICE WAVE: a ring of ice expands from the impact (`radius`, `speed`). The vehicle or Nana touched by the ring take damage + knock-back; the ground it crossed near the impact is left as a slippery ICE PATCH.
+    //  - Its melee smash (club rules from CFG.giant) also throws a smaller wave. After a charge it needs `recover` s to get its breath back.
+    beast: {
+      hp: 185, speed: 7.2, radius: 2.7, height: 9.4, home: 8, aggro: 44, nanaAggro: 50, leash: 95,
+      reach: 7.0, nanaReach: 6.2, windup: 0.8, swing: 0.3, cooldown: 2.3, jeepDamage: 20, jeepKnock: 18,
+      charge: { minRange: 13, range: 42, nanaRange: 36, windup: 0.85, speed: 31, dur: 1.2, turn: 1.0, recover: 0.9, cooldown: 4.6, hit: 1.5, hitDamage: 24, hitKnock: 22, tutorialMul: 0.5 },
+      wave: { radius: 17, speed: 27, width: 3.0, damage: 17, nanaDamage: 16, knock: 15, patchR: 6.5, patchLife: 10, small: 0.62, tutorialMul: 0.5 },
+    },
+    // Frozen-map ambience: snowstorm GUSTS (visual only: the fog closes in and the snow blows harder, never hides the objectives) and the glossy ice patches' sparkle
+    frost: { gustGap: [16, 28], gustDur: [5, 8], gustFog: 0.45, patchFade: 2.2, maxPatches: 14, hintCooldown: 5 },
     // VOLCANO hazards (volcanic map only, see systems/volcano.js). Everything is telegraphed:
     //  ERUPTION: siren + rumble + red sky (`warn`), then for `dur` seconds molten rocks fall SLOWLY (`fall` u/s from `fallFrom` above the ground, so ~5-6 s in the air).
     //    Every rock paints a red pulsing ring on the ground where it will land (blast radius `radius`). Stay out of the rings and nothing hits you.
@@ -232,7 +250,7 @@
       upgradeGrowth: 1.32, maxLevel: 8,
       // Coins for knock-outs pile up during the mission ("loot") and are ALWAYS paid out when the mission ends (win or fail), so a lost run
       // never leaves the player unable to afford the upgrades needed to beat the level.
-      kill: { grunt: 1, brute: 3, giant: 30, giantPerMission: 2 },
+      kill: { grunt: 1, brute: 3, giant: 30, giantPerMission: 2, ramMul: 10 },   // ramMul: a small enemy flattened by the VEHICLE (cause 'ram') pays this many times the normal KO loot (it is risky, close-range work)
     },
 
     ads: { firstDelay: 60, minGap: 90 },
@@ -259,6 +277,7 @@
   };
 
   CFG.dinoStats = Object.assign({}, CFG.giant, CFG.dino);   // the dinosaur guardian = giant rules + overrides from CFG.dino
+  CFG.beastStats = Object.assign({}, CFG.giant, CFG.beast);   // the Ice Beast guardian = giant rules + overrides from CFG.beast
   CFG.titanStats = Object.assign({}, CFG.giant, CFG.titan); // the Magma Titan guardian = giant rules + overrides from CFG.titan
 
   WZ.CFG = CFG;

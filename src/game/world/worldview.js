@@ -11,6 +11,7 @@
   function paintGround(map) {
     if (map.theme === 'jurassic') return WZ.Jura.paintGround(map, SPLAT, SPAN, hexA);
     if (map.theme === 'volcanic') return WZ.Volca.paintGround(map, SPLAT, SPAN, hexA);
+    if (map.theme === 'frozen') return WZ.Froze.paintGround(map, SPLAT, SPAN, hexA);
     const c = document.createElement('canvas'); c.width = c.height = SPLAT;
     const g = c.getContext('2d'), rng = R.mulberry32((map.seed ^ 0xABCDEF) >>> 0), k = SPLAT / SPAN;
     const px = (x) => (x + SPAN / 2) * k, pz = (z) => (z + SPAN / 2) * k;
@@ -78,8 +79,8 @@
     const t = new T.CanvasTexture(c); t.anisotropy = 8; return t;
   }
 
-  function tuftGeo(jur, vol) {
-    const b = new G.Builder(), cols = vol ? WZ.Volca.grassColors : jur ? WZ.Jura.grassColors : [0xB59A5B, 0x8F8B45, 0xC9B06A, 0xA08A4A];
+  function tuftGeo(jur, vol, fro) {
+    const b = new G.Builder(), cols = fro ? WZ.Froze.grassColors : vol ? WZ.Volca.grassColors : jur ? WZ.Jura.grassColors : [0xB59A5B, 0x8F8B45, 0xC9B06A, 0xA08A4A];
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * 6.283;
       b.add(G.cone(3), { x: Math.cos(a) * 0.22, z: Math.sin(a) * 0.22, y: 0.55, rz: Math.cos(a) * 0.25, rx: Math.sin(a) * 0.25, sx: 0.09, sy: 1.1, sz: 0.09, color: cols[i % 4] });
@@ -110,12 +111,12 @@
     const group = new T.Group(); scene.add(group);
     const rng = R.create((map.seed ^ 0x77) | 0), half = map.half;
     const view = { group, map, smokeT: [], flames: [], extract: null };
-    const jur = map.theme === 'jurassic', vol = map.theme === 'volcanic', themed = jur || vol;
+    const jur = map.theme === 'jurassic', vol = map.theme === 'volcanic', fro = map.theme === 'frozen', themed = jur || vol || fro;
 
-    scene.fog = vol ? new T.Fog(0x7A3E2C, 95, 340) : jur ? new T.Fog(0xCBDDAE, 90, 330) : new T.Fog(0xB9D6EE, 100, 360);
-    scene.background = new T.Color(vol ? 0x6A3626 : jur ? 0xCFE0AC : 0xA9D3F2);
-    const hemi = vol ? new T.HemisphereLight(0xFFC9A0, 0x6A4636, 0.98) : jur ? new T.HemisphereLight(0xE4F4D0, 0x4E6B34, 0.72) : new T.HemisphereLight(0xCFE6FF, 0xA88C5E, 0.64); scene.add(hemi);
-    const sun = new T.DirectionalLight(vol ? 0xFFC890 : jur ? 0xFFD9A0 : 0xFFE3B8, vol ? 0.95 : jur ? 0.92 : 0.86);
+    scene.fog = fro ? new T.Fog(0xD3E1EE, 85, 320) : vol ? new T.Fog(0x7A3E2C, 95, 340) : jur ? new T.Fog(0xCBDDAE, 90, 330) : new T.Fog(0xB9D6EE, 100, 360);
+    scene.background = new T.Color(fro ? 0xD6E4F0 : vol ? 0x6A3626 : jur ? 0xCFE0AC : 0xA9D3F2);
+    const hemi = fro ? new T.HemisphereLight(0xE4F0FF, 0x8FA2BA, 0.7) : vol ? new T.HemisphereLight(0xFFC9A0, 0x6A4636, 0.98) : jur ? new T.HemisphereLight(0xE4F4D0, 0x4E6B34, 0.72) : new T.HemisphereLight(0xCFE6FF, 0xA88C5E, 0.64); scene.add(hemi);
+    const sun = new T.DirectionalLight(fro ? 0xFFF4E2 : vol ? 0xFFC890 : jur ? 0xFFD9A0 : 0xFFE3B8, fro ? 0.78 : vol ? 0.95 : jur ? 0.92 : 0.86);
     sun.castShadow = CFG.quality.shadow[q] > 0;
     if (sun.castShadow) {
       const ss = sun.shadow; ss.mapSize.set(CFG.quality.shadow[q], CFG.quality.shadow[q]);
@@ -133,13 +134,14 @@
     gg.computeVertexNormals();
     const ground = new T.Mesh(gg, new T.MeshLambertMaterial({ map: splat }));
     ground.receiveShadow = true; group.add(ground);
-    const outer = new T.Mesh(new T.PlaneGeometry(3400, 3400), new T.MeshLambertMaterial({ color: vol ? 0x2A1E1B : jur ? 0x4A6B32 : 0x9C8A52 }));
+    const outer = new T.Mesh(new T.PlaneGeometry(3400, 3400), new T.MeshLambertMaterial({ color: fro ? 0xB9C8D8 : vol ? 0x2A1E1B : jur ? 0x4A6B32 : 0x9C8A52 }));
     outer.rotation.x = -Math.PI / 2; outer.position.y = -6; group.add(outer); // below any hill; hidden by the border cliffs
 
     // static village, merged per chunk + material
     const CH = CFG.world.chunk, nC = Math.ceil(map.size / CH), sets = [];
     if (jur) view.jx = WZ.Jura.addScenery(map, group, scene, q);
     else if (vol) view.jx = WZ.Volca.addScenery(map, group, scene, q);
+    else if (fro) view.jx = WZ.Froze.addScenery(map, group, scene, q);
     for (let i = 0; i < nC * nC; i++) sets.push(P.newSet());
     const setAt = (x, z) => sets[Math.max(0, Math.min(nC - 1, Math.floor((z + half) / CH))) * nC + Math.max(0, Math.min(nC - 1, Math.floor((x + half) / CH)))];
     for (const h of map.houses) P.house(setAt(h.x, h.z), h.x, h.z, h.gy, h.w, h.d, h.h, rng, { red: h.red });
@@ -151,12 +153,12 @@
     for (const f of (themed ? [] : map.flags)) P.flagPole(setAt(f.x, f.z), f.x, f.z, map.height(f.x, f.z));
     for (const w of map.wrecks) P.wreck(setAt(w.x, w.z), w.x, w.z, w.gy, rng);
     sets.forEach((s) => P.setMeshes(s, group));
-    const cl = P.newSet(); if (vol) WZ.Volca.cliffs(cl, half, rng); else if (jur) WZ.Jura.cliffs(cl, half, rng); else P.cliffs(cl, half, rng); P.setMeshes(cl, group);
+    const cl = P.newSet(); if (fro) WZ.Froze.cliffs(cl, half, rng); else if (vol) WZ.Volca.cliffs(cl, half, rng); else if (jur) WZ.Jura.cliffs(cl, half, rng); else P.cliffs(cl, half, rng); P.setMeshes(cl, group);
 
     // grass tufts
     const nGrass = Math.min(map.grass.length, CFG.quality.grass[q]);
     if (nGrass > 0) {
-      const gm = new T.InstancedMesh(tuftGeo(jur, vol), new T.MeshLambertMaterial({ vertexColors: true }), nGrass);
+      const gm = new T.InstancedMesh(tuftGeo(jur, vol, fro), new T.MeshLambertMaterial({ vertexColors: true }), nGrass);
       gm.frustumCulled = false;
       const d = new T.Object3D(), c = new T.Color();
       for (let i = 0; i < nGrass; i++) {
@@ -168,11 +170,11 @@
     }
 
     // sky, mountains, clouds, sun glow
-    view.sky = vol ? WZ.Volca.skyDome() : jur ? WZ.Jura.skyDome() : skyDome(); scene.add(view.sky);
-    view.mountains = vol ? WZ.Volca.mountains(R.create(map.seed ^ 0x33)) : jur ? WZ.Jura.mountains(R.create(map.seed ^ 0x33)) : P.mountains(R.create(map.seed ^ 0x33)); scene.add(view.mountains);
+    view.sky = fro ? WZ.Froze.skyDome() : vol ? WZ.Volca.skyDome() : jur ? WZ.Jura.skyDome() : skyDome(); scene.add(view.sky);
+    view.mountains = fro ? WZ.Froze.mountains(R.create(map.seed ^ 0x33)) : vol ? WZ.Volca.mountains(R.create(map.seed ^ 0x33)) : jur ? WZ.Jura.mountains(R.create(map.seed ^ 0x33)) : P.mountains(R.create(map.seed ^ 0x33)); scene.add(view.mountains);
     if (vol && view.jx && view.jx.bindMountains) view.jx.bindMountains(view.mountains);
-    view.clouds = vol ? WZ.Volca.clouds(R.create(map.seed ^ 0x44)) : P.clouds(R.create(map.seed ^ 0x44)); scene.add(view.clouds);
-    const glow = new T.Sprite(new T.SpriteMaterial({ map: WZ.Assets.tex('glow'), color: vol ? 0xFF9A50 : 0xFFE9B0, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, opacity: vol ? 0.6 : 0.8 }));
+    view.clouds = fro ? WZ.Froze.clouds(R.create(map.seed ^ 0x44)) : vol ? WZ.Volca.clouds(R.create(map.seed ^ 0x44)) : P.clouds(R.create(map.seed ^ 0x44)); scene.add(view.clouds);
+    const glow = new T.Sprite(new T.SpriteMaterial({ map: WZ.Assets.tex('glow'), color: fro ? 0xEAF4FF : vol ? 0xFF9A50 : 0xFFE9B0, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, opacity: fro ? 0.4 : vol ? 0.6 : 0.8 }));
     glow.scale.set(340, 340, 1); glow.renderOrder = -9; scene.add(glow); view.glow = glow;
 
     // fires (burning wreck)

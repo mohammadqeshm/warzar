@@ -48,7 +48,7 @@
       document.addEventListener('gesturestart', pr);
       document.addEventListener('dblclick', pr);
       document.addEventListener('touchmove', (e) => {
-        if (e.target && e.target.closest && e.target.closest('.shop-list, .shop-detail, .sum, .pause-box, .brief')) return;
+        if (e.target && e.target.closest && e.target.closest('.shop-list, .shop-detail, .sum, .pause-box, .brief, .ms-track')) return;
         if (e.target && e.target.closest && e.target.closest('#wz-root')) e.preventDefault();
       }, { passive: false });
 
@@ -68,13 +68,27 @@
           if (e.pointerType !== 'touch') setDev('keys');
         }
       }, { passive: false });
-      // pointerdown (capture) instead of mousedown: cancelling a pointerdown anywhere suppresses the compatibility mousedown
+      // RIGHT CLICK = USE the selected weapon, and it must work WHILE the left button is held down (driving with the floating stick).
+      // A button pressed while another one is already down is a "chorded" press: browsers do NOT fire a new `pointerdown` for it, they fire `pointermove`
+      // (buttons changed) + a compatibility `mousedown`. So the right button is detected on all three paths, de-duplicated by `rightHeld`, and a plain
+      // right click (no left button) still arrives through the capture-phase `pointerdown`, which also suppresses the context menu.
+      let rightHeld = false;
+      const rightPress = (e) => {
+        if (rightHeld || !playing()) return false;
+        if (e.target && e.target.closest && e.target.closest('button')) return false;      // HUD buttons keep their own behaviour
+        rightHeld = true; setDev('keys'); WZ.Audio.unlock(); IN.pressed.weapon = true; return true;
+      };
       window.addEventListener('pointerdown', (e) => {
-        if (e.pointerType !== 'mouse' || e.button !== 2 || !playing()) return;
-        if (e.target && e.target.closest && e.target.closest('button')) return;      // HUD buttons keep their own behaviour
-        e.preventDefault(); setDev('keys'); WZ.Audio.unlock();
-        IN.pressed.weapon = true;
+        if (e.pointerType !== 'mouse' || e.button !== 2) return;
+        if (rightPress(e)) e.preventDefault();
       }, true);
+      window.addEventListener('pointermove', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        if (e.buttons & 2) rightPress(e); else rightHeld = false;
+      }, true);
+      window.addEventListener('mousedown', (e) => { if (e.button === 2 && rightPress(e)) e.preventDefault(); }, true);
+      const rightUp = (e) => { if (e.button === 2 || !(e.buttons & 2)) rightHeld = false; };
+      window.addEventListener('pointerup', rightUp, true); window.addEventListener('mouseup', rightUp, true); window.addEventListener('pointercancel', () => { rightHeld = false; }, true);
       window.addEventListener('auxclick', (e) => { if (e.button === 1 && playing()) e.preventDefault(); });
 
       zone.addEventListener('pointerdown', (e) => {

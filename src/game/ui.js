@@ -33,6 +33,7 @@
     jurassic: '<svg viewBox="0 0 120 56"><defs><linearGradient id="jg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FC6BE"/><stop offset="1" stop-color="#F3DFA8"/></linearGradient></defs><rect width="120" height="56" fill="url(#jg)"/><path d="M60 40L74 12h12l14 28z" fill="#4A3F3A"/><path d="M74 12h12l-2 5h-8z" fill="#FF6A1A"/><circle cx="84" cy="7" r="5" fill="#8D8780" opacity=".8"/><path d="M0 42q25-12 50-4t70-6V56H0z" fill="#4F9A45" stroke="#0E0E0E" stroke-width="1.6"/><path d="M0 50q40-6 120 0" stroke="#3F9CC6" stroke-width="5" fill="none"/><path d="M18 44V26M18 26l-9 4M18 26l9 3M18 26l-5-8M18 26l6-8" stroke="#2F7A42" stroke-width="3" stroke-linecap="round"/><path d="M40 46c2-12 8-16 15-17l4-4 8 3-3 5c-3 1-5 4-5 9z" fill="#5E9440" stroke="#0E0E0E" stroke-width="1.8" stroke-linejoin="round"/><path d="M58 28l6 1" stroke="#FF8A2A" stroke-width="3" stroke-linecap="round"/></svg>',
     volcanic: '<svg viewBox="0 0 120 56"><defs><linearGradient id="vg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A2434"/><stop offset="0.7" stop-color="#C8662F"/><stop offset="1" stop-color="#E89048"/></linearGradient></defs><rect width="120" height="56" fill="url(#vg)"/><path d="M34 42L56 10h16l22 32z" fill="#2C201E" stroke="#0E0E0E" stroke-width="1.6" stroke-linejoin="round"/><path d="M56 10h16l-2 5H58z" fill="#FF6A1A"/><path d="M64 15l-6 27M64 15l9 27" stroke="#FF8A2A" stroke-width="2" fill="none"/><circle cx="66" cy="5" r="5" fill="#6A5A54" opacity=".85"/><circle cx="76" cy="3" r="3.4" fill="#FF9A3A"/><circle cx="52" cy="8" r="2" fill="#FF7A22"/><path d="M0 44q25-8 50-2t70-6V56H0z" fill="#3B2A26" stroke="#0E0E0E" stroke-width="1.6"/><path d="M0 51q20-6 44-1t76-3" stroke="#FF6A1A" stroke-width="5" fill="none"/><path d="M0 51q20-6 44-1t76-3" stroke="#FFC060" stroke-width="1.6" fill="none"/></svg>',
   };
+  MAP_ICO.frozen = '<svg viewBox="0 0 120 56"><defs><linearGradient id="fzg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FB0D2"/><stop offset="1" stop-color="#DCE9F4"/></linearGradient></defs><rect width="120" height="56" fill="url(#fzg)"/><path d="M-4 38L24 10l16 18 14-22 22 32 14-14 28 16v18H-4z" fill="#7C8FA8" stroke="#0E0E0E" stroke-width="1.6" stroke-linejoin="round"/><path d="M24 10l-7 8 4-2 3 4 3-5 3 3zM54 6l-8 12 5-2 3 5 4-5 5 3z" fill="#F3F8FD"/><path d="M0 44q30-8 60-3t60-4v19H0z" fill="#E8F0F7" stroke="#0E0E0E" stroke-width="1.6"/><ellipse cx="62" cy="49" rx="30" ry="5" fill="#9FDBF2" stroke="#0E0E0E" stroke-width="1.4"/><path d="M48 48l10-1.5M66 50l12-2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M14 46V34M14 34l-6 8h12zM14 28l-5 8h10z" fill="#2F5A47" stroke="#0E0E0E" stroke-width="1.3" stroke-linejoin="round"/><path d="M100 46V32M100 32l-7 9h14zM100 25l-6 9h12z" fill="#2F5A47" stroke="#0E0E0E" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   const W_ORDER = ['mine', 'gun', 'heavy', 'bomb', 'heli', 'tank', 'jet'];
 
   const UI = {
@@ -205,18 +206,88 @@
       const curMap = (WZ.Save && WZ.Save.data.settings.map) || 'village';
       const el = UI._screen('menu',
         '<div class="menu-logo"><canvas id="logo-canvas"></canvas></div>' +
-        '<div class="menu-bottom"><div class="map-pick" id="map-pick">' + CFG_MAPS().map((id) => '<button class="map-card' + (id === curMap ? ' sel' : '') + '" data-map="' + id + '">' + MAP_ICO[id] + '<b>' + t('maps.' + id) + '</b><small>' + t('maps.' + id + '.sub') + '</small></button>').join('') + '</div>' +
+        '<div class="menu-bottom"><button class="map-chip" id="btn-maps" aria-label="' + t('maps.change') + '"><span class="mc-thumb" id="mc-thumb">' + UI._mapThumb(curMap) + '</span><span class="mc-t"><small>' + t('maps.current') + '</small><b id="mc-name">' + t('maps.' + curMap) + '</b></span><span class="mc-go">' + t('maps.change') + '</span></button>' +
         '<button class="play-btn" id="btn-play"><small class="play-lvl">' + t('menu.level', { n: lvl }) + '</small><span>' + t('menu.play') + '</span></button></div>' +
         '<button class="garage-btn" id="btn-garage" aria-label="' + t('shop.title') + '"><span class="gi">' + SHOP_ICO + '</span><span class="gt"><b>' + t('shop.title') + '</b><small>' + COIN_ICO.replace('class="ico"', 'class="coin"') + '<em id="garage-coins">' + ((WZ.Save && WZ.Save.data.coins) || 0) + '</em></small></span></button>' +
         '<button class="mute-btn" id="btn-mute"></button>');
       UI.drawLogo($('logo-canvas'));
-      el.querySelectorAll('.map-card').forEach((b) => { b.onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); WZ.Save.data.settings.map = b.dataset.map; WZ.Save.save(); el.querySelectorAll('.map-card').forEach((o) => o.classList.toggle('sel', o === b)); }; });
+      $('btn-maps').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); if (h.maps) h.maps(); };
       const mute = $('btn-mute');
       const paintMute = () => { mute.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="#ECE9E1"/>' + (WZ.Audio.muted ? '<path d="M15 9l6 6M21 9l-6 6" stroke="#FF5A3A" stroke-width="2.5" stroke-linecap="round"/>' : '<path d="M15.5 8.5a5 5 0 010 7M18 6a8.5 8.5 0 010 12" stroke="#ECE9E1" stroke-width="2" fill="none" stroke-linecap="round"/>') + '</svg>'; };
       paintMute();
       mute.onclick = () => { WZ.Audio.unlock(); WZ.Audio.setMuted(!WZ.Audio.muted); WZ.Save.data.settings.sound = WZ.Audio.muted ? 0 : 1; WZ.Save.save(); WZ.Audio.sfx('click'); paintMute(); };
       $('btn-play').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.play(); };
       $('btn-garage').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.garage(); };
+      return el;
+    },
+
+    // ------------------------------------------------------------ map selection
+    _mapThumb(id) {
+      const url = WZ.MapPreview && WZ.MapPreview.shot[id];
+      return url ? '<img alt="" src="' + url + '">' : (MAP_ICO[id] || '').replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ');
+    },
+    /** keeps the main-menu map chip in sync with the selected map */
+    mapChipUpdate(id) { const n = $('mc-name'), th = $('mc-thumb'); if (n) n.textContent = t('maps.' + id); if (th) th.innerHTML = UI._mapThumb(id); },
+    /** a real 3D render of a map finished: drop it into its card (and the menu chip) */
+    setMapShot(id, url) {
+      const box = UI.root && UI.root.querySelector('.ms-shot[data-shot="' + id + '"]');
+      if (box && !box.querySelector('img')) { const im = new Image(); im.alt = ''; im.onload = () => { im.classList.add('on'); box.classList.add('done'); }; im.src = url; box.appendChild(im); }
+      const cur = (WZ.Save && WZ.Save.data.settings.map) || 'village'; if (id === cur) UI.mapChipUpdate(id);
+    },
+    setMapPortrait(id, url) {
+      const box = UI.root && UI.root.querySelector('.ms-portrait[data-portrait="' + id + '"]');
+      if (box && !box.querySelector('img')) { const im = new Image(); im.alt = ''; im.onload = () => im.classList.add('on'); im.src = url; box.appendChild(im); }
+    },
+    /** dip the screen to dark, run fn() at the darkest moment (heavy scene rebuild), then fade back in */
+    themeFade(fn) {
+      const d = document.createElement('div'); d.className = 'theme-fade'; UI.root.appendChild(d);
+      requestAnimationFrame(() => { d.classList.add('on'); setTimeout(() => { try { fn(); } finally { requestAnimationFrame(() => { d.classList.remove('on'); setTimeout(() => d.remove(), 260); }); } }, 190); });
+    },
+
+    /** Map selection screen: a horizontal snap carousel of every map in CFG.maps.order. h = { select(id), close() } */
+    showMapSelect(cur, h) {
+      const ids = CFG_MAPS(), DIFF = { village: 1, jurassic: 2, frozen: 3, volcanic: 4 };
+      const stars = (n) => { let o = ''; for (let i = 0; i < 4; i++) o += '<i' + (i < n ? ' class="on"' : '') + '></i>'; return o; };
+      const card = (id) => '<article class="ms-card' + (id === cur ? ' sel' : '') + '" data-map="' + id + '">' +
+        '<div class="ms-shot" data-shot="' + id + '">' + (MAP_ICO[id] || '').replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ') +
+        '<span class="ms-badge">' + t('maps.selected') + '</span><div class="ms-diff" title="' + t('maps.diff') + '">' + stars(DIFF[id] || 1) + '</div><div class="ms-load">' + t('maps.loading') + '</div></div>' +
+        '<div class="ms-info"><div><div class="ms-name">' + t('maps.' + id) + '</div><div class="ms-sub">' + t('maps.' + id + '.sub') + '</div></div>' +
+        '<div class="ms-guard"><div class="ms-portrait" data-portrait="' + id + '"></div><div class="ms-gt"><small>' + t('maps.guardian') + '</small><b>' + t('maps.' + id + '.guard') + '</b><em>' + t('maps.' + id + '.guard.sub') + '</em></div></div>' +
+        '<div class="ms-haz"><b>' + t('maps.hazards') + '</b><span>' + t('maps.' + id + '.haz') + '</span></div></div></article>';
+      const el = UI._screen('mapsel',
+        '<div class="ms-top"><button class="ms-back" id="ms-back">&lsaquo; ' + t('maps.back') + '</button><div class="ms-title">' + t('maps.select') + '</div><div class="ms-count" id="ms-count"></div></div>' +
+        '<div class="ms-stage"><button class="ms-arrow l" id="ms-prev" aria-label="prev">&lsaquo;</button><div class="ms-track" id="ms-track">' + ids.map(card).join('') + '</div><button class="ms-arrow r" id="ms-next" aria-label="next">&rsaquo;</button></div>' +
+        '<div class="ms-dots" id="ms-dots">' + ids.map((id) => '<i data-map="' + id + '"></i>').join('') + '</div>' +
+        '<div class="ms-foot"><button class="btn big" id="ms-ok">' + t('maps.confirm') + '</button></div>');
+      const track = $('ms-track'), cards = [...track.children], dots = [...$('ms-dots').children];
+      const idx = () => Math.max(0, ids.indexOf(cur));
+      const center = (i, smooth) => { const c = cards[i]; if (c) track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' }); };
+      const paint = () => {
+        const i = idx(); cards.forEach((c) => c.classList.toggle('sel', c.dataset.map === cur)); dots.forEach((d, k) => d.classList.toggle('on', k === i));
+        $('ms-count').textContent = (i + 1) + ' / ' + ids.length; $('ms-prev').classList.toggle('off', i === 0); $('ms-next').classList.toggle('off', i === ids.length - 1);
+      };
+      const apply = (id, scroll) => { if (id !== cur) { cur = id; WZ.Audio.sfx('click'); paint(); h.select(id); } if (scroll) center(idx(), true); };
+      cards.forEach((c) => { c.onclick = () => { WZ.Audio.unlock(); apply(c.dataset.map, true); }; });
+      dots.forEach((d) => { d.onclick = () => apply(d.dataset.map, true); });
+      $('ms-prev').onclick = () => apply(ids[Math.max(0, idx() - 1)], true);
+      $('ms-next').onclick = () => apply(ids[Math.min(ids.length - 1, idx() + 1)], true);
+      let settle = 0;
+      track.addEventListener('scroll', () => {            // the card that settles in the middle becomes the selection
+        clearTimeout(settle);
+        settle = setTimeout(() => { const mid = track.scrollLeft + track.clientWidth / 2; let best = 0, bd = 1e9; cards.forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } }); apply(ids[best], false); }, 170);
+      }, { passive: true });
+      track.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { track.scrollBy({ left: e.deltaY, behavior: 'auto' }); e.preventDefault(); } }, { passive: false });
+      const key = (e) => {
+        if (!el.isConnected) { window.removeEventListener('keydown', key); return; }
+        if (e.code === 'ArrowLeft') apply(ids[Math.max(0, idx() - 1)], true); else if (e.code === 'ArrowRight') apply(ids[Math.min(ids.length - 1, idx() + 1)], true);
+        else if (e.code === 'Enter' || e.code === 'Escape') h.close();
+      };
+      window.addEventListener('keydown', key);
+      $('ms-back').onclick = $('ms-ok').onclick = () => { WZ.Audio.sfx('click'); h.close(); };
+      paint(); center(idx(), false);
+      requestAnimationFrame(() => center(idx(), false));
+      // images already rendered earlier in this session
+      const MP = WZ.MapPreview; if (MP) ids.forEach((id) => { if (MP.shot[id]) UI.setMapShot(id, MP.shot[id]); if (MP.portrait[id]) UI.setMapPortrait(id, MP.portrait[id]); });
       return el;
     },
 
@@ -297,8 +368,8 @@
           nana: '<circle cx="19" cy="25" r="14" fill="#3a3a3c" stroke="#0E0E0E" stroke-width="3"/><circle cx="19" cy="25" r="9" fill="#55555a"/><path d="M31 33l14 10" stroke="#ECE9E1" stroke-width="5" stroke-linecap="round"/><path d="M13 21l4 4m0-4l-4 4M22 21l4 4m0-4l-4 4" stroke="#FF5A3A" stroke-width="2.4" stroke-linecap="round"/>',
           jeep: '<path d="M4 31l3-9 9-5h14l9 5 5 2 2 7z" fill="#6b6b6e" stroke="#0E0E0E" stroke-width="2.6" stroke-linejoin="round"/><circle cx="15" cy="33" r="5.4" fill="#23272A" stroke="#0E0E0E" stroke-width="2.4"/><circle cx="37" cy="33" r="5.4" fill="#23272A" stroke="#0E0E0E" stroke-width="2.4"/><path d="M19 9l-4 5M27 7v6M34 9l3 5" stroke="#9a9a9a" stroke-width="3" stroke-linecap="round"/>',
         };
-        const ico = ({ time: 'time', nana: 'nana', mine: 'boom', barrel: 'boom', pit: 'pit', giant: 'jeep', fire: 'fire' })[rs] || 'jeep';
-        const hint = t('sum.hint.' + (['time', 'nana', 'mine', 'barrel', 'pit', 'giant', 'fire', 'lava', 'rock', 'vent'].indexOf(rs) >= 0 ? rs : 'jeep'));
+        const ico = ({ time: 'time', nana: 'nana', mine: 'boom', barrel: 'boom', pit: 'pit', giant: 'jeep', fire: 'fire', wave: 'boom', beast: 'jeep' })[rs] || 'jeep';
+        const hint = t('sum.hint.' + (['time', 'nana', 'mine', 'barrel', 'pit', 'giant', 'fire', 'lava', 'rock', 'vent', 'wave', 'beast'].indexOf(rs) >= 0 ? rs : 'jeep'));
         let segs = ''; const tot = Math.max(1, r.total || 1); for (let i = 0; i < tot; i++) segs += '<i class="' + (i < r.crates ? 'on' : '') + '" style="--i:' + i + '"></i>';
         let smoke = ''; for (let i = 0; i < 9; i++) smoke += '<b style="left:' + (6 + i * 11) + '%;--dl:' + ((i * 7) % 5) * 0.55 + 's;--du:' + (5 + (i % 4)) + 's;--s:' + (90 + (i * 29) % 90) + 'px"></b>';
         el = UI._screen('summary is-fail',
@@ -309,7 +380,7 @@
           '<div class="fail-icon"><svg viewBox="0 0 48 48">' + IC[ico] + '</svg></div>' +
           '<div class="fail-stamp">' + t('sum.stamp') + '</div>' +
           '<div class="sum-title">' + t('sum.failed') + '</div>' +
-          '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant', fire: 'sum.fail.fire', lava: 'sum.fail.lava', rock: 'sum.fail.rock', vent: 'sum.fail.vent' })[rs] || 'sum.fail.jeep') + '</div>' +
+          '<div class="sum-sub">' + t(({ time: 'sum.fail.time', nana: 'sum.fail.nana', mine: 'sum.fail.mine', barrel: 'sum.fail.barrel', pit: 'sum.fail.pit', giant: 'sum.fail.giant', fire: 'sum.fail.fire', lava: 'sum.fail.lava', rock: 'sum.fail.rock', vent: 'sum.fail.vent', wave: 'sum.fail.wave', beast: 'sum.fail.beast' })[rs] || 'sum.fail.jeep') + '</div>' +
           '<div class="sum-sub2">' + t('sum.reached', { n: r.index }) + '</div>' +
           (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') + '</div>' +
           '<div class="sum-body"><div class="fail-prog"><div class="fp-h"><span>' + t('sum.progress') + '</span><b>' + r.crates + '/' + r.total + '</b></div><div class="fp-bar">' + segs + '</div>' +

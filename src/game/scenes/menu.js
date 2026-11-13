@@ -7,11 +7,27 @@
   const Menu = {
     name: 'menu', t: 0,
 
-    enter() {
+    /** the map whose 3D scene is shown behind the menu = the selected map (Save.settings.map) */
+    themeOf() { const m = WZ.Save.data.settings.map; return WZ.CFG.maps[m] && m !== 'order' ? m : 'village'; },
+
+    enter(data) {
       const S = WZ.Save.data;
-      Menu.t = 0;
+      Menu.t = 0; Menu.theme = Menu.themeOf(); Menu.want = Menu.theme; Menu.fading = false; Menu.mapOpen = false;
+      Menu.build(Menu.theme);
+      const lvl = Math.max(1, S.level || S.best.mission || 1);
+      S.level = lvl; WZ.Main.startIndex = lvl;
+      WZ.UI.hudShow(false); WZ.UI.clearScreens();
+      Menu.menuEl = WZ.UI.showMenu({ level: lvl, coins: S.coins }, { play: Menu.play, garage: () => WZ.Main.go('shop'), maps: Menu.openMaps });
+      // render the selected map's real 3D thumbnail for the menu chip in the background (one image per timer tick)
+      clearTimeout(Menu.warmT); Menu.warmT = setTimeout(() => { if (WZ.MapPreview && !Menu.mapOpen) WZ.MapPreview.request([Menu.theme], Menu.onImage); }, 1500);
+      if (data && data.maps) Menu.openMaps();
+    },
+
+    /** build the 3D menu scene for a map theme (heroes in front of a wall, that map's terrain / sky / scenery behind) */
+    build(theme) {
+      const S = WZ.Save.data;
       Menu.scene = new T.Scene();
-      Menu.map = WZ.World.backdrop(1337);
+      Menu.map = WZ.World.backdrop(1337, theme);
       Menu.col = WZ.Collision.create(Menu.map);
       Menu.view = WZ.WorldView.build(Menu.map, Menu.scene, { menu: true, quality: WZ.Quality.level });
       WZ.Particles.init(Menu.scene);
@@ -58,11 +74,42 @@
 
       Menu.view.followLight(st.x, gy, st.z);
       Menu.cam = WZ.Cam.cam; Menu.cam.fov = 40; Menu.cam.updateProjectionMatrix();
-      const lvl = Math.max(1, S.level || S.best.mission || 1);
-      S.level = lvl; WZ.Main.startIndex = lvl;
-      WZ.UI.hudShow(false); WZ.UI.clearScreens();
-      WZ.UI.showMenu({ level: lvl, coins: S.coins }, { play: Menu.play, garage: () => WZ.Main.go('shop') });
-      void rng;
+      void rng; void S;
+    },
+
+    /** free the 3D menu scene (used by exit() and when another map is picked) */
+    destroy() {
+      if (!Menu.scene) return;
+      Menu.cmdr.dispose(); Menu.nana.dispose();
+      G.disposeTree(Menu.scene); WZ.Particles.dispose(); Menu.view.dispose();
+      Menu.scene = null;
+      WZ.Main.renderer.renderLists.dispose();
+    },
+
+    // ---------------------------------------------------------------- map selection
+    onImage(kind, th, url) { if (kind === 'shot') WZ.UI.setMapShot(th, url); else WZ.UI.setMapPortrait(th, url); },
+    openMaps() {
+      if (Menu.mapOpen) return;
+      Menu.mapOpen = true; if (Menu.menuEl) Menu.menuEl.style.display = 'none';
+      WZ.UI.showMapSelect(Menu.want || Menu.theme, { select: Menu.pick, close: Menu.closeMaps });
+      const order = WZ.CFG.maps.order.slice().sort((a, b) => (a === Menu.theme ? -1 : 0) - (b === Menu.theme ? -1 : 0));
+      WZ.MapPreview.request(order, Menu.onImage);
+    },
+    closeMaps() {
+      if (!Menu.mapOpen) return;
+      Menu.mapOpen = false; WZ.UI.removeScreen('mapsel'); if (Menu.menuEl) Menu.menuEl.style.display = '';
+      WZ.UI.mapChipUpdate(Menu.want || Menu.theme);
+    },
+    /** a map card was chosen: remember it and switch the 3D scene behind the screen to that map */
+    pick(id) {
+      WZ.Save.data.settings.map = id; WZ.Save.save(); Menu.want = id;
+      if (Menu.fading || id === Menu.theme) return;
+      Menu.fading = true;
+      WZ.UI.themeFade(() => {
+        if (WZ.Main.cur !== Menu) { Menu.fading = false; return; }
+        Menu.destroy(); Menu.theme = Menu.want; Menu.build(Menu.theme); Menu.fading = false;
+        if (Menu.want !== Menu.theme) Menu.pick(Menu.want);        // picked again while fading
+      });
     },
 
     play() {
@@ -73,17 +120,16 @@
     },
 
     exit() {
-      WZ.UI.clearScreens(); WZ.Fx.clear();
-      Menu.cmdr.dispose(); Menu.nana.dispose();
-      G.disposeTree(Menu.scene); WZ.Particles.dispose(); Menu.view.dispose();
-      Menu.scene = null;
+      clearTimeout(Menu.warmT); if (WZ.MapPreview) WZ.MapPreview.cancel();
+      WZ.UI.clearScreens(); WZ.Fx.clear(); Menu.mapOpen = false; Menu.menuEl = null;
+      Menu.destroy();
       Menu.cam.fov = CFG.camera.fov; Menu.cam.updateProjectionMatrix();
-      WZ.Main.renderer.renderLists.dispose();
     },
 
     update(dt) { Menu.t += dt; WZ.Input.consume('pause'); WZ.Input.consume('debug'); },
 
     render(alpha, dt) {
+      if (!Menu.scene) return;
       const Main = WZ.Main, S = Menu.st, cam = Menu.cam, t = Menu.t, asp = Main.w / Main.h;
       Menu.cmdr.update(dt); Menu.nana.update(dt);
       // camera: low, in front of the heroes, village on the hills behind the wall
