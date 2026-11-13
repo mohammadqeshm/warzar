@@ -9,10 +9,11 @@
     for (const b of map.boxes) { const it = { t: 1, x: b.x, z: b.z, hw: b.hw, hd: b.hd }; items.push(it); hash.insertBox(it, b.x - b.hw, b.z - b.hd, b.x + b.hw, b.z + b.hd); }
     for (const c of map.circles) { const it = { t: 0, x: c.x, z: c.z, r: c.r }; items.push(it); hash.insertBox(it, c.x - c.r, c.z - c.r, c.x + c.r, c.z + c.r); }
     const tmp = [];
+    const dyn = [];      // dynamic axis-aligned boxes {x,z,hw,hd,on} (harbor map: containers the cranes put down) - empty on every other map
     const lim = map.half - CFG.world.wallMargin;
 
     const col = {
-      hash, nx: 0, nz: 0,
+      hash, dyn, nx: 0, nz: 0,
       /** Push p (with .x/.z) out of any collider. Returns true when something was hit; col.nx/nz = push normal. */
       resolve(p, r) {
         let hit = false, nxs = 0, nzs = 0;
@@ -43,6 +44,17 @@
             }
           }
         }
+        for (let i = 0; i < dyn.length; i++) {
+          const c = dyn[i]; if (!c.on) continue;
+          const cx = Math.max(c.x - c.hw, Math.min(c.x + c.hw, p.x)), cz = Math.max(c.z - c.hd, Math.min(c.z + c.hd, p.z));
+          const dx = p.x - cx, dz = p.z - cz, d2 = dx * dx + dz * dz;
+          if (d2 < r * r) {
+            let nx, nz, push;
+            if (d2 > 1e-8) { const d = Math.sqrt(d2); nx = dx / d; nz = dz / d; push = r - d; }
+            else { const lx = p.x - c.x, lz = p.z - c.z, px = c.hw - Math.abs(lx), pz = c.hd - Math.abs(lz); if (px < pz) { nx = lx >= 0 ? 1 : -1; nz = 0; push = px + r; } else { nx = 0; nz = lz >= 0 ? 1 : -1; push = pz + r; } }
+            p.x += nx * push; p.z += nz * push; nxs += nx; nzs += nz; hit = true;
+          }
+        }
         if (p.x > lim - r + 0.5) { p.x = lim - r + 0.5; nxs -= 1; hit = true; }
         if (p.x < -lim + r - 0.5) { p.x = -lim + r - 0.5; nxs += 1; hit = true; }
         if (p.z > lim - r + 0.5) { p.z = lim - r + 0.5; nzs -= 1; hit = true; }
@@ -61,6 +73,7 @@
             if (dx * dx + dz * dz < r * r) return false;
           }
         }
+        for (let i = 0; i < dyn.length; i++) { const c = dyn[i]; if (!c.on) continue; const dx = Math.max(Math.abs(x - c.x) - c.hw, 0), dz = Math.max(Math.abs(z - c.z) - c.hd, 0); if (dx * dx + dz * dz < r * r) return false; }
         return Math.abs(x) < lim - r && Math.abs(z) < lim - r;
       },
     };

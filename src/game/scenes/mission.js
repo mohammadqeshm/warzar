@@ -31,6 +31,7 @@
       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
       WZ.Volcano.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 6161));     // volcanic map only (no-op elsewhere)
+      WZ.Harbor.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 7373));                                 // harbor map only: broken piers, crane-blocked lanes, Harbor Mech weapons (no-op elsewhere)
       WZ.Ice.init(M.ctx);                                                                                                       // frozen map only (no-op elsewhere)
       WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Jets.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
       M.ctx.addTime = (s) => { M.timeLeft += s; };
@@ -60,7 +61,7 @@
       WZ.UI.hudShow(false); WZ.UI.resetHudCache();
       WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), weapon: () => WZ.Input.press('weapon'), wswap: () => WZ.Input.press('wnext'), wsel: (id) => { WZ.Input.pressed.wsel = id; }, pause: () => WZ.Main.togglePause() });
       WZ.Input.reset();
-      const mapTips = { jurassic: ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], volcanic: ['brief.tipV1', 'brief.tipV2', 'brief.tipV3', 'brief.tipV4'], frozen: ['brief.tipF1', 'brief.tipF2', 'brief.tipF3', 'brief.tipF4'] }, mt = mapTips[M.theme];
+      const mapTips = { jurassic: ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], volcanic: ['brief.tipV1', 'brief.tipV2', 'brief.tipV3', 'brief.tipV4'], frozen: ['brief.tipF1', 'brief.tipF2', 'brief.tipF3', 'brief.tipF4'], harbor: ['brief.tipH1', 'brief.tipH2', 'brief.tipH3', 'brief.tipH4'] }, mt = mapTips[M.theme];
       M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: mt ? t('brief.map', { m: t('maps.' + M.theme) }) : '', tip: t(mt && data.index % 3 !== 0 ? mt[(data.index - 1) % mt.length] : TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
       void Main;
     },
@@ -78,7 +79,7 @@
       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
-      WZ.Hazards.dispose(); WZ.Volcano.dispose(); WZ.Ice.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
+      WZ.Hazards.dispose(); WZ.Volcano.dispose(); WZ.Ice.dispose(); WZ.Harbor.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
       M.scene = null; WZ.Main.renderer.renderLists.dispose();
     },
 
@@ -197,6 +198,7 @@
       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
       WZ.Volcano.update(dt, M.ctx, M.phase === 'play', M.time);
       WZ.Ice.update(dt, M.ctx, M.phase === 'play');
+      WZ.Harbor.update(dt, M.ctx, M.phase === 'play');
       WZ.Fire.update(dt);
       if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); WZ.Tanks.update(dt); }
       if (M.phase === 'play' || M.phase === 'ending') WZ.Jets.update(dt);
@@ -388,6 +390,7 @@
       if (M.hintT > 0 && M.hintKey === 'hud.nocrate') return t(M.hintKey);
       const hz = WZ.Hazards.hint(); if (hz && hz.indexOf('hud.tornado') === 0) return t(hz);   // tornado warning / pull / caught
       const vh = WZ.Volcano.hint(); if (vh) return t(vh);
+      const hh = WZ.Harbor.hint(); if (hh) return t(hh);                                                                       // mech aim / missiles / cover, crane, broken deck (harbor map)
       const ih = WZ.Ice.hint(); if (ih) return t(ih);                                          // slippery ice / charge lane / ice wave warnings (frozen map)                                       // lava / eruption / vent / magma pool warnings (volcanic map)
       return '';
     },
@@ -425,7 +428,7 @@
 
       if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); WZ.Giants.bars(cam, w, h); }
       if (WZ.UI.dbgOn) M.debugText();
-      WZ.Hazards.render(dt, M.t); WZ.Volcano.render(dt, M.t); WZ.Ice.render(dt); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
+      WZ.Hazards.render(dt, M.t); WZ.Volcano.render(dt, M.t); WZ.Ice.render(dt); WZ.Harbor.render(dt, M.t); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t);
       Main.renderer.render(M.scene, cam);
     },
 

@@ -270,3 +270,7 @@ See [LICENSES.txt](LICENSES.txt) for third-party license notices. No separate op
 - New purchasable **Escort Tank** (Shop > Defense): rolls in, follows and covers the vehicle/Nana, shells groups, rakes single targets.
 - Red barrels now explode with a big fireball + debris + shockwave, never slow the vehicle, and leave it burning for ~5 s.
 - KO coins are always paid out when a mission ends, including a failed one, so a lost run can never leave the player unable to afford upgrades.
+
+
+## Map: Sunken Harbor
+A derelict military port: container yards with narrow lanes (some plugged = dead ends), broken pier decks you can fall off (splash = big armor loss), tower cranes that swing containers across lanes (telegraphed, temporary), and the **Harbor Mech** guardian (cannon with a laser-lane telegraph, arcing missiles, takes cover behind containers). See `PROJECT_MEMORY.md` for details. Generator test: `node tools/test-harbor-gen.cjs`.

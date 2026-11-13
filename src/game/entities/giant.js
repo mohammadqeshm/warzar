@@ -79,24 +79,25 @@
       Gi.dispose(); Gi.ctx = ctx; Gi.list = []; Gi.mission = mission;
       const rng = WZ.RNG.create(WZ.RNG.hash((ctx.map.seed | 0) >>> 0, 7717)), col = ctx.col, hm = ctx.map.height;
       const tut = !!mission.tutorial, hpMul = tut ? C.tutorialHp : mission.hpMul, spd = tut ? C.tutorialSpeed : 1;
-      const jur = ctx.map.theme === 'jurassic', vol = ctx.map.theme === 'volcanic', ice = ctx.map.theme === 'frozen', Cg = ice ? CFG.beastStats : vol ? CFG.titanStats : jur ? CFG.dinoStats : C;     // Jurassic map: fire-breathing dinosaurs; Volcanic map: Magma Titans
+      const jur = ctx.map.theme === 'jurassic', vol = ctx.map.theme === 'volcanic', ice = ctx.map.theme === 'frozen', mch = ctx.map.theme === 'harbor', Cg = mch ? CFG.mechStats : ice ? CFG.beastStats : vol ? CFG.titanStats : jur ? CFG.dinoStats : C;     // Jurassic map: fire-breathing dinosaurs; Volcanic map: Magma Titans
       ctx.map.crates.forEach((cr, i) => {
         let sx = cr.x + Cg.home, sz = cr.z, ok = false;
         for (let k = 0; k < 24 && !ok; k++) {
           const a = rng.range(0, 6.283), r = Cg.home * (0.75 + rng.range(0, 0.5) + k * 0.03);
           sx = cr.x + Math.cos(a) * r; sz = cr.z + Math.sin(a) * r;
-          ok = col.free(sx, sz, Cg.radius + 0.5) && Math.hypot(sx - ctx.map.start.x, sz - ctx.map.start.z) > 20;
+          ok = col.free(sx, sz, Cg.radius + 0.5) && Math.hypot(sx - ctx.map.start.x, sz - ctx.map.start.z) > 20 && !(ctx.map.navBlock && ctx.map.navBlock(sx, sz));
         }
-        const mat = new T.MeshLambertMaterial({ vertexColors: true }), rig = ice ? WZ.FrostArt.rig(mat, i) : vol ? WZ.MagmaArt.rig(mat, i) : jur ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
+        const mat = new T.MeshLambertMaterial({ vertexColors: true }), rig = mch ? WZ.MechArt.rig(mat, i) : ice ? WZ.FrostArt.rig(mat, i) : vol ? WZ.MagmaArt.rig(mat, i) : jur ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
         ctx.scene.add(rig.root);
         const g = {
           giant: true, active: true, state: 0, dying: false, dead: false, id: i, crateIdx: i, x: sx, z: sz, px: sx, pz: sz, h: Math.atan2(cr.x - sx, cr.z - sz), ph: 0, hx: sx, hz: sz,
-          radius: Cg.radius, hp: Cg.hp * hpMul, maxHp: Cg.hp * hpMul, spd, C: Cg, dino: jur, fire: 0, fireT: 0, fireCd: jur ? (tut ? 6 : 2.5) + rng.range(0, 2) : 0, fireTick: 0, fireSfx: 0, tutMul: tut && jur ? Cg.fire.tutorialMul : tut && vol ? Cg.rock.tutorialMul : tut && ice ? Cg.charge.tutorialMul : 1,
-          titan: vol, beast: ice, ch: 0, chT: 0, chKind: 0, chCd: ice ? (tut ? 7 : 3.5) + rng.range(0, 2) : 0, chHit: false, homeT: 0, tk: 0, tkT: 0, rockCd: vol ? (tut ? 7 : 3.2) + rng.range(0, 2) : 0, trailT: 0, step: 0, emT: 0, flash: 0, walk: rng.range(0, 6), mv: 0, rx: sx, ry: hm(sx, sz), rz: sz,
+          radius: Cg.radius, hp: Cg.hp * hpMul, maxHp: Cg.hp * hpMul, spd, C: Cg, dino: jur, fire: 0, fireT: 0, fireCd: jur ? (tut ? 6 : 2.5) + rng.range(0, 2) : 0, fireTick: 0, fireSfx: 0, tutMul: tut && jur ? Cg.fire.tutorialMul : tut && vol ? Cg.rock.tutorialMul : tut && ice ? Cg.charge.tutorialMul : tut && mch ? CFG.mech.cannon.tutorialMul : 1,
+          titan: vol, beast: ice, mech: mch, ch: 0, chT: 0, chKind: 0, chCd: ice ? (tut ? 7 : 3.5) + rng.range(0, 2) : 0, chHit: false, homeT: 0, tk: 0, tkT: 0, rockCd: vol ? (tut ? 7 : 3.2) + rng.range(0, 2) : 0, trailT: 0, step: 0, emT: 0, flash: 0, walk: rng.range(0, 6), mv: 0, rx: sx, ry: hm(sx, sz), rz: sz,
           mat, rig, swing: 0, hit: true, cd: 1, agro: 0, mode: 0, ramCd: 0, koT: 0, navT: 0, direct: true, path: null, pi: 0, wanderT: rng.range(1, 4), wx: sx, wz: sz,
           stuckT: 0, lx: sx, lz: sz, armK: -0.28, leanK: 0,
         };
         g.ph = g.h; rig.root.position.set(sx, g.ry, sz); rig.root.rotation.y = g.h;
+        if (mch) WZ.Harbor.mechInit(g);
         Gi.list.push(g);
       });
       Gi.alive = Gi.list.length;
@@ -104,7 +105,7 @@
 
     /** build the guardian rig of a map theme (used by the map-select screen to render the guardian portraits) */
     rigFor(theme, mat, i) {
-      return theme === 'frozen' ? WZ.FrostArt.rig(mat, i) : theme === 'volcanic' ? WZ.MagmaArt.rig(mat, i) : theme === 'jurassic' ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
+      return theme === 'harbor' ? WZ.MechArt.rig(mat, i) : theme === 'frozen' ? WZ.FrostArt.rig(mat, i) : theme === 'volcanic' ? WZ.MagmaArt.rig(mat, i) : theme === 'jurassic' ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
     },
 
     /** the living giant that guards this crate (or null) */
@@ -124,6 +125,7 @@
     /** returns true when the hit killed the giant */
     damage(g, amt, kx, kz, cause) {
       if (!g.active) return false;
+      if (g.mech && WZ.Harbor) amt = WZ.Harbor.mechArmor(g, amt, cause);      // Harbor Mech: crouched behind cover it shrugs off most direct fire
       g.hp -= amt; g.flash = 1; g.agro = C.agroTime;
       if (g.hp <= 0) { Gi.kill(g, cause); return true; }
       void kx; void kz;
@@ -142,11 +144,11 @@
 
     kill(g, cause) {
       const c = Gi.ctx, P = c.particles, E = c.enemies;
-      g.active = false; g.state = 2; g.dying = true; g.koT = 0; g.hp = 0; Gi.alive--; if (g.beast && WZ.Ice) WZ.Ice.aimOff(g.id);
+      g.active = false; g.state = 2; g.dying = true; g.koT = 0; g.hp = 0; Gi.alive--; if (g.beast && WZ.Ice) WZ.Ice.aimOff(g.id); if (g.mech && WZ.Harbor) WZ.Harbor.mechReset(g);
       const y = g.ry;
       WZ.Audio.sfx('boom', 0.8); WZ.Audio.sfx('roar'); WZ.Fx.shake(0.55); WZ.Fx.hitstop(0.07);
       P.poof(g.x, y + 3, g.z, 14, 3); P.stars(g.x, y + 9, g.z, 8); P.dust(g.x, y, g.z, 10);
-      WZ.Fx.text(WZ.I18n.t(g.beast ? 'hud.beastdown' : g.titan ? 'hud.titandown' : g.dino ? 'hud.dinodown' : 'hud.giantdown'), g.x, y + 10, g.z, 'good');
+      WZ.Fx.text(WZ.I18n.t(g.mech ? 'hud.mechdown' : g.beast ? 'hud.beastdown' : g.titan ? 'hud.titandown' : g.dino ? 'hud.dinodown' : 'hud.giantdown'), g.x, y + 10, g.z, 'good');
       if (g.titan && WZ.Fire && WZ.Fire.ctx) WZ.Fire.explode(g.x, y + 2.5, g.z, { scale: 1.3, debris: 0, groundFire: 0, shake: 0.4, scorch: 1.1, mute: true });      // the Titan crumbles in a burst of embers (visual only)
       E.kos++;
       WZ.Events.emit('enemy:ko', { enemy: g, cause, giant: true });
@@ -199,7 +201,10 @@
           g.mode = 1; WZ.Audio.sfx('roar'); WZ.Fx.text('!', g.x, g.ry + C.height + 3, g.z, 'warn'); WZ.Fx.shake(0.12);
         } else if (!kind && g.mode === 1) g.mode = 2;
 
-        if (g.dino && g.fire) {
+        if (g.mech && !kind && WZ.Harbor) WZ.Harbor.mechReset(g);       // no target: drop every telegraph / crouch, then the idle code below takes over
+        if (g.mech && kind && WZ.Harbor) {
+          WZ.Harbor.mech(g, C, dt, kind, J, N, nanaOut, dj, dn);          // HARBOR MECH: cannon / missiles / cover / stomp (systems/harbor.js)
+        } else if (g.dino && g.fire) {
           Gi._fire(g, C, dt, kind, J, N, nanaOut);
         } else if (g.beast && g.ch) {
           Gi._charge(g, C, dt, kind, J, N, nanaOut);
@@ -423,7 +428,8 @@
         const x = U.lerp(g.px, g.x, alpha), z = U.lerp(g.pz, g.z, alpha), h = g.ph + U.angDiff(g.ph, g.h) * alpha, gy = hm(x, z);
         g.rx = x; g.ry = gy; g.rz = z;
         R.root.position.set(x, gy, z); R.root.rotation.set(0, h, 0);
-        if (g.beast) WZ.FrostArt.pose(g, C, t, dt);
+        if (g.mech) WZ.MechArt.pose(g, C, t, dt);
+        else if (g.beast) WZ.FrostArt.pose(g, C, t, dt);
         else if (g.titan) WZ.MagmaArt.pose(g, C, t, dt);
         else if (g.dino) WZ.DinoArt.pose(g, C, t, dt);
         else {
@@ -443,7 +449,7 @@
         R.torso.rotation.y = g.swing > 0 && g.swing < C.windup ? Math.sin(g.swing / C.windup * 1.6) * 0.25 : 0;
         }
         // flash: white on hit, red pulse during the wind-up (telegraph)
-        const telegraph = g.swing > 0 && g.swing < C.windup ? 0.3 + 0.3 * Math.sin(g.swing * 30) : (g.fire === 1 ? 0.2 + 0.4 * (g.fireT / C.fire.windup) + 0.15 * Math.sin(g.fireT * 28) : (g.tk === 1 ? 0.2 + 0.45 * Math.min(1, g.tkT / C.rock.windup) + 0.15 * Math.sin(g.tkT * 28) : (g.ch === 1 ? 0.2 + 0.4 * Math.min(1, g.chT / C.charge.windup) + 0.15 * Math.sin(g.chT * 28) : 0)));
+        const telegraph = g.swing > 0 && g.swing < C.windup ? 0.3 + 0.3 * Math.sin(g.swing * 30) : (g.fire === 1 ? 0.2 + 0.4 * (g.fireT / C.fire.windup) + 0.15 * Math.sin(g.fireT * 28) : (g.tk === 1 ? 0.2 + 0.45 * Math.min(1, g.tkT / C.rock.windup) + 0.15 * Math.sin(g.tkT * 28) : (g.ch === 1 ? 0.2 + 0.4 * Math.min(1, g.chT / C.charge.windup) + 0.15 * Math.sin(g.chT * 28) : (g.mech && g.M ? g.M.tele || 0 : 0))));
         const f = g.flash * 0.6;
         g.mat.emissive.setRGB(f + telegraph * 0.9, f + telegraph * 0.08, f + telegraph * 0.05);
         if (g.dying) {
@@ -463,7 +469,7 @@
         const g = Gi.list[i]; if (!g.active) continue;
         v3.set(g.rx, g.ry + g.C.height + 1.6, g.rz).project(cam);
         if (v3.z > 1 || Math.abs(v3.x) > 1.12 || v3.y > 1.1 || v3.y < -1.1) continue;
-        if (n < UI.giantBarMax) UI.setGiantBar(n++, (v3.x * 0.5 + 0.5) * w, (-v3.y * 0.5 + 0.5) * h, g.hp / g.maxHp, g.mode === 1 ? 1 : (g.fire ? 1 : 0), g.hp, g.beast ? WZ.I18n.t('hud.beast') : g.titan ? WZ.I18n.t('hud.titan') : g.dino ? WZ.I18n.t('hud.dino') : null);
+        if (n < UI.giantBarMax) UI.setGiantBar(n++, (v3.x * 0.5 + 0.5) * w, (-v3.y * 0.5 + 0.5) * h, g.hp / g.maxHp, g.mode === 1 ? 1 : (g.fire ? 1 : 0), g.hp, g.mech ? WZ.I18n.t('hud.mech') : g.beast ? WZ.I18n.t('hud.beast') : g.titan ? WZ.I18n.t('hud.titan') : g.dino ? WZ.I18n.t('hud.dino') : null);
       }
       UI.hideGiantBars(n);
     },

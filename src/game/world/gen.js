@@ -208,6 +208,7 @@
     if (opts.theme === 'jurassic' && WZ.WorldJ) return WZ.WorldJ.generate(runSeed, missionIndex, opts);   // see world/gen_jurassic.js
     if (opts.theme === 'volcanic' && WZ.WorldV) return WZ.WorldV.generate(runSeed, missionIndex, opts);   // see world/gen_volcanic.js
     if (opts.theme === 'frozen' && WZ.WorldF) return WZ.WorldF.generate(runSeed, missionIndex, opts);     // see world/gen_frozen.js
+    if (opts.theme === 'harbor' && WZ.WorldH) return WZ.WorldH.generate(runSeed, missionIndex, opts);     // see world/gen_harbor.js
     const tutorial = opts.tutorial != null ? opts.tutorial : missionIndex <= CFG.mission.tutorialIndex;
     const base = R.hash(runSeed >>> 0, missionIndex);
     let map = null, attempt = 0;

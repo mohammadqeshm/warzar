@@ -8,7 +8,7 @@
   'use strict';
   const T = THREE;
   const SHOT = { w: 960, h: 600, ow: 720, oh: 450 }, POR = { s: 640, o: 384 };
-  const RIM = { village: 0xFFD08A, jurassic: 0xB6FF8A, volcanic: 0xFF7A2A, frozen: 0x8FE8FF };
+  const RIM = { village: 0xFFD08A, jurassic: 0xB6FF8A, volcanic: 0xFF7A2A, frozen: 0x8FE8FF, harbor: 0xFFA640 };
 
   const MP = {
     shot: {}, portrait: {}, tasks: [], timer: 0, running: false,

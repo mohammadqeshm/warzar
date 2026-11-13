@@ -173,7 +173,7 @@
 
     // MAPS (selected in the main menu, stored in Save.data.settings.map). `village` = the original desert village.
     maps: {
-      order: ['village', 'jurassic', 'volcanic', 'frozen'],
+      order: ['village', 'jurassic', 'volcanic', 'frozen', 'harbor'],
       village: { name: 'maps.village' },
       jurassic: { name: 'maps.jurassic', waterLevel: -0.5, waterSlow: 0.72, waterTurn: 0.3, waterGrip: 0.55, current: 6.5, hillAmp: 7.2, riverWidth: 7.4, bridges: 4 },
       // VOLCANIC WASTELAND (harder than the Jurassic map): two LAVA RIVERS (wade / waterSlow / waterTurn / waterGrip / current are read by the vehicle exactly like the
@@ -186,7 +186,39 @@
       // `iceAccel` / `iceBrake` / `iceCoast` = share of acceleration / braking / rolling resistance left. Ice is never lethal and never blocks - it only costs control.
       // The map is a little harder than the village (spawnMul / hpMul). Guardians: ICE BEAST (CFG.beast).
       frozen: { name: 'maps.frozen', iceGrip: 0.07, iceTurn: 0.5, iceAccel: 0.45, iceBrake: 0.16, iceCoast: 0.2, hillAmp: 5.2, lakes: 2, patches: 15, patchR: [6.5, 12.5], spawnMul: 1.08, hpMul: 1.05 },
+      // SUNKEN HARBOR: a derelict military port (see world/gen_harbor.js). The sea is walled off by the quay + curbs; the only way into the water is a BROKEN PIER SECTION (`holes`):
+      // the vehicle that drives into one splashes into the sea, loses `CFG.harbor.fall.pct` of its max armor and is fished back onto the deck. Container yards = narrow lanes (7.4-9.4 u),
+      // some lane segments are plugged (dead ends). Tower cranes swing containers into lanes (CFG.harbor.crane). Guardians: HARBOR MECH (CFG.mech). Harder than the village (spawnMul / hpMul).
+      harbor: { name: 'maps.harbor', hillAmp: 1, deckH: 0.45, seabed: -3.4, seaLevel: -0.95, quayX: [54, 68], pierW: 22, piers: 4, holeLen: 9, holeFrac: 0.46, fullCut: 0.3, plug: 0.17, jib: 46, spawnMul: 1.1, hpMul: 1.08 },
     },
+    // HARBOR hazards (harbor map only, see systems/harbor.js):
+    //  FALL: driving into a broken pier section = splash. The vehicle loses `fall.pct` of its MAX armor (it can die from it) and is put back on the deck
+    //    next to the hole (`immune` s of grace); Nana loses `fall.nana` HP and is put back; enemies / small stuff that fall in are knocked out.
+    //  CRANES: every tower crane lifts the container resting on its home pad, swings it over to a lane (the SLOT) and lowers it: the lane is blocked for `hold` s, then it goes back.
+    //    Telegraph: the beacon on the crane flashes, a hatched red rectangle marks the slot from the moment the load starts to swing (`warn` s at least) and the load never touches down
+    //    while the vehicle / Nana / a guardian is under it - it hovers until the spot is clear. Enemies under it are crushed.
+    harbor: {
+      tutorialMul: 0.5,
+      fall: { pct: 0.45, immune: 2.5, nana: 14, margin: 0.9, hint: 16 },
+      crane: { firstDelay: [14, 22], gap: [16, 26], gapPerMission: -0.4, gapMin: 11, hold: [9, 13], pickT: 1.0, liftT: 1.3, lowerT: 1.5, carryMin: 3.4, slew: 0.5, trolley: 9, carryAlt: 14, hoverAlt: 6,
+        clear: 3.0, minFromStart: 45, minFromCrate: 22, minFromExtract: 26, hint: 30, tutorialDelay: 40, tutorialHold: 6 },
+    },
+    // HARBOR MECH guardians (harbor map): they replace the club giants. Same chase / HP-bar rules (these values are merged over CFG.giant). A heavy military walker:
+    //  - CANNON (needs a clear line of sight): it plants its feet and a red laser line is painted toward the target (`aim` s = the telegraph; the line freezes `lock` s before the shot, so a
+    //    moving vehicle just drives out of it). The shell is fast and flat: containers stop it (it blows up on the first container in the way).
+    //  - MISSILES (no line of sight needed): the shoulder pods open (`windup`), then `salvo` missiles climb over the containers and come down on red rings (`flight` s) around the target.
+    //  - COVER: after taking `coverHit` damage (or `coverShots` shots) it walks behind a container so the target has no line of sight, crouches for `coverTime` s and flushes the player
+    //    out with missile salvos. While crouched behind cover direct fire (gun / turrets / heli) only does `coverArmor` of its damage - bombs, the jet, mines and barrels still hit full.
+    //  - STOMP (melee): when the target is within `stomp.reach`; telegraphed with a ring, kills Nana in reach.
+    mech: {
+      hp: 215, speed: 6.2, radius: 2.3, height: 10.8, home: 8, aggro: 46, nanaAggro: 50, leash: 95,
+      reach: 6.6, nanaReach: 6.0, windup: 0.8, swing: 0.3, cooldown: 2.4, jeepDamage: 22, jeepKnock: 18,
+      cannon: { minRange: 9, range: 40, nanaRange: 34, aim: 1.15, lock: 0.4, speed: 58, radius: 3.6, damage: 25, nanaDamage: 20, cooldown: 3.4, turn: 2.6, lead: 0.35, tutorialMul: 0.5 },
+      missiles: { minRange: 10, range: 46, nanaRange: 38, windup: 0.95, salvo: 4, salvoEnrage: 6, gap: 0.2, flight: [1.5, 1.95], apex: 24, radius: 4.3, damage: 15, nanaDamage: 11, spread: 8.5, cooldown: 6.4, tutorialMul: 0.5 },
+      cover: { hit: 0.16, shots: 3, time: 5.2, cooldown: 9, armor: 0.35, range: 24, minHold: 10, missileEvery: 2.3, firstMissile: 0.9, speedMul: 1.3 },
+      stomp: { reach: 7.2, windup: 0.85, cooldown: 3.2, damage: 22, nanaDamage: 9999, radius: 7.4 },
+    },
+
     // ICE BEAST guardians (frozen map): replace the club giants. Heavy, and it closes the gap with a fast CHARGE:
     //  - CHARGE: it rears back and a cyan lane is painted on the ground toward the target (`windup`, the telegraph), then it dashes along the lane at `speed` for up to `dur` s
     //    (it can only turn slowly, so a moving vehicle can sidestep). When the dash ends (or it hits the vehicle / Nana / a wall) it slams the ground and sends out an ICE WAVE.
@@ -278,6 +310,7 @@
 
   CFG.dinoStats = Object.assign({}, CFG.giant, CFG.dino);   // the dinosaur guardian = giant rules + overrides from CFG.dino
   CFG.beastStats = Object.assign({}, CFG.giant, CFG.beast);   // the Ice Beast guardian = giant rules + overrides from CFG.beast
+  CFG.mechStats = Object.assign({}, CFG.giant, CFG.mech);   // the Harbor Mech guardian = giant rules + overrides from CFG.mech
   CFG.titanStats = Object.assign({}, CFG.giant, CFG.titan); // the Magma Titan guardian = giant rules + overrides from CFG.titan
 
   WZ.CFG = CFG;
