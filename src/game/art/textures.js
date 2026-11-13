@@ -42,9 +42,27 @@
     return tex(c, { nearest: true });
   }
 
+  /** finer pixel-block digital camo for the heroes (n x n cells, 8 px each) */
+  function camoPix(pal, seed, n) {
+    const S = n * 8, c = cv(S, S), g = c.getContext('2d'), r = R.mulberry32(seed), n1 = R.noise2(seed), n2 = R.noise2(seed + 41);
+    for (let by = 0; by < n; by++) for (let bx = 0; bx < n; bx++) {
+      const v = n1(bx * 0.28, by * 0.28) * 0.55 + n2(bx * 0.75, by * 0.75) * 0.45 + (r() - 0.5) * 0.24;
+      g.fillStyle = pal[v < 0.36 ? 0 : v < 0.52 ? 1 : v < 0.74 ? 2 : 3];
+      g.fillRect(bx * 8, by * 8, 8, 8);
+    }
+    g.fillStyle = pal[0]; // dark flecks break up the blocks like printed digital camo
+    for (let i = 0; i < n * 2; i++) g.fillRect(((r() * n) | 0) * 8, ((r() * n) | 0) * 8, 8, 8);
+    g.globalAlpha = 0.12; g.fillStyle = '#000';
+    for (let by = 0; by < n; by++) g.fillRect(0, by * 8 + 7, S, 1);
+    g.globalAlpha = 1;
+    return tex(c, { nearest: true });
+  }
+
   const paint = {
     camoGreen: () => camo(['#1B1D1A', '#2E3226', '#4A4F36', '#6B5B3A'], 3),
     camoDark: () => camo(['#0F100E', '#1B1D1A', '#2E3226', '#4A4F36'], 9),
+    camoCmdr: () => camoPix(['#0E0B08', '#231A10', '#3D2F1E', '#5C4A30'], 5, 20),   // Commander: black / brown / tan
+    camoNana: () => camoPix(['#070706', '#13110D', '#231C12', '#3E3220'], 12, 20),  // Nana: darker, mostly black
 
     wood() {
       const c = cv(256, 256), g = c.getContext('2d'), r = R.mulberry32(11);
@@ -224,20 +242,95 @@
       g.strokeStyle = '#111'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.arc(32, 34, 15, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
       return tex(c, { clamp: true });
     },
-    nanaDecals() { // top: NANA stencil (256x64) · bottom-left: smiley sticker · next: card patch
+    cmdrEmblem() { // three stacked white chevrons with a dark outline (cap front + vest back)
+      const c = cv(128, 80), g = c.getContext('2d');
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      [[12, 0.8], [34, 1], [56, 1]].forEach((s) => {
+        const y = s[0], w = s[1] * 44;
+        g.beginPath(); g.moveTo(64 - w, y + 18); g.lineTo(64, y - 2); g.lineTo(64 + w, y + 18);
+        g.strokeStyle = '#15171A'; g.lineWidth = 16; g.stroke();
+        g.strokeStyle = '#F4F5F2'; g.lineWidth = 8; g.stroke();
+      });
+      return tex(c, { clamp: true });
+    },
+    faceCmdr() { // 448x400, drawn on a 1.1 x 0.98 plane in front of the head: furious eyes, thick brows, grim mouth
+      const c = cv(448, 400), g = c.getContext('2d');
+      g.lineJoin = 'round'; g.lineCap = 'round';
+      for (const s of [-1, 1]) {
+        const cx = 224 + s * 94, cy = 218;
+        g.beginPath(); g.ellipse(cx, cy, 72, 60, 0, 0, 7); g.fillStyle = '#F8F5EC'; g.fill();
+        g.lineWidth = 7; g.strokeStyle = '#120D0A'; g.stroke();
+        g.fillStyle = '#0A0A0A'; g.beginPath(); g.ellipse(cx - s * 11, cy + 10, 29, 32, 0, 0, 7); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - s * 11 - 10, cy - 2, 9, 0, 7); g.fill();
+        g.beginPath(); g.arc(cx - s * 11 + 10, cy + 23, 4.5, 0, 7); g.fill();
+        g.strokeStyle = '#120D0A'; g.lineWidth = 46; // heavy slanted brow
+        g.beginPath(); g.moveTo(224 + s * 172, 104); g.lineTo(224 + s * 20, 178); g.stroke();
+        g.lineWidth = 14; g.beginPath(); g.moveTo(224 + s * 182, 92); g.lineTo(224 + s * 164, 126); g.stroke();
+      }
+      g.strokeStyle = '#2A1510'; g.lineWidth = 7; g.beginPath(); g.moveTo(224, 120); g.lineTo(224, 156); g.stroke(); // furrow
+      g.lineWidth = 13; g.strokeStyle = '#2A1510'; g.beginPath(); g.arc(224, 398, 64, Math.PI * 1.17, Math.PI * 1.83); g.stroke();
+      g.globalAlpha = 0.18; g.fillStyle = '#B5682F'; // cheek shading
+      for (const s of [-1, 1]) { g.beginPath(); g.ellipse(224 + s * 150, 300, 32, 20, 0, 0, 7); g.fill(); }
+      g.globalAlpha = 1;
+      return tex(c, { clamp: true });
+    },
+    faceNana() { // goofy: huge round eyes, raised brows, buck-toothed grin, tongue out, band-aid
+      const c = cv(448, 400), g = c.getContext('2d');
+      g.lineJoin = 'round'; g.lineCap = 'round';
+      for (const s of [-1, 1]) {
+        const cx = 224 + s * 86, cy = 190;
+        g.beginPath(); g.arc(cx, cy, 80, 0, 7); g.fillStyle = '#FBF9F2'; g.fill();
+        g.lineWidth = 9; g.strokeStyle = '#120D0A'; g.stroke();
+        g.fillStyle = '#0A0A0A'; g.beginPath(); g.ellipse(cx - s * 8, cy + 6, 37, 41, 0, 0, 7); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - s * 8 - 13, cy - 10, 12, 0, 7); g.fill();
+        g.beginPath(); g.arc(cx - s * 8 + 13, cy + 21, 5.5, 0, 7); g.fill();
+        g.strokeStyle = '#120D0A'; g.lineWidth = 28; // thick expressive brows (one raised)
+        const up = s < 0 ? 14 : 0;
+        g.beginPath(); g.moveTo(224 + s * 160, 108 - up * 0.5); g.quadraticCurveTo(224 + s * 100, 66 - up, 224 + s * 22, 94 - up * 0.3); g.stroke();
+      }
+      // mouth
+      const mouth = () => { g.beginPath(); g.moveTo(126, 296); g.quadraticCurveTo(224, 322, 322, 296); g.quadraticCurveTo(224, 430, 126, 296); g.closePath(); };
+      mouth(); g.fillStyle = '#4A0F12'; g.fill();
+      g.save(); mouth(); g.clip();
+      g.fillStyle = '#F7F3E8'; g.strokeStyle = '#2A1510'; g.lineWidth = 4; // two buck teeth
+      for (const x of [188, 224]) { g.beginPath(); g.roundRect ? g.roundRect(x, 302, 34, 42, 6) : g.rect(x, 302, 34, 42); g.fill(); g.stroke(); }
+      g.restore();
+      mouth(); g.lineWidth = 9; g.strokeStyle = '#120D0A'; g.stroke();
+      // tongue
+      g.save(); g.translate(278, 358); g.rotate(0.28);
+      g.beginPath(); g.ellipse(0, 0, 44, 32, 0, 0, 7); g.fillStyle = '#E5617D'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#7A1A2A'; g.stroke();
+      g.beginPath(); g.moveTo(-30, -3); g.lineTo(26, 4); g.lineWidth = 4; g.stroke();
+      g.restore();
+      // band-aid on the cheek
+      g.save(); g.translate(376, 272); g.rotate(-0.6);
+      g.fillStyle = '#EBCB9C'; g.strokeStyle = '#8A6A44'; g.lineWidth = 3; g.fillRect(-38, -14, 76, 28); g.strokeRect(-38, -14, 76, 28);
+      g.fillStyle = '#D6B07C'; g.fillRect(-13, -14, 26, 28);
+      g.fillStyle = '#B58E5E'; for (let i = 0; i < 6; i++) g.fillRect(-25 + (i % 3) * 22, -8 + ((i / 3) | 0) * 12, 3, 3);
+      g.restore();
+      return tex(c, { clamp: true });
+    },
+    nanaDecals() { // top: NANA stencil (256x64) · bottom-left: smiley sticker · next: ace-of-spades card patch
       const c = cv(256, 128), g = c.getContext('2d'), r = R.mulberry32(31);
-      g.fillStyle = '#ECE9E1'; g.font = '58px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText('NANA', 128, 34);
-      g.globalCompositeOperation = 'destination-out';
-      g.fillRect(0, 22, 256, 2); g.fillRect(0, 44, 256, 2);
-      for (let i = 0; i < 90; i++) g.fillRect(r() * 256, r() * 64, 1 + r() * 3, 1 + r() * 2);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '62px ' + FONT;
+      const tw = g.measureText('NANA').width || 120, sx = Math.min(2.2, 232 / tw);
+      g.save(); g.translate(128, 33); g.scale(sx, 1);
+      g.fillStyle = '#F2EFE6'; g.strokeStyle = '#F2EFE6'; g.lineWidth = 3; g.fillText('NANA', 0, 0); g.strokeText('NANA', 0, 0);
+      g.restore();
+      g.globalCompositeOperation = 'destination-out'; // worn-paint chips
+      for (let i = 0; i < 60; i++) g.fillRect(r() * 256, r() * 64, 1 + r() * 2, 1 + r() * 2);
       g.globalCompositeOperation = 'source-over';
-      g.fillStyle = '#FFB400'; g.beginPath(); g.arc(32, 96, 27, 0, 7); g.fill();
-      g.fillStyle = '#111'; g.fillRect(21, 84, 6, 11); g.fillRect(37, 84, 6, 11);
-      g.strokeStyle = '#111'; g.lineWidth = 3.5; g.lineCap = 'round'; g.beginPath(); g.arc(32, 98, 13, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
-      g.fillStyle = '#ECE9E1'; g.fillRect(74, 68, 44, 54); g.strokeStyle = '#111'; g.lineWidth = 3; g.strokeRect(74, 68, 44, 54);
-      g.fillStyle = '#111'; g.font = '26px ' + FONT; g.fillText('A', 96, 88);
-      g.fillStyle = '#A8322A'; g.beginPath(); g.moveTo(96, 96); g.lineTo(106, 106); g.lineTo(96, 116); g.lineTo(86, 106); g.closePath(); g.fill();
+      // smiley sticker
+      g.fillStyle = '#15130C'; g.beginPath(); g.arc(32, 96, 30, 0, 7); g.fill();
+      g.fillStyle = '#FFC400'; g.beginPath(); g.arc(32, 96, 26, 0, 7); g.fill();
+      g.fillStyle = '#111'; g.fillRect(21, 84, 6, 12); g.fillRect(37, 84, 6, 12);
+      g.strokeStyle = '#111'; g.lineWidth = 3.5; g.lineCap = 'round'; g.beginPath(); g.arc(32, 97, 13, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+      // card
+      g.fillStyle = '#E9E3CE'; g.fillRect(74, 68, 44, 54); g.strokeStyle = '#111'; g.lineWidth = 3; g.strokeRect(74, 68, 44, 54);
+      g.fillStyle = '#111'; g.font = '16px ' + FONT; g.fillText('A', 83, 79);
+      g.beginPath(); g.arc(90, 101, 8, 0, 7); g.arc(104, 101, 8, 0, 7); g.fill();
+      g.beginPath(); g.moveTo(96, 80); g.lineTo(113, 99); g.lineTo(81, 99); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(96, 100); g.lineTo(102, 115); g.lineTo(90, 115); g.closePath(); g.fill();
       return tex(c, { clamp: true });
     },
   };
