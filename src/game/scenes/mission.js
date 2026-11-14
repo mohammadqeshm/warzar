@@ -36,6 +36,7 @@
       WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Soldiers.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Jets.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
       if (WZ.Audio.setMusic) WZ.Audio.setMusic('mission', M.theme);
       M.ctx.addTime = (s) => { M.timeLeft += s; };
+      M.ctx.timeLeft = () => M.timeLeft;                                                                                           // read-only timer access for WZ.Pickups
       WZ.Pickups.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 4242));
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
@@ -313,6 +314,7 @@
     complete() {
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'complete'; M.endT = 0;
+      WZ.Pickups.stop();
       const S = WZ.Save.data, nextLvl = (M.data.index || 1) + 1;
       if (nextLvl > (S.level || 1)) S.level = nextLvl;
       if (nextLvl > (S.best.mission || 0)) S.best.mission = nextLvl;
@@ -327,6 +329,7 @@
     fail(reason) {
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'fail'; M.failReason = reason; M.endT = 0;
+      WZ.Pickups.stop();
       const S = WZ.Save.data, curLvl = Math.max(1, M.data.index || 1);
       if (curLvl > (S.level || 1)) S.level = curLvl;
       if (WZ.Main) WZ.Main.startIndex = S.level || curLvl;
@@ -490,7 +493,7 @@
     debugText() {
       const r = WZ.Main.renderer.info.render, Q = WZ.Quality;
       WZ.UI.debug('FPS ' + WZ.Main.fps.toFixed(0) + '  calls ' + r.calls + '  tris ' + r.triangles + '\nmission ' + M.data.index + '  seed ' + M.data.runSeed + '  gen attempts ' + M.map.attempts + (M.map.fallback ? ' (fallback)' : '') +
-        '\nenemies ' + WZ.Enemies.alive + '  heat ' + M.heat.toFixed(2) + '  jeep ' + M.jeep.speed.toFixed(1) + ' u/s' + '\nquality ' + Q.level + ' dpr x' + Q.dprScale.toFixed(2) + '  nana ' + M.nana.state + '\n[N] skip mission');
+        '\nenemies ' + WZ.Enemies.alive + '  heat ' + M.heat.toFixed(2) + '  jeep ' + M.jeep.speed.toFixed(1) + ' u/s' + '\nquality ' + Q.level + ' dpr x' + Q.dprScale.toFixed(2) + '  nana ' + M.nana.state + '\n' + WZ.Pickups.debugLine() + '\n[N] skip mission');
     },
   };
 

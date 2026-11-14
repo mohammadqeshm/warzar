@@ -166,13 +166,31 @@
         shootRange: 13, shootStop: 5.5, shootCd: 2.3, shootDamage: 9, bulletSpeed: 19 },
     },
 
-    // PICKUPS scattered over the map (very few per mission, off in the tutorial). Drive over them with the vehicle.
-    //  heal: repairs `healPct` of the vehicle's max armor (is NOT used up while the armor is already full).  time: adds `bonus` seconds to the timer.
+    // DYNAMIC PICKUPS (WZ.Pickups). Hearts (repair) and clocks (time) are generated DURING the mission, only while the player needs them, and are driven over by the VEHICLE.
+    //  BUDGET   = the number of pickups of each kind that may be spawned during the WHOLE mission = the DISPLAYED mission level (HUD "LEVEL n" / briefing "MISSION n" = mission.index, 1-based).
+    //             It is a budget, not a simultaneous count, and it has NO cap. A pickup consumes budget only when it is really placed in the world (a failed placement costs nothing).
+    //  maxActive = how many pickups of a kind may exist at the same time. cooldown starts when one is collected.
+    //  heal: eligible while armor <= `threshold` of max (never at full armor); restores `healPct` of the vehicle's MAX armor.
+    //  time: eligible while the mission timer <= `eligibleAt` s; `urgentAt` s and below is a higher-urgency state (shorter delays / cooldown, nearer placement). The reward of every clock is
+    //        drawn from `rewards` (weights are relative - they need not add up to 100): +20 s / +35 s / +60 s by default.
+    //  place: spawn validation (all distances in world units, see systems/pickups.js). retry: when no valid spot is found nothing is consumed and a new try is scheduled `retryDelay` s later.
     pickups: {
-      fromMission: 2, radius: 3.0, minFromStart: 110, minFromCrate: 16, minFromExtract: 22, minGap: 55, bob: 0.35, hover: 2.6,
-      heal: { healPct: 0.4, count: (m) => Math.min(3, 1 + Math.floor((m + 1) / 4)) },
-      time: { bonus: 60, count: (m) => (m >= 5 ? 2 : 1) },
-      arrowRange: 95,
+      enabled: true, inTutorial: false, radius: 3.0, bob: 0.35, hover: 2.6, arrowRange: 400,
+      levelOf: (mission) => mission.index,                       // the DISPLAYED level (HUD / briefing show mission.index, 1-based)
+      budget: (level) => Math.max(0, Math.floor(level)),     // per kind, per mission - deliberately uncapped
+      heal: { healPct: 0.4, threshold: 0.5, maxActive: 1, cooldown: 12, startDelay: 1.5 },
+      time: {
+        eligibleAt: 60, urgentAt: 30, maxActive: 1, cooldown: 14, urgentCooldownMul: 0.4, startDelay: 2.0, urgentStartDelay: 0.6,
+        rewards: [{ s: 20, w: 50 }, { s: 35, w: 35 }, { s: 60, w: 15 }],
+      },
+      retry: { delay: 2.5, urgentDelay: 1.0, backoff: 1.5, maxDelay: 8 },
+      place: {
+        samples: 48, pathChecks: 4, edge: 24, clearance: 3.4, groundRing: 3.2, maxHeightDelta: 2.4, waterMargin: 0.7,
+        minFromJeep: 32, minFromNana: 24, minFromStart: 30, minFromCrate: 16, minFromExtract: 26, minGap: 45,
+        avoidEnemy: 22, avoidGiant: 42, avoidMine: 11, avoidBarrel: 13, avoidPit: 9, avoidVent: 15, avoidPool: 8, avoidRock: 12, avoidTornado: 48, avoidBlast: 16, avoidPlayerMine: 9, avoidTurret: 7, craneMargin: 10,
+        maxPath: 260, urgentMaxPath: 150, minReachPath: 70, cruiseSpeed: 0.7, reachSafety: 0.85,
+      },
+      log: false,        // console diagnostics for every spawn / failed attempt (also switched on by ?pkdebug=1 in the URL)
     },
 
     // MAPS (selected in the main menu, stored in Save.data.settings.map). `village` = the original desert village.
