@@ -52,7 +52,7 @@
           it.vy = 6 + Math.random() * 5 + sp * 0.12; it.sp = (Math.random() - 0.5) * 12;
           this.fly.push(it);
           particles.dust(it.x, it.y - 0.2, it.z, 2);
-          WZ.Audio.sfx(it.kind === 0 ? 'bag' : 'thud', 0.8);
+          WZ.Audio.sfx(it.kind === 0 ? 'bag' : 'barrel', 0.9 + Math.min(0.3, sp / 60));
         }
       }
     }

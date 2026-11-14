@@ -33,7 +33,7 @@
 
       'hud.crates': 'CRATES',
       'hud.deploy': 'DEPLOY', 'hud.recall': 'RECALL', 'hud.boost': 'BOOST',
-      'hud.pause': 'PAUSE', 'hud.heat': 'HEAT', 'hud.nana': 'NANA', 'hud.jeep': 'JEEP',
+      'hud.pause': 'PAUSE', 'hud.pk.tipHeal': 'Repair hearts left on this level', 'hud.pk.tipTime': 'Time clocks left on this level', 'hud.nana': 'NANA', 'hud.jeep': 'JEEP',
       'hud.obj.find': 'FIND THE CRATES',
       'hud.obj.extract': 'DRIVE TO THE GREEN ZONE',
       'hud.obj.nana': 'PICK UP NANA!',

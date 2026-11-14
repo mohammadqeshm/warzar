@@ -1,5 +1,6 @@
-/* WZ.Audio — Studio-grade WebAudio synthesizer with clean map-specific musical soundtracks, realistic V8 vehicle engine & pure tonal SFX.
- * Zero random static/white/pink noise buffers: 100% click-free, pop-free, glitch-free harmonic synthesis with safe lookahead scheduling. */
+/* WZ.Audio — WebAudio synthesizer: map-specific musical soundtracks, a calm natural engine loop, punchy impact / explosion effects and a distance-driven tornado wind.
+ * Music stays 100% tonal. Impacts, explosions, the engine texture and the wind use short FILTERED NOISE (a shared pre-rendered buffer, enveloped so it is click-free and never hisses
+ * or rings on): low-frequency sines alone are inaudible on phone / laptop speakers, which is why collisions used to be silent. */
 (function (WZ) {
   'use strict';
 
@@ -456,18 +457,53 @@
       o.stop(t + d + 0.02);
     },
 
-    /** Pure tonal low-end impact/body synthesizer (replaces random noise buffers so zero static hiss can ever occur) */
-    noiseBurst(dur, ftype, f0, f1, vol, delay, q) {
-      void ftype; void q;
+    /** shared noise buffer (created lazily). pink = 1/f noise (soft, for wind / engine rumble), white = bright crack for impacts */
+    _noiseBuf(pink) {
+      const c = A.ctx, key = pink ? '_nbP' : '_nbW';
+      if (A[key]) return A[key];
+      const n = Math.floor(c.sampleRate * 2), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+      if (pink) {
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, pk = 0;
+        for (let i = 0; i < n; i++) {
+          const w = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759; b2 = 0.96900 * b2 + w * 0.1538520;
+          b3 = 0.86650 * b3 + w * 0.3104856; b4 = 0.55000 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.0168980;
+          const v = b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362; b6 = w * 0.115926;
+          d[i] = v; if (Math.abs(v) > pk) pk = Math.abs(v);
+        }
+        const k = 0.9 / (pk || 1); for (let i = 0; i < n; i++) d[i] *= k;
+        // seamless loop: cross-fade the last 2000 samples into the first ones
+        const L = 2000; for (let i = 0; i < L; i++) { const u = i / L; d[n - L + i] = d[n - L + i] * (1 - u) + d[i] * u; }
+      } else for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      A[key] = buf; return buf;
+    },
+
+    /** Enveloped, filtered noise burst (impact crack / explosion body / swish). ftype: lowpass | bandpass | highpass, cutoff sweeps f0 -> f1, vol = peak gain. */
+    noise(dur, ftype, f0, f1, vol, delay, q) {
       const c = A.ctx;
       if (!c || A.hardSuspended || A.muted || c.state !== 'running') return;
-      const d = Math.max(0.03, Math.min(0.55, dur || 0.08));
-      const baseF0 = Math.max(48, Math.min(260, (f0 || 180) * 0.22));
-      const baseF1 = Math.max(30, Math.min(140, (f1 || 70) * 0.20));
-      const v = Math.max(0.0002, Math.min(0.32, (vol || 0.1) * 0.55));
-      A.tone('triangle', baseF0, baseF1, d, v, delay, 320);
-      A.tone('sine', baseF0 * 0.65, baseF1 * 0.6, d, v * 0.85, delay, 220);
+      if (A._voices > 28) return;
+      const d = Math.max(0.03, Math.min(1.2, dur || 0.1));
+      const t = c.currentTime + 0.006 + Math.max(0, delay || 0);
+      const src = c.createBufferSource(), flt = c.createBiquadFilter(), g = safeGain(c, 0.0001);
+      src.buffer = A._noiseBuf(false);
+      flt.type = ftype || 'lowpass';
+      const s0 = Math.max(40, Math.min(9000, f0 || 800)), s1 = Math.max(40, Math.min(9000, f1 || s0));
+      flt.frequency.setValueAtTime(s0, t);
+      if (Math.abs(s1 - s0) > 1) flt.frequency.exponentialRampToValueAtTime(s1, t + d);
+      flt.Q.value = q == null ? 0.7 : q;
+      const peak = Math.max(0.0002, Math.min(0.95, vol || 0.2));
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(peak, t + Math.min(0.006, d * 0.2));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      src.connect(flt); flt.connect(g); g.connect(A.sfxG);
+      A._voices++;
+      src.onended = () => { A._voices = Math.max(0, A._voices - 1); try { g.disconnect(); flt.disconnect(); } catch (e) { /* ignore */ } };
+      src.start(t, Math.random() * 0.8, d + 0.04);
     },
+
+    /** kept for API compatibility: now a real noise burst */
+    noiseBurst(dur, ftype, f0, f1, vol, delay, q) { A.noise(dur, ftype || 'lowpass', f0, f1, vol, delay, q); },
 
     /** Play a named effect. Rate limited per name so dense fights stay crystal clear and never clip. */
     sfx(name, v) {
@@ -483,7 +519,7 @@
         boom: 0.08, blast: 0.09, ignite: 0.38, burn: 0.35, tank: 0.24, cannon: 0.11,
         build: 0.12, mine: 0.09, siren: 0.45, wind: 0.36, roar: 0.42, club: 0.20,
         swish: 0.12, mortar: 0.12, heli: 0.20, jet: 0.55, whistle: 0.09,
-        dflame: 0.22, dino: 0.50, pickup: 0.10, clock: 0.10, rumble: 0.40, spawn: 0.08,
+        dflame: 0.22, dino: 0.50, pickup: 0.10, clock: 0.10, rumble: 0.40, spawn: 0.08, barrel: 0.07,
       }[name] || 0.05;
       if (A.last[name] && now - A.last[name] < gap) return;
       A.last[name] = now;
@@ -504,8 +540,9 @@
           A.tone('sine', 1396, 1280, 0.08, 0.10 * v);
           break;
         case 'hit':
-          A.tone('sine', 175, 58, 0.095, 0.26 * v);
-          A.tone('triangle', 320, 105, 0.065, 0.15 * v, 0, 900);
+          A.tone('sine', 220, 82, 0.09, 0.26 * v);
+          A.tone('triangle', 430, 170, 0.06, 0.15 * v, 0, 1200);
+          A.noise(0.05, 'bandpass', 1900, 900, 0.17 * v, 0, 1.2);
           break;
         case 'hurt':
           A.tone('triangle', 310, 118, 0.15, 0.22 * v);
@@ -516,20 +553,34 @@
           A.tone('triangle', 460, 150, 0.2, 0.15 * v, 0.025);
           break;
         case 'ram':
-          A.tone('sine', 120, 38, 0.22, 0.44 * v);
-          A.tone('triangle', 280, 82, 0.16, 0.26 * v, 0, 750);
+          // vehicle smashes into an enemy: crunchy body hit + low thump
+          A.noise(0.16, 'lowpass', 2300, 420, 0.5 * v, 0, 0.7);
+          A.tone('triangle', 300, 110, 0.16, 0.42 * v, 0, 1000);
+          A.tone('sine', 140, 52, 0.2, 0.42 * v);
           break;
         case 'crash':
-          A.tone('sine', 98, 35, 0.20, 0.38 * v);
-          A.tone('triangle', 220, 68, 0.15, 0.22 * v, 0, 680);
+          // vehicle hits a wall / rock / building / guardian: noisy crunch + metal rattle + body thump
+          A.noise(0.32, 'lowpass', 2600, 260, 0.62 * v, 0, 0.7);
+          A.noise(0.14, 'bandpass', 1100, 600, 0.28 * v, 0.03, 2);
+          A.tone('triangle', 215, 72, 0.26, 0.46 * v, 0, 900);
+          A.tone('sine', 104, 42, 0.3, 0.42 * v);
           break;
         case 'thud':
-          A.tone('sine', 140, 50, 0.12, 0.30 * v);
-          A.tone('triangle', 210, 75, 0.08, 0.14 * v, 0, 550);
+          A.noise(0.1, 'lowpass', 1100, 260, 0.4 * v, 0, 0.7);
+          A.tone('sine', 190, 72, 0.13, 0.4 * v);
+          A.tone('triangle', 320, 130, 0.08, 0.2 * v, 0, 800);
           break;
         case 'bag':
-          A.tone('sine', 115, 48, 0.095, 0.22 * v);
-          A.tone('triangle', 180, 72, 0.075, 0.12 * v, 0, 500);
+          A.noise(0.15, 'lowpass', 800, 220, 0.42 * v, 0, 0.7);
+          A.tone('sine', 160, 70, 0.12, 0.32 * v);
+          break;
+        case 'barrel':
+          // metal barrel kicked by the vehicle: dull clang with a ringing body
+          A.noise(0.05, 'bandpass', 2400, 1500, 0.22 * v, 0, 1.5);
+          A.tone('sine', 420, 400, 0.38, 0.24 * v);
+          A.tone('triangle', 655, 625, 0.3, 0.15 * v);
+          A.tone('sine', 985, 950, 0.22, 0.1 * v);
+          A.tone('sine', 150, 70, 0.12, 0.34 * v);
           break;
         case 'grab':
           A.tone('triangle', 523.25, 523.25, 0.08, 0.20 * v);
@@ -592,16 +643,18 @@
           });
           break;
         case 'boom':
-          // Deep clean explosion (sub shockwave + warm low-mid punch, zero static)
-          A.tone('sine', 96, 28, 0.44, 0.48 * v);
-          A.tone('triangle', 180, 44, 0.28, 0.28 * v, 0, 520);
-          A.tone('sine', 64, 24, 0.48, 0.32 * v, 0.03);
+          // explosion: bright crack that dives into a deep body + rolling rumble + low punch
+          A.noise(0.55, 'lowpass', 3000, 110, 0.85 * v, 0, 0.7);
+          A.noise(0.6, 'lowpass', 420, 70, 0.6 * v, 0.04, 0.7);
+          A.tone('sine', 120, 34, 0.55, 0.55 * v);
+          A.tone('triangle', 240, 62, 0.32, 0.36 * v, 0, 700);
           break;
         case 'blast':
-          // Heavy bomb / barrel detonation
-          A.tone('sine', 84, 25, 0.52, 0.52 * v);
-          A.tone('triangle', 160, 38, 0.34, 0.30 * v, 0, 480);
-          A.tone('sine', 58, 22, 0.55, 0.36 * v, 0.04);
+          // barrel / shell detonation: a bigger, longer explosion
+          A.noise(0.7, 'lowpass', 3400, 90, 0.9 * v, 0, 0.7);
+          A.noise(0.75, 'lowpass', 380, 60, 0.65 * v, 0.05, 0.7);
+          A.tone('sine', 100, 28, 0.65, 0.6 * v);
+          A.tone('triangle', 200, 52, 0.4, 0.4 * v, 0, 650);
           break;
         case 'ignite':
           A.tone('sine', 110, 220, 0.22, 0.18 * v);
@@ -616,8 +669,9 @@
           A.tone('triangle', 115, 72, 0.10, 0.09 * v, 0, 420);
           break;
         case 'cannon':
-          A.tone('sine', 138, 36, 0.26, 0.44 * v);
-          A.tone('triangle', 290, 72, 0.15, 0.24 * v, 0, 680);
+          A.noise(0.26, 'lowpass', 3200, 300, 0.6 * v, 0, 0.7);
+          A.tone('sine', 150, 40, 0.3, 0.5 * v);
+          A.tone('triangle', 320, 82, 0.16, 0.3 * v, 0, 700);
           break;
         case 'build':
           A.tone('triangle', 261.63, 523.25, 0.16, 0.18 * v);
@@ -640,15 +694,17 @@
           A.tone('sine', 92, 36, 0.44, 0.26 * v);
           break;
         case 'club':
-          A.tone('sine', 95, 32, 0.30, 0.50 * v);
-          A.tone('triangle', 230, 70, 0.15, 0.24 * v, 0, 620);
+          A.noise(0.2, 'lowpass', 1500, 200, 0.45 * v, 0, 0.7);
+          A.tone('sine', 98, 34, 0.32, 0.5 * v);
+          A.tone('triangle', 230, 72, 0.16, 0.26 * v, 0, 620);
           break;
         case 'swish':
           A.tone('sine', 250, 92, 0.16, 0.16 * v);
           A.tone('triangle', 360, 130, 0.14, 0.10 * v, 0, 650);
           break;
         case 'mortar':
-          A.tone('sine', 240, 52, 0.22, 0.38 * v);
+          A.noise(0.18, 'lowpass', 1800, 400, 0.36 * v, 0, 0.7);
+          A.tone('sine', 240, 60, 0.24, 0.38 * v);
           A.tone('triangle', 390, 105, 0.12, 0.18 * v, 0, 720);
           break;
         case 'heli':
@@ -680,8 +736,9 @@
           [783.99, 1046.5, 1567.98].forEach((f, i) => A.tone('triangle', f, f, 0.14, 0.20 * v, i * 0.075));
           break;
         case 'rumble':
-          A.tone('sine', 64, 30, 0.52, 0.34 * v);
-          A.tone('triangle', 105, 44, 0.46, 0.20 * v, 0, 320);
+          A.noise(0.55, 'lowpass', 300, 80, 0.55 * v, 0, 0.7);
+          A.tone('sine', 72, 32, 0.55, 0.38 * v);
+          A.tone('triangle', 130, 52, 0.5, 0.2 * v, 0, 400);
           break;
         case 'spawn':
           A.tone('sine', 240, 310, 0.065, 0.045 * v);
@@ -691,55 +748,38 @@
       }
     },
 
-    /** Realistic, warm, clearly audible V8 off-road vehicle engine with cylinder firing cadence & throttle response */
+    /** Calm, natural off-road engine: soft triangle/sine harmonics + a filtered rumble texture with a gentle cylinder "chug". No sawtooth, no resonant filter sweep, narrow pitch range,
+     *  slow smoothing -> a warm purr that rises gently with speed instead of a buzzing rev. Quiet enough to sit under music and effects. */
     engineStart() {
       if (!A.ctx) A.unlock();
       if (!A.ctx || A.eng) return;
       const c = A.ctx;
       if (c.state === 'suspended' && !A.hardSuspended) c.resume().catch(() => {});
 
-      // 3 harmonic oscillators + cylinder pulsation LFO + warm resonant muffler filter
-      const o1 = c.createOscillator(); // primary cylinder bank (sawtooth for rich warm 100-500 Hz harmonics)
-      const o2 = c.createOscillator(); // upper octave harmonic (triangle at 2x f for speaker clarity)
-      const o3 = c.createOscillator(); // deep engine block fundamental (sine at 1x f)
-      const lfo = c.createOscillator(); // rhythmic cylinder chug cadence
+      const o1 = c.createOscillator(), o2 = c.createOscillator(), o3 = c.createOscillator(), lfo = c.createOscillator();
+      o1.type = 'triangle'; o2.type = 'triangle'; o3.type = 'sine'; lfo.type = 'sine';
+      o1.frequency.value = 44; o2.frequency.value = 88; o3.frequency.value = 132; lfo.frequency.value = 9;
 
-      o1.type = 'sawtooth';
-      o2.type = 'triangle';
-      o3.type = 'sine';
-      lfo.type = 'sine';
+      const g1 = safeGain(c, 0.5), g2 = safeGain(c, 0.34), g3 = safeGain(c, 0.12);
+      const chug = safeGain(c, 0.86);            // amplitude "chug" (the LFO swings this between ~0.7 and ~1.0)
+      const lfoG = safeGain(c, 0.14);
+      lfo.connect(lfoG); lfoG.connect(chug.gain);
 
-      o1.frequency.value = 60;
-      o2.frequency.value = 120;
-      o3.frequency.value = 60;
-      lfo.frequency.value = 14;
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 0.6;
+      o1.connect(g1); o2.connect(g2); o3.connect(g3); g1.connect(lp); g2.connect(lp); g3.connect(lp);
 
-      const g1 = safeGain(c, 0.48);
-      const g2 = safeGain(c, 0.40);
-      const g3 = safeGain(c, 0.58);
-      const lfoG = safeGain(c, 42);
+      // exhaust rumble texture: looped pink noise through a band-pass that follows the revs
+      const nz = c.createBufferSource(); nz.buffer = A._noiseBuf(true); nz.loop = true;
+      const nb = c.createBiquadFilter(); nb.type = 'bandpass'; nb.frequency.value = 170; nb.Q.value = 0.9;
+      const ng = safeGain(c, 0.5);
+      nz.connect(nb); nb.connect(ng); ng.connect(lp);
 
-      const lp = c.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 240;
-      lp.Q.value = 1.45;
-
+      lp.connect(chug);
       const g = safeGain(c, 0.0001);
+      chug.connect(g); g.connect(A.sfxG);
 
-      o1.connect(g1); g1.connect(lp);
-      o2.connect(g2); g2.connect(lp);
-      o3.connect(g3); g3.connect(lp);
-      lfo.connect(lfoG); lfoG.connect(lp.frequency);
-
-      lp.connect(g);
-      g.connect(A.sfxG);
-
-      o1.start();
-      o2.start();
-      o3.start();
-      lfo.start();
-
-      A.eng = { o1, o2, o3, lfo, lfoG, lp, g };
+      o1.start(); o2.start(); o3.start(); lfo.start(); nz.start(0, Math.random());
+      A.eng = { o1, o2, o3, lfo, lfoG, lp, g, nz, nb, ng, rpm: 0 };
     },
 
     engineSet(speed01, thr, boosting) {
@@ -754,24 +794,26 @@
       const tr = Math.max(0, Math.min(1, thr || 0));
       const bst = boosting ? 1 : 0;
 
-      // Normalized RPM (0 at idle, ~1.0 at full speed/throttle, ~1.35 on turbo boost)
-      const rpm = Math.min(1.35, s * 0.78 + tr * 0.28 + bst * 0.34);
-      const f = 58 + rpm * 86;
+      // revs: idle 0 -> top speed ~0.85, throttle adds a little "load", the boost a small extra lift. Rises smoothly (no jumps).
+      const target = Math.min(1.1, s * 0.72 + tr * 0.14 + bst * 0.16);
+      e.rpm += (target - e.rpm) * 0.12;                        // extra software smoothing on top of the audio-param smoothing
+      const rpm = e.rpm;
+      const f = 42 + rpm * 46;                                 // 42 Hz idle .. ~90 Hz flat out (the 2nd / 3rd harmonics carry it on small speakers)
 
-      e.o1.frequency.setTargetAtTime(f, t, 0.045);
-      e.o2.frequency.setTargetAtTime(f * 2, t, 0.045);
-      e.o3.frequency.setTargetAtTime(f, t, 0.045);
+      e.o1.frequency.setTargetAtTime(f, t, 0.12);
+      e.o2.frequency.setTargetAtTime(f * 2, t, 0.12);
+      e.o3.frequency.setTargetAtTime(f * 3, t, 0.12);
 
-      // Cylinder chug rate & filter modulation depth
-      e.lfo.frequency.setTargetAtTime(13 + rpm * 24, t, 0.05);
-      e.lfoG.gain.setTargetAtTime(36 + rpm * 52 + tr * 24, t, 0.05);
+      e.lfo.frequency.setTargetAtTime(7 + rpm * 13, t, 0.2);   // cylinder chug: slow and soft, never a buzz
+      e.lfoG.gain.setTargetAtTime(0.16 - rpm * 0.07, t, 0.2);  // the chug smooths out as the revs rise
 
-      // Muffler lowpass opens up smoothly under throttle & boost
-      e.lp.frequency.setTargetAtTime(240 + rpm * 480 + tr * 170 + bst * 220, t, 0.05);
+      e.lp.frequency.setTargetAtTime(360 + rpm * 340 + tr * 90 + bst * 90, t, 0.15);   // the muffler opens up a little under load
+      e.nb.frequency.setTargetAtTime(150 + rpm * 190, t, 0.2);
+      e.ng.gain.setTargetAtTime(0.42 + rpm * 0.3, t, 0.2);
 
-      // Audible idle purr (0.08) rising to a punchy V8 growl (0.24 - 0.30) under throttle & speed
-      const vol = (A.muted || A.hardSuspended) ? 0.0001 : (0.08 + s * 0.10 + tr * 0.065 + bst * 0.055);
-      e.g.gain.setTargetAtTime(vol, t, 0.05);
+      // quiet idle purr, a bit more with speed / throttle / boost (about half of the old level)
+      const vol = (A.muted || A.hardSuspended) ? 0.0001 : (0.05 + s * 0.04 + tr * 0.03 + bst * 0.025);
+      e.g.gain.setTargetAtTime(vol, t, 0.12);
     },
 
     engineStop() {
@@ -780,12 +822,70 @@
       A.eng = null;
       const t = A.ctx.currentTime;
       try {
-        e.g.gain.setTargetAtTime(0.0001, t, 0.04);
+        e.g.gain.setTargetAtTime(0.0001, t, 0.05);
       } catch (x) { /* ignore */ }
       setTimeout(() => {
-        try { e.o1.stop(); e.o2.stop(); e.o3.stop(); e.lfo.stop(); } catch (x) { /* already stopped */ }
+        try { e.o1.stop(); e.o2.stop(); e.o3.stop(); e.lfo.stop(); e.nz.stop(); } catch (x) { /* already stopped */ }
         try { e.g.disconnect(); } catch (x) { /* ignore */ }
-      }, 280);
+      }, 320);
+    },
+
+    // ------------------------------------------------------------------ tornado wind (continuous, driven by the distance to the funnel)
+    /** Call every frame while a tornado exists. level 0..1 (0 = far away / silent, 1 = right inside it), pan -1..1 (where it is, relative to the vehicle's heading).
+     *  The loop fades itself out ~0.35 s after the last call (tornado gone, paused, mission over), so nothing has to remember to stop it. */
+    windSet(level, pan) {
+      const c = A.ctx;
+      if (!c || A.hardSuspended || c.state !== 'running') return;
+      if (!A.wind) A._windStart();
+      const w = A.wind; if (!w) return;
+      A._windSeen = performance.now();
+      const t = c.currentTime, L = Math.max(0, Math.min(1, level || 0));
+      // volume grows steadily as it gets closer; the pitch / brightness of the howl rises with it too
+      const vol = (A.muted || L < 0.01) ? 0.0001 : 0.03 + 1.3 * Math.pow(L, 1.15);
+      w.g.gain.setTargetAtTime(vol, t, 0.15);
+      w.b1.frequency.setTargetAtTime(210 + L * 420, t, 0.25);
+      w.b2.frequency.setTargetAtTime(520 + L * 820, t, 0.25);
+      w.lp.frequency.setTargetAtTime(900 + L * 2600, t, 0.25);
+      w.lfo.frequency.setTargetAtTime(0.35 + L * 0.9, t, 0.3);
+      if (w.pan) w.pan.pan.setTargetAtTime(Math.max(-0.85, Math.min(0.85, (pan || 0) * (1 - 0.35 * L))), t, 0.12);
+    },
+
+    _windStart() {
+      const c = A.ctx; if (!c || A.wind) return;
+      const src = c.createBufferSource(); src.buffer = A._noiseBuf(true); src.loop = true;
+      // two band-passes (body + howl) whose centres drift slowly, then a soft low-pass
+      const b1 = c.createBiquadFilter(), b2 = c.createBiquadFilter(), lp = c.createBiquadFilter();
+      b1.type = 'bandpass'; b1.frequency.value = 220; b1.Q.value = 0.8;
+      b2.type = 'bandpass'; b2.frequency.value = 560; b2.Q.value = 2.2;
+      lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = 0.5;
+      const m1 = safeGain(c, 1.0), m2 = safeGain(c, 0.55);
+      src.connect(b1); src.connect(b2); b1.connect(m1); b2.connect(m2); m1.connect(lp); m2.connect(lp);
+      // slow swirl: gusts swell the volume and sweep the howl
+      const lfo = c.createOscillator(), lg = safeGain(c, 0.3), swirl = safeGain(c, 0.85), fg = safeGain(c, 160);
+      lfo.type = 'sine'; lfo.frequency.value = 0.4;
+      lfo.connect(lg); lg.connect(swirl.gain); lfo.connect(fg); fg.connect(b2.frequency);
+      lp.connect(swirl);
+      const g = safeGain(c, 0.0001);
+      swirl.connect(g);
+      let pan = null;
+      if (c.createStereoPanner) { pan = c.createStereoPanner(); g.connect(pan); pan.connect(A.sfxG); } else g.connect(A.sfxG);
+      src.start(0, Math.random()); lfo.start();
+      A.wind = { src, b1, b2, lp, lfo, g, pan };
+      A._windSeen = performance.now();
+      if (A._windTimer) clearInterval(A._windTimer);
+      A._windTimer = setInterval(() => { if (performance.now() - A._windSeen > 350) A.windStop(); }, 120);
+    },
+
+    windStop() {
+      const w = A.wind;
+      if (A._windTimer) { clearInterval(A._windTimer); A._windTimer = 0; }
+      if (!w || !A.ctx) { A.wind = null; return; }
+      A.wind = null;
+      try { w.g.gain.setTargetAtTime(0.0001, A.ctx.currentTime, 0.12); } catch (x) { /* ignore */ }
+      setTimeout(() => {
+        try { w.src.stop(); w.lfo.stop(); } catch (x) { /* already stopped */ }
+        try { w.g.disconnect(); if (w.pan) w.pan.disconnect(); } catch (x) { /* ignore */ }
+      }, 600);
     },
   };
 

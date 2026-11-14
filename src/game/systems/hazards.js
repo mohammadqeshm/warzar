@@ -360,11 +360,23 @@
       WZ.Fx.text(WZ.I18n.t('hud.tornadoFree'), J.rx, J.ry + 6, J.rz, 'good'); WZ.Fx.flash('good'); WZ.Audio.sfx('boost');
     },
 
+    /** continuous tornado WIND: from the moment the funnel appears it is audible far away and gets louder / higher / more turbulent the closer it comes (CFG tornado.hearRange),
+     *  panned to the side it is on. WZ.Audio.windSet() fades the loop out by itself once this stops being called (tornado gone / paused / mission over). */
+    windSound(Tn) {
+      const J = Z.ctx.jeep, A = WZ.Audio; if (!A || !A.windSet) return;
+      const d = Math.hypot(J.x - Tn.x, J.z - Tn.z);
+      const k = Math.pow(Math.max(0, 1 - d / TC.hearRange), 1.35), grow = Tn.phase === 'warn' ? 0.45 + 0.55 * Tn.scale : Tn.phase === 'fade' ? Tn.scale : 1;
+      const lvl = Math.min(1, k * grow + (J.captive ? 0.3 : 0));
+      const rel = U.angDiff(J.h, Math.atan2(Tn.x - J.x, Tn.z - J.z));          // + = the funnel is on the vehicle's left (local +X is left)
+      A.windSet(lvl, -Math.sin(rel));
+    },
+
     updateTornado(dt, tm) {
       const c = Z.ctx, J = c.jeep, N = c.nana, E = c.enemies, Tn = Z.torn, rng = Z.rng, lim = c.map.half - 10;
       if (Z.immune > 0) Z.immune -= dt;
       if (!Tn) { if (J.alive && tm >= Z.nextT) Z.startWarn(tm); return; }
       Tn.t += dt;
+      Z.windSound(Tn);
       if (Tn.phase === 'warn') {
         Tn.scale = 0.15 + 0.85 * Math.min(1, Tn.t / TC.warn); Z.key = 'hud.tornado';
         if (Tn.t >= TC.warn) { Tn.phase = 'active'; Tn.t = 0; WZ.Fx.shake(0.3); }
@@ -397,7 +409,6 @@
         const up = U.smooth(0, 1, Math.min(1, k.t / 0.7)) * (1 - U.smooth(0, 1, Math.max(0, (k.t - (TC.hold - 0.45)) / 0.45)));
         J.lift = (TC.lift + 0.5 * Math.sin(k.t * 4.4)) * up; J.tiltX = 0.32 * Math.sin(k.t * 3.1) * up; J.tiltZ = (0.42 + 0.15 * Math.sin(k.t * 5)) * up;
         WZ.Fx.shake(0.22); Z.key = 'hud.tornadoCaught';
-        Z.windT -= dt; if (Z.windT <= 0) { Z.windT = 0.4; WZ.Audio.sfx('wind'); }
         c.particles.dust(J.x + (Math.random() - 0.5) * 2, J.ry + J.lift * 0.4, J.z + (Math.random() - 0.5) * 2, 1);
         if (k.t >= TC.hold || !J.alive) Z.releaseJeep(Tn, J);
       } else if (J.alive && dj < pullR && Z.immune <= 0) {
@@ -408,7 +419,7 @@
         J.vx += (Tn.x - J.x) / l * a; J.vz += (Tn.z - J.z) / l * a;
         J.h += Tn.spin * TC.spin * 0.22 * kk * dt;
         WZ.Fx.shake(0.04 + 0.16 * kk); Z.key = kk > 0.35 ? 'hud.tornadoPull' : 'hud.tornado';
-        Z.windT -= dt; if (Z.windT <= 0) { Z.windT = 0.55 - 0.25 * kk; WZ.Audio.sfx('wind', 0.5 + kk * 0.6); }
+       
         if (dj < coreR && !J.captive) {
           J.captive = { t: 0, ang: Math.atan2(J.z - Tn.z, J.x - Tn.x), r0: dj };
           Z.caught = 1; WZ.Fx.text(WZ.I18n.t('hud.tornadoSpin'), J.rx, J.ry + 6, J.rz, 'warn'); WZ.Fx.flash('hurt'); WZ.Audio.sfx('siren');

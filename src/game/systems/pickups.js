@@ -103,6 +103,14 @@
       for (const type of ORDER) { const S = Pk.S[type]; o[type] = { total: S.total, budgetRemaining: S.budget, spawned: S.spawned, collected: S.collected, active: S.active, cooldown: Math.max(0, S.cd), retryIn: Math.max(0, S.retryT), failedAttempts: S.failedAttempts, lastFail: S.lastWhy }; }
       o.level = Pk.level; o.on = Pk.on; o.ended = Pk.ended; return o;
     },
+    /** HUD snapshot (a single reused object - no allocation per frame): how many hearts / clocks of this level are still to be collected. left = total - collected, so a pickup
+     *  that has been spawned but not picked up yet still counts as "left". live = one of that kind is lying in the world right now. */
+    hud() {
+      const o = Pk._hud || (Pk._hud = { on: false, healLeft: 0, healTotal: 0, healLive: false, timeLeft: 0, timeTotal: 0, timeLive: false }), h = Pk.S.heal, t = Pk.S.time;
+      o.on = !!Pk.on; o.healTotal = h.total; o.healLeft = Math.max(0, h.total - h.collected); o.healLive = h.active > 0;
+      o.timeTotal = t.total; o.timeLeft = Math.max(0, t.total - t.collected); o.timeLive = t.active > 0;
+      return o;
+    },
     debugLine() {
       if (!Pk.on) return 'pickups off';
       const h = Pk.S.heal, t = Pk.S.time;

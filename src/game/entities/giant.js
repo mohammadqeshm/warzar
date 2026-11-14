@@ -78,7 +78,10 @@
     init(ctx, mission) {
       Gi.dispose(); Gi.ctx = ctx; Gi.list = []; Gi.mission = mission;
       const rng = WZ.RNG.create(WZ.RNG.hash((ctx.map.seed | 0) >>> 0, 7717)), col = ctx.col, hm = ctx.map.height;
-      const tut = !!mission.tutorial, hpMul = tut ? C.tutorialHp : mission.hpMul, spd = tut ? C.tutorialSpeed : 1;
+      const tut = !!mission.tutorial, lvl = Math.max(1, mission.level || 1), season = WZ.Progress ? WZ.Progress.seasonIndex(ctx.map.theme || 'village') : 0;
+      // guardians get tougher (HP) and faster with every level of every season (CFG.giant.hpPerLevel / speedPerLevel / speedPerSeason / speedMax)
+      const hpMul = tut ? C.tutorialHp : mission.hpMul * (1 + C.hpPerLevel * (lvl - 1));
+      const spd = tut ? C.tutorialSpeed : Math.min(C.speedMax, (1 + C.speedPerLevel * (lvl - 1)) * (1 + C.speedPerSeason * season));
       const jur = ctx.map.theme === 'jurassic', vol = ctx.map.theme === 'volcanic', ice = ctx.map.theme === 'frozen', mch = ctx.map.theme === 'harbor', Cg = mch ? CFG.mechStats : ice ? CFG.beastStats : vol ? CFG.titanStats : jur ? CFG.dinoStats : C;     // Jurassic map: fire-breathing dinosaurs; Volcanic map: Magma Titans
       // every crate is guarded by a guardian (CFG.calc.giantCount)
       const nCr = ctx.map.crates.length, guarded = new Set(), order = ctx.map.crates.map((_, k) => k), nav = ctx.map.nav && ctx.map.nav.jeep;
@@ -401,7 +404,7 @@
       }
       if (g.ch === 2) {
         g.h += U.clamp(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z)), -CH.turn * dt, CH.turn * dt);
-        const sp = CH.speed * g.spd * (g.tutMul < 1 ? 0.8 : 1), sn = Math.sin(g.h), cs = Math.cos(g.h);
+        const sp = CH.speed * Math.min(g.spd, 1.25) * (g.tutMul < 1 ? 0.8 : 1), sn = Math.sin(g.h), cs = Math.cos(g.h);
         g.x += sn * sp * dt; g.z += cs * sp * dt;
         const wall = c.col.resolve(g, g.radius);
         let slam = wall || g.chT >= CH.dur || (!J.alive && !nanaOut);

@@ -48,12 +48,18 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 #hud-timer { font-size: clamp(30px, 6vw, 44px); line-height: 1.1; color: var(--y); text-shadow: 0 3px 0 #000; }
 #hud-timer-box.low { border-color: var(--red); animation: blink 0.5s infinite alternate; }
 #hud-timer-box.low #hud-timer { color: var(--red); }
-#hud-heat { padding: 3px 10px 3px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-#hud-heat .flames { display: flex; gap: 2px; }
-#hud-heat .flame { width: 24px; height: 31px; }
-#hud-heat .lbl { font-size: 11px; color: var(--w); opacity: 0.85; line-height: 1; margin-top: 1px; }
-#hud-heat.hot { border-color: #FF7A1A; }
-#hud-heat.off { opacity: 0.35; }
+/* PICKUP counters (replaces the old heat flames): repair hearts + time clocks still to be found on this level, "left/total" */
+#hud-pk { padding: 2px 9px 2px 7px; display: flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 66px; }
+#hud-pk .pk { display: flex; align-items: center; gap: 5px; line-height: 1; transition: opacity 0.2s; }
+#hud-pk .pki { width: 21px; height: 21px; flex-shrink: 0; }
+#hud-pk .pk b { font-weight: normal; font-size: 21px; min-width: 2.2em; white-space: nowrap; text-align: left; text-shadow: 0 2px 0 #000; letter-spacing: 0.02em; }
+#hud-pk .pk.heal b { color: #FF7A92; }
+#hud-pk .pk.time b { color: #5FD8FF; }
+#hud-pk .pk.done { opacity: 0.4; }
+#hud-pk .pk.live .pki { animation: pkpulse 0.7s ease-in-out infinite alternate; }
+#hud-pk .pk.live b { color: var(--y); }
+#hud-pk.off { opacity: 0.35; }
+@keyframes pkpulse { from { transform: scale(1); } to { transform: scale(1.22); } }
 #hud-left { position: absolute; top: calc(8px + var(--sat)); left: calc(8px + var(--sal)); display: flex; flex-direction: column; gap: 6px; width: clamp(122px, 28vw, 154px); }
 #hud-lvl { padding: 2px 10px; font-size: clamp(16px, 3.8vw, 20px); color: var(--w); text-align: center; letter-spacing: 0.06em; background: rgba(14,14,14,0.82); border-color: var(--y); }
 #hud-crates { display: flex; align-items: center; gap: 6px; padding: 2px 10px 2px 6px; font-size: clamp(22px, 5vw, 30px); color: var(--y); }
@@ -359,7 +365,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 @media (max-width: 640px), (max-height: 520px) {
   #hud-timer { font-size: 32px; }
   #hud-timer-box { min-width: 96px; padding: 0 10px; }
-  #hud-heat .flame { width: 20px; height: 26px; }
+  #hud-pk .pki { width: 18px; height: 18px; }
+  #hud-pk .pk b { font-size: 18px; }
   #hud-left { width: 120px; gap: 5px; }
   #hud-lvl { font-size: 15px; padding: 1px 8px; }
   #hud-crates { font-size: 22px; }
@@ -612,9 +619,10 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   #hud-coins { padding: 1px 7px 1px 5px; gap: 3px; }
   #hud-coins .ico { width: clamp(17px, 4.6vw, 22px); height: clamp(17px, 4.6vw, 22px); }
   #hud-coins-n { font-size: clamp(18px, 5vw, 24px); min-width: 1em; }
-  #hud-heat { padding: 2px 7px; }
-  #hud-heat .flame { width: clamp(12px, 3.6vw, 18px); height: clamp(16px, 4.8vw, 24px); }
-  #hud-heat .lbl { font-size: clamp(8px, 2.3vw, 10px); }
+  #hud-pk { padding: 1px 6px 1px 5px; min-width: 0; }
+  #hud-pk .pk { gap: 3px; }
+  #hud-pk .pki { width: clamp(14px, 3.9vw, 17px); height: clamp(14px, 3.9vw, 17px); }
+  #hud-pk .pk b { font-size: clamp(14px, 4vw, 18px); min-width: 0; }
   #btn-pause { width: 44px; height: 44px; padding: 7px; }
 }
 @media (max-width: 640px) and (orientation: portrait) {

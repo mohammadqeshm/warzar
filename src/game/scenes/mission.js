@@ -44,7 +44,7 @@
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
       M.inp = { x: 0, y: 0, mag: 0, boost: false };
-      M.hud = { level: data.level, levelText: t('hud.lvl', { s: M.season, n: data.level, m: LV }), timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons.snap(), wsel: WZ.Weapons.selId, strikes: 0, rush: 0 };
+      M.hud = { level: data.level, levelText: t('hud.lvl', { s: M.season, n: data.level, m: LV }), timerText: '', timerLow: false, pk: WZ.Pickups.hud(), cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons.snap(), wsel: WZ.Weapons.selId, strikes: 0, rush: 0 };
 
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
       M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
@@ -221,8 +221,9 @@
     afterJeep(dt) {
       const J = M.jeep, E = WZ.Enemies, P = WZ.Particles;
       if (J.impact > 0) {
+        if (J.impact > 2.5) WZ.Audio.sfx('crash', Math.min(1.25, 0.4 + J.impact / 14));      // every real bump is heard (soft scrape = quiet, hard hit = loud)
         if (J.impact > 7) {
-          WZ.Fx.shake(Math.min(0.6, 0.12 + (J.impact - 7) * 0.025)); WZ.Audio.sfx('crash', Math.min(1, J.impact / 14));
+          WZ.Fx.shake(Math.min(0.6, 0.12 + (J.impact - 7) * 0.025));
           P.sparks(J.x + Math.sin(J.h) * 2, J.ry + 1.2, J.z + Math.cos(J.h) * 2, 6, 1, 0.8, 0.4); P.dust(J.x + Math.sin(J.h) * 2, J.ry, J.z + Math.cos(J.h) * 2, 3);
         }
         J.impact = 0;
@@ -433,7 +434,7 @@
       const J = M.jeep, N = M.nana, hd = M.hud;
       hd.level = M.data.level;
       hd.timerText = U.fmtTime(M.timeLeft); hd.timerLow = M.timeLeft <= CFG.timer.lowWarn;
-      hd.heat = M.heat; hd.heatOn = M.mission.heatOn;
+      hd.pk = WZ.Pickups.hud();   // repair hearts / time clocks left on this level (top bar)
       hd.cratesText = M.landed + '/' + M.crates.total;
       hd.hp = J.hp; hd.hpMax = J.maxHp; hd.nanaOut = true; hd.nanaHp = N.hp; hd.nanaMax = N.maxHp;
       if (N.state === 'IN_JEEP') hd.deploy = M.crates.nearestAvailable(J.x, J.z, CFG.nana.deployRadius) ? 'deploy-ready' : 'deploy';

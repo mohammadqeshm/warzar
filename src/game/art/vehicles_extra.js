@@ -237,7 +237,27 @@
   }
 
   // ------------------------------------------------------------------------------------------ registry
-  const MODELS = { jeep: V.jeep, buggy, truck };
+  /** The roof gun must never cut through the two riders: every rider's head is ~HERO_TOP above the seat, so the gun yaw ring is lifted on a pole until its lowest part
+   *  (pivot disc, grip, ammo box) is clear of the heads. The gun then sweeps over the commander and Nana at any angle (menu showcase, garage, mission, map cards). */
+  const HERO_TOP = 2.82;
+  function liftGun(m) {
+    if (!m || !m.gunYaw || !m.seatCmdr || !m.bodyG || m._gunLifted) return m;
+    m._gunLifted = true;
+    const g = m.gunYaw, sc = g.scale.x || 1, y0 = g.position.y, need = m.seatCmdr.position.y + HERO_TOP + 0.11 * sc + 0.12;
+    if (need <= y0) return m;
+    const x = g.position.x, z = g.position.z, base = y0 - 0.06, top = need;
+    const pb = B();
+    pb.add(G.cyl(10), { x, z, y: (base + top) / 2, sx: 0.14 * sc, sy: top - base, sz: 0.14 * sc, color: STEEL });
+    pb.add(G.cyl(14), { x, z, y: base + 0.1, sx: 0.3 * sc, sy: 0.18, sz: 0.3 * sc, color: DARK });                 // base collar
+    pb.add(G.cyl(14), { x, z, y: top - 0.06, sx: 0.3 * sc, sy: 0.14, sz: 0.3 * sc, color: DARK });                  // top bearing the gun turns on
+    for (const s of [1, -1]) pb.beam(x + 0.26 * s * sc, top - 0.2, z, x, base + 0.45, z, 0.07, 0.07, STEEL);       // two little braces
+    const pole = new T.Mesh(pb.build(), m.plainM || new T.MeshLambertMaterial({ vertexColors: true })); pole.castShadow = true; m.bodyG.add(pole);
+    g.position.y = need;
+    return m;
+  }
+  const jeepBase = V.jeep;
+  V.jeep = () => liftGun(jeepBase());
+  const MODELS = { jeep: V.jeep, buggy: () => liftGun(buggy()), truck: () => liftGun(truck()) };
   V.build = (id) => (MODELS[id] || V.jeep)();
   V.mineParts = mineParts; V.mineModel = mineModel;
   /** merged stats for a vehicle id (CFG.jeep defaults + CFG.vehicles[id]) */

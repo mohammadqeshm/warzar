@@ -124,7 +124,9 @@
           }
           return go(res.theme, res.level, WZ.Save.newRunSeed(), 0);            // try again
         },
-        garage: () => Main.go('shop', { ret: () => Main.go('menu', { result: res }) }),   // BACK in the shop returns to THIS results screen
+        // SHOP opened from the results screen: BACK in the shop returns to the MAIN MENU (not to the results screen again).
+        // A pending season unlock (first clear of level 10) is still celebrated: the menu scene opens the map screen for it by itself (flags.pendingUnlock).
+        garage: () => Main.go('shop', { ret: () => { Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu'); } }),
         menu: () => {
           const unlockId = (res.win && (res.r.unlockedSeason || (WZ.Save.data.flags && WZ.Save.data.flags.pendingUnlock))) || null;
           if (unlockId) return goUnlock(unlockId);

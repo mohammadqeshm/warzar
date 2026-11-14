@@ -4,8 +4,6 @@
   'use strict';
   const t = (k, v) => WZ.I18n.t(k, v), FONT = () => WZ.Tex.FONT;
   const $ = (id) => document.getElementById(id);
-  const FLAME = 'M12 1C13 8 20 11 20 20C20 27 16 31 12 31C8 31 4 27 4 20C4 15 7 13 8 9C10 11 10 13 11 14C12 10 11 5 12 1Z';
-  const flameSvg = (i) => '<svg class="flame" viewBox="0 0 24 32"><defs><clipPath id="fc' + i + '"><rect id="fcr' + i + '" x="0" y="32" width="24" height="0"/></clipPath></defs><path d="' + FLAME + '" fill="#3a3a3c" stroke="#0E0E0E" stroke-width="1.5"/><path d="' + FLAME + '" fill="url(#fg)" clip-path="url(#fc' + i + ')"/></svg>';
   const CRATE_ICO = '<svg viewBox="0 0 24 24" class="ico"><rect x="2" y="5" width="20" height="16" rx="2" fill="#7A5230" stroke="#0E0E0E" stroke-width="1.5"/><path d="M2 9h20M2 17h20M5 5v16M19 5v16" stroke="#3A3C3E" stroke-width="2"/><path d="M6 20L18 6" stroke="#5E4126" stroke-width="2"/></svg>';
   const BOLT_ICO = '<svg viewBox="0 0 24 24" class="ico"><path d="M13 1L4 14h6l-2 9 10-14h-6z" fill="#FFB400" stroke="#0E0E0E" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 
@@ -28,6 +26,9 @@
   const SHOP_ICO = '<svg viewBox="0 0 48 48"><path d="M7 20h34v20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="#8A5A34" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><rect x="11" y="24.5" width="26" height="10" rx="1.5" fill="#2A1F16" stroke="#0E0E0E" stroke-width="1.6"/><path d="M12 31l5-4 4 3 4-4 6 5" fill="none" stroke="#FFB400" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><path d="M9 35h30" stroke="#C9A06A" stroke-width="3" stroke-linecap="round"/>' +
     '<path d="M3.5 20.5L7 8h34l3.5 12.5z" fill="#ECE9E1" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><path d="M7 8h5.7l-2 12.5H3.5zM18.3 8H24v12.5h-6.7zM29.7 8h5.6l3.6 12.5h-6.7z" fill="#FF5A3A"/><path d="M3.5 20.5L7 8h34l3.5 12.5z" fill="none" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/><path d="M3.5 20.5q3.4 4.4 6.8 0t6.8 0 6.8 0 6.8 0 6.8 0 6.8 0" fill="#ECE9E1" stroke="#0E0E0E" stroke-width="2" stroke-linejoin="round"/>' +
     '<circle cx="38" cy="36.5" r="8" fill="#FFB400" stroke="#0E0E0E" stroke-width="2.2"/><circle cx="38" cy="36.5" r="4.8" fill="none" stroke="#8a5f00" stroke-width="1.8"/><path d="M38 33.4l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3z" fill="#8a5f00"/><path d="M13 3l1 2.6L16.6 6.6 14 7.6 13 10.2 12 7.6 9.4 6.6 12 5.6z" fill="#FFE27A" stroke="#0E0E0E" stroke-width=".8"/></svg>';
+  // top-bar PICKUP counters: how many repair hearts / time clocks of this level are still to be found (left / total)
+  const HEART_ICO = '<svg viewBox="0 0 24 24" class="pki"><path d="M12 21.2C6.2 16.9 2.6 13.2 2.6 8.9 2.6 5.9 4.8 3.8 7.4 3.8c1.9 0 3.5 1 4.6 2.8 1.1-1.8 2.7-2.8 4.6-2.8 2.6 0 4.8 2.1 4.8 5.1 0 4.3-3.6 8-9.4 12.3z" fill="#FF4A6A" stroke="#0E0E0E" stroke-width="1.8" stroke-linejoin="round"/><path d="M6.2 8.2c.2-1.3 1.1-2.1 2.2-2.1" fill="none" stroke="#FFC2CE" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  const CLOCK_ICO = '<svg viewBox="0 0 24 24" class="pki"><circle cx="5.2" cy="5.2" r="2.6" fill="#E23A2A" stroke="#0E0E0E" stroke-width="1.3"/><circle cx="18.8" cy="5.2" r="2.6" fill="#E23A2A" stroke="#0E0E0E" stroke-width="1.3"/><circle cx="12" cy="13" r="9" fill="#FFC21A" stroke="#0E0E0E" stroke-width="1.8"/><circle cx="12" cy="13" r="6.4" fill="#FFF6DC" stroke="#0E0E0E" stroke-width="1"/><path d="M12 8.6V13l3.2 2" fill="none" stroke="#0E0E0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const CFG_MAPS = () => WZ.CFG.maps.order;
   const MAP_ICO = {
     village: '<svg viewBox="0 0 120 56"><rect width="120" height="56" fill="#A9D3F2"/><path d="M0 40q30-14 60-4t60-6V56H0z" fill="#C2A866"/><rect x="22" y="26" width="30" height="20" fill="#E2D6C1" stroke="#0E0E0E" stroke-width="2"/><path d="M18 27l19-14 19 14z" fill="#B5503A" stroke="#0E0E0E" stroke-width="2"/><rect x="33" y="34" width="8" height="12" fill="#2A1F16"/><rect x="82" y="16" width="8" height="30" fill="#6B4A2B"/><path d="M78 16h16l-8-9z" fill="#B5503A" stroke="#0E0E0E" stroke-width="1.6"/></svg>',
@@ -48,11 +49,10 @@
       root.innerHTML =
         '<canvas id="wz-canvas"></canvas>' +
         '<div id="wz-touch"></div><div id="stick-base"></div><div id="stick-knob"></div>' +
-        '<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="fg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFC23A"/><stop offset="1" stop-color="#FF4A10"/></linearGradient></defs></svg>' +
         '<div id="wz-hud" class="hidden">' +
         '  <div id="hud-top"><div id="hud-timer-box" class="panel"><div id="hud-timer">0:00</div></div>' +
         '    <div id="hud-coins" class="panel" title="' + t('hud.loot.tip') + '">' + COIN_ICO + '<span id="hud-coins-n">0</span></div>' +
-        '    <div id="hud-heat" class="panel"><div class="flames">' + flameSvg(0) + flameSvg(1) + flameSvg(2) + '</div><div class="lbl">' + t('hud.heat') + '</div></div></div>' +
+        '    <div id="hud-pk" class="panel"><div id="pk-heal" class="pk heal" title="' + t('hud.pk.tipHeal') + '">' + HEART_ICO + '<b id="pk-heal-n">0/0</b></div><div id="pk-time" class="pk time" title="' + t('hud.pk.tipTime') + '">' + CLOCK_ICO + '<b id="pk-time-n">0/0</b></div></div></div>' +
         '  <div id="hud-left"><div id="hud-lvl" class="panel">LVL 1</div><div id="hud-crates" class="panel">' + CRATE_ICO + '<span id="hud-crates-n">0/0</span></div>' +
         '    <div id="hud-hp" class="bar"><i style="width:100%"></i><span>' + t('hud.jeep') + '</span><em class="strikes" title="mines"><u></u><u></u></em></div>' +
         '    <div id="hud-nana" class="bar nana"><i style="width:100%"></i><span>' + t('hud.nana') + '</span><b id="hud-nana-pct" class="bar-pct">100%</b></div></div>' +
@@ -110,9 +110,8 @@
         '  <div class="load-sub">' + t('load.title') + '</div>' +
         '</div></div>';
 
-      for (const id of ['hud-timer', 'hud-timer-box', 'hud-heat', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-weapon', 'btn-wswap', 'w-wheel', 'w-label', 'w-ico', 'w-name', 'w-n', 'hud-coins', 'hud-coins-n', 'hud-giants', 'hud-soldiers', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'load-car-rect', 'load-pct', 'btn-pause']) UI.h[id] = $(id);
+      for (const id of ['hud-timer', 'hud-timer-box', 'hud-pk', 'pk-heal', 'pk-heal-n', 'pk-time', 'pk-time-n', 'hud-lvl', 'hud-crates-n', 'hud-hp', 'hud-nana', 'hud-nana-pct', 'hud-prompt', 'hud-hint', 'hud-obj', 'hud-gun', 'btn-deploy', 'deploy-lbl', 'btn-boost', 'btn-weapon', 'btn-wswap', 'w-wheel', 'w-label', 'w-ico', 'w-name', 'w-n', 'hud-coins', 'hud-coins-n', 'hud-giants', 'hud-soldiers', 'hud-arrows', 'wz-hud', 'wz-screens', 'wz-flash', 'wz-float', 'wz-debug', 'wz-load', 'load-fill', 'load-car-rect', 'load-pct', 'btn-pause']) UI.h[id] = $(id);
       UI.h.hpFill = UI.h['hud-hp'].firstChild; UI.h.nanaFill = UI.h['hud-nana'].firstChild; UI.h.cd = UI.h['btn-boost'].querySelector('.cd'); UI.h.wcd = UI.h['btn-weapon'].querySelector('.cd'); UI.h.chips = Array.from(UI.h['w-wheel'].querySelectorAll('.wchip')); UI.h.strikes = UI.h['hud-hp'].querySelectorAll('.strikes u');
-      UI.h.rects = [$('fcr0'), $('fcr1'), $('fcr2')];
       // arrows
       for (let i = 0; i < 12; i++) {
         const a = document.createElement('div'); a.className = 'arrow hidden';
@@ -172,8 +171,7 @@
       const c = UI.c, h = UI.h;
       if (c.timer !== s.timerText) { c.timer = s.timerText; h['hud-timer'].textContent = s.timerText; }
       if (c.low !== s.timerLow) { c.low = s.timerLow; h['hud-timer-box'].classList.toggle('low', s.timerLow); }
-      const hp = Math.round(s.heat * 50);
-      if (c.heat !== hp) { c.heat = hp; for (let i = 0; i < 3; i++) { const f = Math.max(0, Math.min(1, s.heat - i)); h.rects[i].setAttribute('y', (32 * (1 - f)).toFixed(1)); h.rects[i].setAttribute('height', (32 * f).toFixed(1)); } h['hud-heat'].classList.toggle('hot', s.heat > 1.5); h['hud-heat'].classList.toggle('off', !s.heatOn); }
+      UI.paintPickups(s.pk);
       if (s.level && c.lvl !== s.level) { c.lvl = s.level; if (h['hud-lvl']) h['hud-lvl'].textContent = s.levelText || t('hud.level', { n: s.level }); }
       if (c.crates !== s.cratesText) { c.crates = s.cratesText; h['hud-crates-n'].textContent = s.cratesText; }
       const hpw = Math.max(0, Math.min(100, Math.round(s.hp / (s.hpMax || 1) * 100)));
@@ -195,6 +193,17 @@
       const rk = s.rush > 0.5; if (c.rk !== rk) { c.rk = rk; h['hud-nana'].classList.toggle('danger', rk); h['wz-hud'].classList.toggle('rush', rk); }
       if (c.loot !== s.loot) { const up = c.loot != null && s.loot > c.loot; c.loot = s.loot; h['hud-coins-n'].textContent = s.loot; if (up) { const e = h['hud-coins']; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); } }
       if (c.gun !== s.gunBoost) { c.gun = s.gunBoost; h['hud-gun'].classList.toggle('hidden', !s.gunBoost); }
+    },
+    /** top-bar counters of the dynamic pickups: "left/total" of the repair hearts and of the time clocks of THIS level (WZ.Pickups.hud()).
+     *  `live` = one is lying on the map right now, `done` = every one of them has been collected, `off` = no pickups on this level (tutorial). */
+    paintPickups(pk) {
+      const c = UI.c, h = UI.h; if (!pk) return;
+      const sig = (pk.on ? 1 : 0) + ':' + pk.healLeft + '/' + pk.healTotal + (pk.healLive ? 'L' : '') + ':' + pk.timeLeft + '/' + pk.timeTotal + (pk.timeLive ? 'L' : '');
+      if (c.pk === sig) return; c.pk = sig;
+      h['hud-pk'].classList.toggle('off', !pk.on);
+      h['pk-heal-n'].textContent = pk.healLeft + '/' + pk.healTotal; h['pk-time-n'].textContent = pk.timeLeft + '/' + pk.timeTotal;
+      h['pk-heal'].classList.toggle('live', !!pk.healLive); h['pk-heal'].classList.toggle('done', pk.healTotal > 0 && pk.healLeft <= 0);
+      h['pk-time'].classList.toggle('live', !!pk.timeLive); h['pk-time'].classList.toggle('done', pk.timeTotal > 0 && pk.timeLeft <= 0);
     },
     resetHudCache() { UI.c = {}; UI._wsig = ''; UI._wico = ''; if (UI.h['w-ico']) UI.h['w-ico'].innerHTML = ''; UI.h['hud-coins'].classList.remove('burn', 'pop'); UI.closeWheel(); },
 

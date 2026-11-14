@@ -131,7 +131,7 @@
       },
       tornado: {
         fromMission: 2, firstDelay: [14, 22], gap: [32, 48], warn: 4, life: 18, fade: 2.5,
-        speed: 7, speedPerMission: 0.15, maxSpeed: 11, turn: 0.9, homing: 0.55, spawnDist: [70, 88],
+        speed: 7, speedPerMission: 0.15, maxSpeed: 11, turn: 0.9, homing: 0.55, spawnDist: [70, 88], hearRange: 125,    // hearRange: the wind is audible inside this distance (quiet at the edge, loud next to it)
         radius: 8, drag: 4, pull: 9, spin: 6.5, nanaDamage: 6,
         // Pull zone: the closer you are the slower you get and the harder it drags you in. Boost (high speed) is the way out.
         pullRadius: 19, pullAccel: 44, slow: 0.75, slowBoost: 0.3,
@@ -162,6 +162,11 @@
       reach: 5.6, nanaReach: 5.2, windup: 0.75, swing: 0.3, cooldown: 1.8, jeepDamage: 22, dmgPerMission: 0.04, jeepKnock: 18,
       ramMinSpeed: 6, ramDamage: 7, ramSelf: 9, ramCooldown: 0.8, tutorialHp: 0.5, tutorialSpeed: 0.85,
       nanaDeathDamage: 9999,
+      // GUARDIAN SCALING (every guardian type merges over this): inside EVERY season each level makes the guardians tougher AND faster than the level before.
+      //   hp    = base * mission.hpMul (difficulty number + map multiplier) * (1 + hpPerLevel * (level - 1))
+      //   speed = base * min(speedMax, (1 + speedPerLevel * (level - 1)) * (1 + speedPerSeason * seasonIndex))      (level = 1..10 of the season, seasonIndex = 0..4)
+      // The tutorial level keeps its own gentle numbers (tutorialHp / tutorialSpeed). Speed is capped so the vehicle (top speed 22+) can always out-run a guardian.
+      hpPerLevel: 0.09, speedPerLevel: 0.03, speedPerSeason: 0.035, speedMax: 1.5,
     },
 
     enemies: {
