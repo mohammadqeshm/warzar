@@ -72,7 +72,7 @@
       M.phase = 'play'; M.briefEl = null;
       M.fromPos.copy(Cam.cam.position); M.fromLook.set(M.jeep.rx, M.jeep.ry + 1.5, M.jeep.rz); M.camBlend = 1;
       WZ.UI.clearScreens(); WZ.UI.hudShow(true); WZ.UI.resetHudCache(); M.updateHud();
-      WZ.Audio.engineStart(); WZ.Input.reset();
+      WZ.Audio.unlock(); WZ.Audio.engineStart(); WZ.Input.reset();
     },
 
     exit() {
@@ -206,7 +206,8 @@
       if (M.phase === 'play' || M.phase === 'ending') WZ.Jets.update(dt);
       if (M.phase === 'play') WZ.Pickups.update(dt);
       M.effects(dt);
-      WZ.Audio.engineSet(Math.min(1, J.speed / J.P.boostSpeed), J.throttle, J.boosting);
+      if (M.phase === 'play' && J.alive) WZ.Audio.engineSet(Math.min(1, J.speed / J.P.topSpeed), J.throttle, J.boosting);
+      else WZ.Audio.engineStop();
 
       if (M.phase === 'play') M.rules(dt);
       else if (M.phase === 'ending') {

@@ -43,7 +43,7 @@
       bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1 },
       heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 10, starter: 1 },
       tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 10, starter: 1 },
-      jet: { packs: [{ n: 1, price: 520 }, { n: 2, price: 960 }, { n: 4, price: 1800 }], cap: 10, starter: 1 },
+      jet: { packs: [{ n: 1, price: 1040 }, { n: 2, price: 1920 }, { n: 4, price: 3600 }], cap: 10, starter: 1 },
     },
     mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
@@ -96,7 +96,7 @@
 
     heat: { rise: 0.08, fall: 0.15, max: 3, stillSpeed: 3 },
 
-    timer: { base: 45, perCrate: 24, decayPerMission: 0.008, decayMin: 0.85, bankCap: 45, timeCrate: 8, tutorial: 90, lowWarn: 15 },
+    timer: { base: 120, perCrate: 0, decayPerMission: 0, decayMin: 1, bankCap: 45, timeCrate: 8, tutorial: 120, lowWarn: 15 },
 
     mission: {
       cratesBase: 2, cratesMax: 10, bossEvery: 5, tutorialCrates: 1,
@@ -331,7 +331,7 @@
     difficulty: (seasonIdx, lvl) => lvl + CFG.progress.seasonBoost * seasonIdx,
     // how many crates are guarded by a guardian (giant/dino/titan/beast/mech): every crate has a guardian
     giantCount: (lvl, crates) => Math.max(1, Math.min(crates, CFG.progress.maxGiants)),
-    timeLimit: (m, n, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.timer.tutorial : (CFG.timer.base + CFG.timer.perCrate * n) * Math.max(CFG.timer.decayMin, 1 - CFG.timer.decayPerMission * m)),
+    timeLimit: (m, n, tut) => { void m; void n; void tut; return 120; },
     spawnRate: (m, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.spawn.tutorialRate : CFG.spawn.base + CFG.spawn.perMission * m),
     enemyHpMul: (m) => 1 + CFG.enemy.hpPerMission * m,
     enemyDmgMul: (m) => 1 + CFG.enemy.dmgPerMission * m,
