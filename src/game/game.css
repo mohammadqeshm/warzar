@@ -910,3 +910,15 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 
 /* HUD level label is now "S1 · LVL 3/10": keep it on one line */
 #hud-lvl { white-space: nowrap; font-size: clamp(15px, 3.8vw, 22px); }
+
+/* Opt-in Rewarded Ad buttons (Summary + Shop) */
+.shop-wallet-row { display: flex; align-items: center; gap: 8px; }
+.btn.ad-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  background: linear-gradient(180deg, #4CFF6A 0%, #24B844 100%);
+  color: #0E0E0E; border: 3px solid #0E0E0E;
+  font-size: clamp(13px, 3.2vw, 17px); padding: 6px 12px;
+  box-shadow: 0 4px 0 #0E0E0E;
+}
+.btn.ad-btn .ad-ico { width: 20px; height: 20px; flex: 0 0 20px; }
+.sum-btns .sum-ad-btn { grid-column: 1 / -1; width: 100%; margin-bottom: 2px; }

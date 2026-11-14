@@ -58,7 +58,9 @@
         }
       }
     }
-    return { leg: leg.build(), torso: torso.build(), armL: armL.build(), armR: armR.build() };
+    const out = { leg: leg.build(), torso: torso.build(), armL: armL.build(), armR: armR.build() };
+    for (const k in out) G.mark(out[k]);
+    return out;
   }
 
   function makeRig(mat) {

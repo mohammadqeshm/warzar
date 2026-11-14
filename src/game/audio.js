@@ -119,7 +119,10 @@
     echoIn: null,
     comp: null,
     eng: null,
-    muted: false,
+    userMuted: false,
+    platformMuted: false,
+    get muted() { return !!(A.userMuted || A.platformMuted); },
+    set muted(v) { A.userMuted = !!v; },
     hardSuspended: false,
     last: {},
     curScene: 'menu',
@@ -128,6 +131,14 @@
     _mStep: 0,
     _mNextT: 0,
     _voices: 0,
+
+    _applyGain() {
+      if (!A.master || !A.ctx) return;
+      const silent = A.muted || A.hardSuspended;
+      try {
+        A.master.gain.setTargetAtTime(silent ? 0 : 0.84, A.ctx.currentTime, 0.02);
+      } catch (e) { /* ignore */ }
+    },
 
     unlock() {
       if (!A.ctx) {
@@ -184,16 +195,33 @@
 
         A._startMusicLoop();
       }
-      if (A.ctx.state === 'suspended' && !A.hardSuspended) {
+      if (A.ctx.state === 'suspended' && !A.hardSuspended && !A.platformMuted) {
         A.ctx.resume().catch(() => {});
       }
     },
 
-    suspend() { A.hardSuspended = true; if (A.ctx) A.ctx.suspend().catch(() => {}); },
-    resume() { A.hardSuspended = false; if (A.ctx) A.ctx.resume().catch(() => {}); },
+    suspend() {
+      A.hardSuspended = true;
+      A._applyGain();
+      if (A.ctx) A.ctx.suspend().catch(() => {});
+    },
+    resume() {
+      if (WZ.Main && WZ.Main.paused) return;
+      A.hardSuspended = false;
+      A._applyGain();
+      if (A.ctx && !A.platformMuted) A.ctx.resume().catch(() => {});
+    },
     setMuted(m) {
-      A.muted = !!m;
-      if (A.master && A.ctx) A.master.gain.setTargetAtTime(m ? 0 : 0.84, A.ctx.currentTime, 0.03);
+      A.userMuted = !!m;
+      A._applyGain();
+    },
+    setPlatformMuted(m) {
+      A.platformMuted = !!m;
+      A._applyGain();
+      if (A.ctx) {
+        if (A.platformMuted) A.ctx.suspend().catch(() => {});
+        else if (!A.hardSuspended) A.ctx.resume().catch(() => {});
+      }
     },
 
     /** Switch background music & atmospheric vibe for the current scene & map theme */
@@ -891,5 +919,8 @@
 
   WZ.Audio = A;
   WZ.Events.on('game:pause', () => A.suspend());
-  WZ.Events.on('game:resume', () => A.resume());
+  WZ.Events.on('game:resume', () => {
+    if (WZ.Main && WZ.Main.userPaused) return;
+    A.resume();
+  });
 })(window.WZ = window.WZ || {});

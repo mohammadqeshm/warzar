@@ -1,0 +1,72 @@
+{
+  "$schema": "https://bridge.playgama.com/v2/stable/schema.json",
+  "forciblySetPlatformId": "",
+  "debug": false,
+  "advertisement": {
+    "minimumDelayBetweenInterstitial": 60,
+    "interstitial": {
+      "disable": false,
+      "preloadOnStart": "level_completed",
+      "placementFallback": "level_completed",
+      "placements": [
+        {
+          "id": "level_completed"
+        },
+        {
+          "id": "level_failed"
+        },
+        {
+          "id": "pause_restart"
+        },
+        {
+          "id": "pause_menu"
+        }
+      ]
+    },
+    "rewarded": {
+      "disable": false,
+      "preloadOnStart": "bonus_coins",
+      "placementFallback": "bonus_coins",
+      "placements": [
+        {
+          "id": "bonus_coins"
+        },
+        {
+          "id": "shop_coins"
+        }
+      ]
+    }
+  },
+  "leaderboards": [
+    {
+      "id": "best_level",
+      "isMain": true
+    }
+  ],
+  "achievements": [
+    {
+      "id": "first_win"
+    },
+    {
+      "id": "season_1_clear"
+    }
+  ],
+  "platforms": {
+    "youtube": {},
+    "playgama": {},
+    "crazy_games": {
+      "useUserToken": false
+    },
+    "poki": {},
+    "yandex": {
+      "useSignedData": false
+    },
+    "msn": {
+      "disableAutoNotifications": false
+    },
+    "xiaomi": {
+      "testMode": false
+    },
+    "gamesnacks": {}
+  }
+}

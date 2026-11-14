@@ -477,7 +477,7 @@
         if (unlocking) return;
         if (e.code === 'ArrowLeft') step(-1); else if (e.code === 'ArrowRight') step(1);
         else if (e.code === 'Enter') { if (apply(ids[view], true)) { /* selected */ } }
-        else if (e.code === 'Escape') h.close();
+        else if (e.code === 'Backspace') h.close();
       };
       window.addEventListener('keydown', key);
       $('ms-back').onclick = $('ms-ok').onclick = () => { if (unlocking) return; WZ.Audio.sfx('click'); h.close(); };
@@ -578,8 +578,13 @@
       const STAR = '<svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.5 5.7 21.2l1.5-7.1L1.8 9.2 9 8.4z"/></svg>';
       const row = (label, n, delay, cls) => '<div class="sum-row ' + (cls || '') + '" style="--d:' + delay + 'ms"><span>' + label + '</span><b data-count="' + n + '" data-pre="+" data-delay="' + (delay + 350) + '">+0</b></div>';
       const earned = (r.coinsCrates || 0) + (r.coinsKills || 0) + (win ? (r.coinsDone || 0) + (r.coinsTime || 0) + (r.coinsSeason || 0) : 0);
+      const adBonus = Math.max(60, earned || 60);
+      const canReward = !!(WZ.Platform && WZ.Platform.isRewardedSupported && WZ.Platform.isRewardedSupported() && !r.adClaimed && h && h.rewarded);
+      const adRowBtn = canReward
+        ? '<button class="btn ad-btn sum-ad-btn" id="btn-sum-ad"><svg class="ad-ico" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="#0E0E0E"/><path d="M9.5 8.2l7 3.8-7 3.8z" fill="#FFB400"/></svg><span>' + t('ad.bonus', { n: adBonus }) + '</span></button>'
+        : '';
       const LV = r.levels || WZ.CFG.progress.levels;
-      const totalRow = (delay) => '<div class="sum-row total" style="--d:' + delay + 'ms"><span>' + t('sum.coins.total') + '</span><b data-from="' + Math.max(0, r.wallet - earned) + '" data-count="' + r.wallet + '" data-delay="' + (delay + 300) + '">' + r.wallet + '</b></div>';
+      const totalRow = (delay) => '<div class="sum-row total" style="--d:' + delay + 'ms"><span>' + t('sum.coins.total') + '</span><b id="sum-wallet-val" data-from="' + Math.max(0, r.wallet - earned) + '" data-count="' + r.wallet + '" data-delay="' + (delay + 300) + '">' + r.wallet + '</b></div>';
       let el;
       if (win) {
         // ---------------------------------------------------------------- VICTORY: golden sunburst, confetti, LEVEL UP badge, star rating, counting coins
@@ -601,7 +606,7 @@
           '<div class="sum-body"><div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
           '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div></div>' +
           '<div class="sum-coins">' + rows + totalRow(r.coinsSeason ? 2250 : 2100) + '</div></div>' +
-          '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + (r.unlockedSeason ? t('sum.unlockSeasonBtn', { n: WZ.Progress.seasonIndex(r.unlockedSeason) + 1 }) : t(r.allClear ? 'sum.replay' : lastLvl ? 'sum.nextSeason' : 'sum.next')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+          '<div class="sum-btns">' + adRowBtn + '<button class="btn big" id="btn-sum-main">' + (r.unlockedSeason ? t('sum.unlockSeasonBtn', { n: WZ.Progress.seasonIndex(r.unlockedSeason) + 1 }) : t(r.allClear ? 'sum.replay' : lastLvl ? 'sum.nextSeason' : 'sum.next')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
         // choreography: badge flips old level -> new level (with a sound), stars pop one after another
         setTimeout(() => { if (!el.isConnected) return; el.querySelector('.lvl-badge').classList.add('up'); WZ.Audio.sfx('pickup'); }, 650);
         el.querySelectorAll('.star').forEach((s, i) => setTimeout(() => { if (!el.isConnected) return; s.classList.add('on'); if (s.classList.contains('got')) WZ.Audio.sfx('deliver'); }, 1000 + i * 260));
@@ -637,9 +642,28 @@
           '<div class="sum-coins">' + row(t('sum.coins.crates'), r.coinsCrates, 700) + row(t('sum.coins.kills'), r.coinsKills || 0, 850) + totalRow(1000) + '</div>' +
           '<div class="fail-tip"><b>' + t('sum.tip') + '</b><span>' + hint + '</span></div>' +
           '<div class="sum-note">' + t('sum.keptcoins') + '</div></div>' +
-          '<div class="sum-btns"><button class="btn big retry" id="btn-sum-main">' + t('sum.tryagain') + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+          '<div class="sum-btns">' + adRowBtn + '<button class="btn big retry" id="btn-sum-main">' + t('sum.tryagain') + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
       }
       UI._countUp(el);
+      const adBtnEl = $('btn-sum-ad');
+      if (adBtnEl && h.rewarded) {
+        adBtnEl.onclick = () => {
+          if (adBtnEl.disabled) return;
+          WZ.Audio.sfx('click');
+          adBtnEl.disabled = true;
+          h.rewarded(adBonus).then((ok) => {
+            if (!el.isConnected) return;
+            if (ok) {
+              WZ.Audio.sfx('win');
+              adBtnEl.remove();
+              const wEl = $('sum-wallet-val');
+              if (wEl) wEl.textContent = String(WZ.Save.data.coins);
+            } else {
+              adBtnEl.disabled = false;
+            }
+          });
+        };
+      }
       $('btn-sum-main').onclick = () => { WZ.Audio.sfx('click'); h.main(); };
       $('btn-sum-menu').onclick = () => { WZ.Audio.sfx('click'); h.menu(); };
       $('btn-sum-shop').onclick = () => { WZ.Audio.sfx('click'); h.garage(); };

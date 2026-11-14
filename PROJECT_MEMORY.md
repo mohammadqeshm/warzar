@@ -321,3 +321,20 @@ Visual-only change; the rig API (`rig.root/bodyG/torso/head/legL/legR/armL/armR`
 - **Guardian scaling** (`CFG.giant.hpPerLevel / speedPerLevel / speedPerSeason / speedMax`, applied in `entities/giant.js init`): in every season each level adds HP (+9 % per level on top of the difficulty multiplier) and speed (+3 % per level, +3.5 % per season, capped at x1.5; Ice Beast charge speed capped at x1.25). The tutorial keeps its own gentle values.
 - **Shop from the results screen** (`progress.js presentResult`): BACK in the shop now returns to the MAIN MENU (`Main.lastResult` is cleared; a pending season unlock is still celebrated by the menu scene).
 - **HUD**: the HEAT flames panel (`#hud-heat`) was removed from the top bar (the heat mechanic itself still drives the spawner). New `#hud-pk` panel: heart = repair hearts still to find on this level (`left/total`), clock = time clocks still to find (`left/total`). Data: `WZ.Pickups.hud()` (left = total - collected, `live` = one is on the map now), painted by `UI.paintPickups`. Dimmed in the tutorial (pickups off), a heart/clock row fades once all of that kind were collected.
+
+---
+
+## Update — Playgama Bridge v2 & YouTube Playables Release Integration (M4) + Bug Fixes
+- **Playgama Bridge v2 SDK & Config (`index.html`, `public/playgama-bridge-config.json`, `public/playgama-bridge.js`, `src/game/platform.js`):**
+  - Added Playgama Bridge v2 script in `<head>` (`https://bridge.playgama.com/v2/stable/playgama-bridge.js` with local fallback `./playgama-bridge.js`) and `public/playgama-bridge-config.json` shipped at the root of `dist/`.
+  - `WZ.Platform` implements all Playgama Bridge v2 & YouTube Playables requirements: `bridge.initialize()`, `bridge.setGameLoadingProgress()`, `bridge.platform.sendMessage('game_ready')`, lifecycle events (`level_started`, `level_completed`, `level_failed`, `level_paused`, `level_resumed`, `gameplay_started`, `gameplay_stopped`, `player_got_achievement`), `bridge.platform.language`, `bridge.platform.isAudioEnabled` + `audio_state_changed`, `bridge.platform.isPaused` + `pause_state_changed`, `bridge.storage.get/set/flush`, `bridge.advertisement.showInterstitial`, and opt-in `bridge.advertisement.showRewarded`.
+- **Boot & Persistence Order (`src/game/main.js`, `src/game/save.js`, `src/game/i18n.js`, `src/game/audio.js`):**
+  - `Main.start` now awaits `WZ.Platform.init()` before `WZ.Save.init()` and `WZ.I18n.init()` so `platform.language`, `platform.isAudioEnabled`, and Bridge storage are loaded before mounting UI and audio.
+  - `WZ.Save` routes through `WZ.Platform.storageGet` / `storageSet` with 120 ms write coalescing and immediate flush on pause / pagehide / mission end.
+  - `WZ.Audio` separates `userMuted` and `platformMuted` (`setPlatformMuted`), ensuring platform mute commands cannot be overridden by in-game sound buttons.
+  - `WZ.I18n` includes `en`, `ru`, `es`, `pt`, and `tr` dictionaries read from `WZ.Platform.language()`.
+- **Bug Fixes & Technical Compliance:**
+  - Removed `Escape` key bindings in `systems/input.js` and `ui.js` (Playgama Technical Requirement 1.5.2 reserves `Esc` for browser fullscreen; Pause uses `P` / `Backspace`).
+  - Fixed shared geometry/material disposal in `entities/giant.js`, `systems/turrets.js`, `systems/heli.js`, `entities/nana.js`, and `scenes/shop.js` so `G.disposeTree` in the Shop and Menu never disposes shared geometries or materials.
+  - Fixed `Menu.heli` in `scenes/menu.js` (`WZ.Heli.model()` instead of non-existent `WZ.Turrets.heliModel`).
+  - Updated `tools/test-combat.cjs`, `tools/test-turrets.cjs`, `tools/test-hazards.cjs`, and added `tools/test-platform.cjs` — all 12 test suites pass with 0 issues.

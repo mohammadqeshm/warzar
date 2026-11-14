@@ -57,8 +57,11 @@
       Shop.buildStage();
       Shop.cam = WZ.Cam.cam; Shop.cam.fov = 32; Shop.cam.updateProjectionMatrix();
       WZ.UI.hudShow(false); WZ.UI.clearScreens();
+      const adBtn = (WZ.Platform && WZ.Platform.isRewardedSupported && WZ.Platform.isRewardedSupported())
+        ? '<button class="btn ad-btn" id="sh-ad" data-act="adcoins"><svg class="ad-ico" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="#0E0E0E"/><path d="M9.5 8.2l7 3.8-7 3.8z" fill="#FFB400"/></svg><span>' + t('ad.shop', { n: 150 }) + '</span></button>'
+        : '';
       Shop.ui = WZ.UI._screen('shop', '<div class="shop-top"><button class="btn dark" data-act="back">' + t('shop.back') + '</button><div class="shop-title">' + t('shop.title') + '</div>' +
-        '<div class="shop-coins panel">' + COIN + '<b id="sh-coins">0</b></div></div><div class="shop-stage-spacer"></div><div class="shop-main"><div class="shop-list" id="sh-list"></div><div class="shop-detail panel" id="sh-detail"></div></div>' +
+        '<div class="shop-wallet-row">' + adBtn + '<div class="shop-coins panel">' + COIN + '<b id="sh-coins">0</b></div></div></div><div class="shop-stage-spacer"></div><div class="shop-main"><div class="shop-list" id="sh-list"></div><div class="shop-detail panel" id="sh-detail"></div></div>' +
         '<div class="shop-drag">' + t('shop.drag') + '</div>');
       Shop.ui.onclick = Shop.click;
       let dragId = -1, dragX = 0;
@@ -142,6 +145,7 @@
 
     disposeObj() {
       if (Shop.heroes) Shop.heroes.forEach((h) => h.dispose());
+      if (Shop.rig && Shop.rig.dispose) Shop.rig.dispose();
       if (Shop.obj) { if (Shop.holder) Shop.holder.remove(Shop.obj); G.disposeTree(Shop.obj); }
       Shop.heroes = null; Shop.model = null; Shop.obj = null; Shop.rig = null;
     },
@@ -215,7 +219,9 @@
       const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d'), img = cx.createImageData(W, H);
       for (let y = 0; y < H; y++) img.data.set(buf.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4);
       cx.putImageData(img, 0, 0); const url = cv.toDataURL('image/png');
-      if (o.heroes) o.heroes.forEach((h) => h.dispose()); G.disposeTree(o.obj);
+      if (o.heroes) o.heroes.forEach((h) => h.dispose());
+      if (o.rig && o.rig.dispose) o.rig.dispose();
+      G.disposeTree(o.obj);
       return url;
     },
 
@@ -317,6 +323,20 @@
       const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
       const a = b.dataset.act, id = b.dataset.id; WZ.Audio.unlock();
       if (a === 'back') { WZ.Audio.sfx('click'); Shop.back(); return; }
+      if (a === 'adcoins') {
+        if (!WZ.Platform || !WZ.Platform.showRewarded) return;
+        b.disabled = true;
+        WZ.Platform.showRewarded('shop_coins').then((granted) => {
+          b.disabled = false;
+          if (granted) {
+            WZ.Save.data.coins += 150;
+            WZ.Save.save(); WZ.Save.flush();
+            WZ.Audio.sfx('win');
+            if (Shop.ui && Shop.ui.isConnected) Shop.paint();
+          }
+        });
+        return;
+      }
       if (a === 'sel') { WZ.Audio.sfx('click'); if (Shop.sel !== id) { Shop.sel = id; Shop.show(id); } }
       else if (a === 'buy') { const r = Shop.buyVehicle(id); WZ.Audio.sfx(r === 'ok' ? 'win' : 'beep'); if (r === 'ok') { Shop.show(id); WZ.Particles && 0; } }
       else if (a === 'equip') { WZ.Audio.sfx(Shop.equip(id) === 'ok' ? 'go' : 'beep'); }

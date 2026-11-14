@@ -15,8 +15,9 @@
       M.data = data; M.unsub = [];
       // data = { theme (season map), level (1..10), runSeed, runCoins }. `index` = the DIFFICULTY number derived from season + level (feeds all per-mission formulas).
       const PG = WZ.Progress, themeId = data.theme || WZ.Save.data.settings.map || 'village'; M.theme = CFG.maps[themeId] && themeId !== 'order' ? themeId : 'village';
-      const LV = CFG.progress.levels; M.season = PG.seasonIndex(M.theme) + 1;
-      data.theme = M.theme; data.level = Math.max(1, Math.min(LV, (data.level | 0) || 1)); data.index = PG.difficulty(M.theme, data.level);
+      const LV = CFG.progress.levels; M.season = PG ? PG.seasonIndex(M.theme) + 1 : 1;
+      const rawLvl = (data.level | 0) || (data.index | 0) || 1;
+      data.theme = M.theme; data.level = Math.max(1, Math.min(LV, rawLvl)); data.index = (data.index | 0) || (PG ? PG.difficulty(M.theme, data.level) : data.level);
       const tutorial = data.tutorial != null ? data.tutorial : (data.level === 1 && M.season === 1 && !WZ.Save.data.flags.tutorialDone);
       M.mission = WZ.Missions.make(data.index, tutorial, data.level);
       M.scene = new T.Scene();
@@ -33,25 +34,25 @@
       M.ctx = { scene: M.scene, map: M.map, col: M.col, jeep: M.jeep, enemies: WZ.Enemies, crates: M.crates, particles: WZ.Particles, fx: WZ.Fx, nana: null, view: M.view, mission: M.mission };
       M.nana = new WZ.Nana(M.ctx); M.ctx.nana = M.nana;
       WZ.Hazards.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 911));
-      WZ.Volcano.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 6161));     // volcanic map only (no-op elsewhere)
-      WZ.Harbor.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 7373));                                 // harbor map only: broken piers, crane-blocked lanes, Harbor Mech weapons (no-op elsewhere)
-      WZ.Ice.init(M.ctx);                                                                                                       // frozen map only (no-op elsewhere)
-      WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); WZ.Soldiers.init(M.ctx); WZ.Bullets.init(M.ctx); WZ.Heli.init(M.ctx); WZ.Tanks.init(M.ctx); WZ.Jets.init(M.ctx); WZ.Giants.init(M.ctx, M.mission); WZ.Weapons.init();
+      if (WZ.Volcano) WZ.Volcano.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 6161));     // volcanic map only (no-op elsewhere)
+      if (WZ.Harbor) WZ.Harbor.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 7373));                                 // harbor map only: broken piers, crane-blocked lanes, Harbor Mech weapons (no-op elsewhere)
+      if (WZ.Ice) WZ.Ice.init(M.ctx);                                                                                                       // frozen map only (no-op elsewhere)
+      if (WZ.Fire) WZ.Fire.init(M.ctx); WZ.Landmines.init(M.ctx); WZ.Turrets.init(M.ctx); if (WZ.Soldiers) WZ.Soldiers.init(M.ctx); WZ.Bullets.init(M.ctx); if (WZ.Heli) WZ.Heli.init(M.ctx); if (WZ.Tanks) WZ.Tanks.init(M.ctx); if (WZ.Jets) WZ.Jets.init(M.ctx); if (WZ.Giants) WZ.Giants.init(M.ctx, M.mission); if (WZ.Weapons) WZ.Weapons.init();
       if (WZ.Audio.setMusic) WZ.Audio.setMusic('mission', M.theme);
       M.ctx.addTime = (s) => { M.timeLeft += s; };
       M.ctx.timeLeft = () => M.timeLeft;                                                                                           // read-only timer access for WZ.Pickups
-      WZ.Pickups.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 4242));
+      if (WZ.Pickups) WZ.Pickups.init(M.ctx, M.mission, WZ.RNG.hash(WZ.RNG.hash(data.runSeed, data.index), 4242));
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
       M.inp = { x: 0, y: 0, mag: 0, boost: false };
-      M.hud = { level: data.level, levelText: t('hud.lvl', { s: M.season, n: data.level, m: LV }), timerText: '', timerLow: false, pk: WZ.Pickups.hud(), cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons.snap(), wsel: WZ.Weapons.selId, strikes: 0, rush: 0 };
+      M.hud = { level: data.level, levelText: t('hud.lvl', { s: M.season, n: data.level, m: LV }), timerText: '', timerLow: false, pk: WZ.Pickups ? WZ.Pickups.hud() : null, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons ? WZ.Weapons.snap() : [], wsel: WZ.Weapons ? WZ.Weapons.selId : 'gun', strikes: 0, rush: 0 };
 
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
       M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
       M.nanaOutT = 0; M.rushK = 0; M.rampStep = 0; M.failReason = '';
       M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.resultShown = false;
       M.camBlend = 0; M.fromPos = new T.Vector3(); M.fromLook = new T.Vector3();
-      WZ.Save.data.settings.map = M.theme; PG.setCurrent(M.theme, data.level); WZ.Save.save();      // remember which season / level is being played
+      WZ.Save.data.settings.map = M.theme; if (PG) PG.setCurrent(M.theme, data.level); WZ.Save.save();      // remember which season / level is being played
 
       M.unsub.push(
         WZ.Events.on('nana:ko', M.onNanaKO), WZ.Events.on('jeep:damaged', M.onJeepHurt),
@@ -73,14 +74,16 @@
       M.fromPos.copy(Cam.cam.position); M.fromLook.set(M.jeep.rx, M.jeep.ry + 1.5, M.jeep.rz); M.camBlend = 1;
       WZ.UI.clearScreens(); WZ.UI.hudShow(true); WZ.UI.resetHudCache(); M.updateHud();
       WZ.Audio.unlock(); WZ.Audio.engineStart(); WZ.Input.reset();
+      if (WZ.Platform && WZ.Platform.gameplayStart) WZ.Platform.gameplayStart(M.theme, M.data && M.data.level);
     },
 
     exit() {
+      if (WZ.Platform && WZ.Platform.gameplayStop) WZ.Platform.gameplayStop();
       M.unsub.forEach((f) => f());
       WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
-      WZ.Hazards.dispose(); WZ.Volcano.dispose(); WZ.Ice.dispose(); WZ.Harbor.dispose(); WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); WZ.Soldiers.dispose(); WZ.Bullets.dispose(); WZ.Heli.dispose(); WZ.Tanks.dispose(); WZ.Jets.dispose(); WZ.Pickups.dispose(); WZ.Giants.dispose();
+      WZ.Hazards.dispose(); if (WZ.Volcano) WZ.Volcano.dispose(); if (WZ.Ice) WZ.Ice.dispose(); if (WZ.Harbor) WZ.Harbor.dispose(); if (WZ.Fire) WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); if (WZ.Soldiers) WZ.Soldiers.dispose(); WZ.Bullets.dispose(); if (WZ.Heli) WZ.Heli.dispose(); if (WZ.Tanks) WZ.Tanks.dispose(); if (WZ.Jets) WZ.Jets.dispose(); if (WZ.Pickups) WZ.Pickups.dispose(); if (WZ.Giants) WZ.Giants.dispose();
       M.scene = null; WZ.Main.renderer.renderLists.dispose();
     },
 
@@ -194,16 +197,16 @@
       M.afterJeep(dt);
       N.step(dt);
       WZ.Enemies.update(dt, M.ctx);
-      WZ.Giants.update(dt);
+      if (WZ.Giants) WZ.Giants.update(dt);
       WZ.Gun.update(dt, M.ctx);
       M.small.hit(J, WZ.Particles); M.small.update(dt);
       WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
-      WZ.Volcano.update(dt, M.ctx, M.phase === 'play', M.time);
-      WZ.Ice.update(dt, M.ctx, M.phase === 'play');
-      WZ.Harbor.update(dt, M.ctx, M.phase === 'play');
-      WZ.Fire.update(dt);
-      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); WZ.Soldiers.update(dt); WZ.Bullets.update(dt); WZ.Heli.update(dt); WZ.Tanks.update(dt); }
-      if (M.phase === 'play' || M.phase === 'ending') WZ.Jets.update(dt);
+      if (WZ.Volcano) WZ.Volcano.update(dt, M.ctx, M.phase === 'play', M.time);
+      if (WZ.Ice) WZ.Ice.update(dt, M.ctx, M.phase === 'play');
+      if (WZ.Harbor) WZ.Harbor.update(dt, M.ctx, M.phase === 'play');
+      if (WZ.Fire) WZ.Fire.update(dt);
+      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); if (WZ.Soldiers) WZ.Soldiers.update(dt); WZ.Bullets.update(dt); if (WZ.Heli) WZ.Heli.update(dt); if (WZ.Tanks) WZ.Tanks.update(dt); }
+      if ((M.phase === 'play' || M.phase === 'ending') && WZ.Jets) WZ.Jets.update(dt);
       if (M.phase === 'play') WZ.Pickups.update(dt);
       M.effects(dt);
       if (M.phase === 'play' && J.alive) WZ.Audio.engineSet(Math.min(1, J.speed / J.P.topSpeed), J.throttle, J.boosting);
@@ -317,14 +320,19 @@
     complete() {
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'complete'; M.endT = 0;
-      WZ.Pickups.stop();
+      if (WZ.Pickups) WZ.Pickups.stop();
       const S = WZ.Save.data;
       // season progress: level cleared -> next level opens; level 10 cleared -> the next season unlocks
       M.stars = M.starRating();
-      M.prog = WZ.Progress.complete(M.theme, M.data.level, M.stars);
+      M.prog = WZ.Progress ? WZ.Progress.complete(M.theme, M.data.level, M.stars) : { firstClear: false, seasonDone: false, unlockedSeason: null, stars: M.stars };
       if (WZ.Main) WZ.Main.startIndex = S.level;
       M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;   // KO loot is paid out on a win
-      WZ.Save.save();
+      WZ.Save.save(); WZ.Save.flush();
+      if (WZ.Platform) {
+        WZ.Platform.gameplayStop();
+        WZ.Platform.sendMessage('level_completed', { world: String(M.theme), level: String(M.data.level || 1) });
+        if (M.prog && (M.prog.firstClear || M.prog.seasonDone)) WZ.Platform.sendMessage('player_got_achievement');
+      }
       WZ.Audio.engineStop(); WZ.Audio.sfx('win'); WZ.UI.hudShow(false);
       M.jeep.cmdr.setMode('cheer'); M.nana.cheer = true;
       WZ.Particles.confetti(M.jeep.x, M.jeep.ry + 4, M.jeep.z, 60);
@@ -332,11 +340,15 @@
     fail(reason) {
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'fail'; M.failReason = reason; M.endT = 0;
-      WZ.Pickups.stop();
+      if (WZ.Pickups) WZ.Pickups.stop();
       const S = WZ.Save.data;
       // a lost run must never cost the player coins: the KO loot is banked right now (crate coins were saved the moment each crate landed)
       M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;
       WZ.Save.save(); WZ.Save.flush();
+      if (WZ.Platform) {
+        WZ.Platform.gameplayStop();
+        WZ.Platform.sendMessage('level_failed', { world: String(M.theme), level: String(M.data.level || 1) });
+      }
       if (M.killCoins > 0) WZ.Fx.text('+' + M.killCoins, M.jeep.rx, M.jeep.ry + 7, M.jeep.rz, 'coin');
       WZ.Audio.engineStop(); WZ.Audio.sfx('lose'); WZ.UI.hudShow(false);
     },
@@ -387,9 +399,9 @@
     hintText() {
       if (M.hintT > 0 && M.hintKey === 'hud.nocrate') return t(M.hintKey);
       const hz = WZ.Hazards.hint(); if (hz && hz.indexOf('hud.tornado') === 0) return t(hz);   // tornado warning / pull / caught
-      const vh = WZ.Volcano.hint(); if (vh) return t(vh);
-      const hh = WZ.Harbor.hint(); if (hh) return t(hh);                                                                       // mech aim / missiles / cover, crane, broken deck (harbor map)
-      const ih = WZ.Ice.hint(); if (ih) return t(ih);                                          // slippery ice / charge lane / ice wave warnings (frozen map)                                       // lava / eruption / vent / magma pool warnings (volcanic map)
+      const vh = WZ.Volcano && WZ.Volcano.hint(); if (vh) return t(vh);
+      const hh = WZ.Harbor && WZ.Harbor.hint(); if (hh) return t(hh);                                                                       // mech aim / missiles / cover, crane, broken deck (harbor map)
+      const ih = WZ.Ice && WZ.Ice.hint(); if (ih) return t(ih);                                          // slippery ice / charge lane / ice wave warnings (frozen map)
       return '';
     },
 
@@ -399,8 +411,8 @@
       J.sync(alpha, dt, M.t); N.render(alpha, dt, M.t);
       WZ.Blobs.begin();
       for (let i = 0; i < M.crates.list.length; i++) { const c = M.crates.list[i]; if (c.state === 'idle') WZ.Blobs.add(c.x, c.gy, c.z, 3.6); }
-      WZ.Giants.render(alpha, M.t, dt);
-      WZ.Jets.blobs(WZ.Blobs);
+      if (WZ.Giants) WZ.Giants.render(alpha, M.t, dt);
+      if (WZ.Jets) WZ.Jets.blobs(WZ.Blobs);
       WZ.Enemies.render(alpha, M.t);
       WZ.Blobs.end();
       M.crates.update(dt, M.t, cam);
@@ -420,13 +432,13 @@
       M.view.followLight(J.rx, J.ry, J.rz);
       M.view.update(M.t, dt, cam);
       WZ.Gun.render(dt);
-      WZ.Heli.render(alpha, dt, M.t); WZ.Tanks.render(alpha, dt, M.t); WZ.Jets.render(alpha, dt, M.t); WZ.Pickups.render(dt, M.t);
+      if (WZ.Heli) WZ.Heli.render(alpha, dt, M.t); if (WZ.Tanks) WZ.Tanks.render(alpha, dt, M.t); if (WZ.Jets) WZ.Jets.render(alpha, dt, M.t); if (WZ.Pickups) WZ.Pickups.render(dt, M.t);
       WZ.Particles.update(dt, cam);
       WZ.Fx.update(dt, cam, w, h);
 
-      if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); WZ.Giants.bars(cam, w, h); WZ.Soldiers.bars(cam, w, h); }
+      if (M.phase === 'play') { M.updateHud(); M.updateArrows(w, h); if (WZ.Giants) WZ.Giants.bars(cam, w, h); if (WZ.Soldiers) WZ.Soldiers.bars(cam, w, h); }
       if (WZ.UI.dbgOn) M.debugText();
-      WZ.Hazards.render(dt, M.t); WZ.Volcano.render(dt, M.t); WZ.Ice.render(dt); WZ.Harbor.render(dt, M.t); WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t); WZ.Soldiers.render(alpha, dt, M.t);
+      WZ.Hazards.render(dt, M.t); if (WZ.Volcano) WZ.Volcano.render(dt, M.t); if (WZ.Ice) WZ.Ice.render(dt); if (WZ.Harbor) WZ.Harbor.render(dt, M.t); if (WZ.Fire) WZ.Fire.render(dt, M.t); WZ.Landmines.render(dt, M.t); WZ.Turrets.render(dt, M.t); if (WZ.Soldiers) WZ.Soldiers.render(alpha, dt, M.t);
       Main.renderer.render(M.scene, cam);
     },
 
@@ -434,7 +446,7 @@
       const J = M.jeep, N = M.nana, hd = M.hud;
       hd.level = M.data.level;
       hd.timerText = U.fmtTime(M.timeLeft); hd.timerLow = M.timeLeft <= CFG.timer.lowWarn;
-      hd.pk = WZ.Pickups.hud();   // repair hearts / time clocks left on this level (top bar)
+      hd.pk = WZ.Pickups ? WZ.Pickups.hud() : null;   // repair hearts / time clocks left on this level (top bar)
       hd.cratesText = M.landed + '/' + M.crates.total;
       hd.hp = J.hp; hd.hpMax = J.maxHp; hd.nanaOut = true; hd.nanaHp = N.hp; hd.nanaMax = N.maxHp;
       if (N.state === 'IN_JEEP') hd.deploy = M.crates.nearestAvailable(J.x, J.z, CFG.nana.deployRadius) ? 'deploy-ready' : 'deploy';
@@ -442,7 +454,7 @@
       hd.boostPct = J.boostPct;
       hd.prompt = M.promptText(); hd.hint = M.hintText();
       hd.objective = t(M.allLoaded ? (N.out ? 'hud.obj.nana' : 'hud.obj.extract') : 'hud.obj.find');
-      hd.gunBoost = WZ.Gun.boosted; hd.loot = M.killCoins; hd.weapons = WZ.Weapons.snap(); hd.wsel = WZ.Weapons.selId;
+      hd.gunBoost = WZ.Gun.boosted; hd.loot = M.killCoins; hd.weapons = WZ.Weapons ? WZ.Weapons.snap() : []; hd.wsel = WZ.Weapons ? WZ.Weapons.selId : 'gun';
       hd.strikes = J.mineHits || 0; hd.rush = M.rushK;
       WZ.UI.updateHUD(hd);
     },
@@ -464,7 +476,7 @@
           last = bi; lastD = bd; const c = list[bi]; M.arrow(n++, c.x, c.gy + 4, c.z, k === 0 ? 'crate' : 'crate far', w, h);
         }
       }
-      const pk = WZ.Pickups.arrows(J.x, J.z, M.pkList); for (let i = 0; i < pk.length && n < 11; i++) M.arrow(n++, pk[i].x, pk[i].gy + 4, pk[i].z, pk[i].K.arrow, w, h);
+      const pk = WZ.Pickups ? WZ.Pickups.arrows(J.x, J.z, M.pkList) : []; for (let i = 0; i < pk.length && n < 11; i++) M.arrow(n++, pk[i].x, pk[i].gy + 4, pk[i].z, pk[i].K.arrow, w, h);
       const tp = WZ.Hazards.arrowPos(); if (tp) M.arrow(n++, tp.x, tp.y, tp.z, 'storm', w, h);
       void cam; WZ.UI.hideArrows(n);
     },

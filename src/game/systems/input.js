@@ -20,7 +20,7 @@
         switch (e.code) {
           case 'Space': IN.pressed.deploy = true; e.preventDefault(); break;
           case 'ShiftLeft': case 'ShiftRight': IN.pressed.boost = true; IN.boostHeld = true; break;
-          case 'Escape': case 'KeyP': IN.pressed.pause = true; break;
+          case 'KeyP': case 'Backspace': IN.pressed.pause = true; break;
           case 'Backquote': case 'F3': IN.pressed.debug = true; e.preventDefault(); break;
           case 'KeyN': IN.pressed.skip = true; break;
           case 'KeyF': IN.pressed.weapon = true; break;                      // USE the selected weapon

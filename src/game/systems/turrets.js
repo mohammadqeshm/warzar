@@ -74,16 +74,23 @@
     bar.add(rb(0.62, 0.34, 0.5, 0.06), { z: 0.55, color: DARK });
     for (const s of [1, -1]) { bar.add(rb(0.15, 0.15, 1.5, 0.05), { x: 0.2 * s, y: 0.06, z: 1.25, color: 0x0E0E0E }); bar.add(rb(0.22, 0.22, 0.24, 0.05), { x: 0.2 * s, y: 0.06, z: 2.0, color: STEEL }); }
     lamp.add(G.sph(10, 8), { sx: 0.17, sy: 0.17, sz: 0.17, color: 0xFFFFFF });
-    return {
+    const out = {
       base: base.build(), head: head.build(), bar: bar.build(),
       gBase: gBase.build(), gHead: gHead.build(), gBar: gBar.build(),
       lamp: lamp.build(),
     };
+    for (const k in out) G.mark(out[k]);
+    return out;
   }
 
   /** a complete turret (also used for offline previews): returns { root, headG, barG, lamp } */
   function model(kind) {
-    if (!parts) { parts = makeParts(); VM = new T.MeshLambertMaterial({ vertexColors: true }); HVM = new T.MeshLambertMaterial({ vertexColors: true, color: 0xFF9C84 }); BVM = new T.MeshLambertMaterial({ vertexColors: true, color: 0xB79CFF }); }
+    if (!parts) {
+      parts = makeParts();
+      VM = new T.MeshLambertMaterial({ vertexColors: true }); VM.userData.shared = true;
+      HVM = new T.MeshLambertMaterial({ vertexColors: true, color: 0xFF9C84 }); HVM.userData.shared = true;
+      BVM = new T.MeshLambertMaterial({ vertexColors: true, color: 0xB79CFF }); BVM.userData.shared = true;
+    }
     const heavy = kind === 'heavy', bomb = kind === 'bomb', isGun = !heavy && !bomb, VM_ = heavy ? HVM : bomb ? BVM : VM;
     const root = new T.Group(), headG = new T.Group(), barG = new T.Group();
     headG.position.y = 1.45; root.add(headG); headG.add(barG);
@@ -99,14 +106,15 @@
   }
   const easeBack = (k) => { const c = 1.9; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
 
-  const tech = () => (WZ.Save.data.upgrades.defense | 0);
+  const tech = () => ((WZ.Save && WZ.Save.data && WZ.Save.data.upgrades && WZ.Save.data.upgrades.defense) | 0);
   const mulDmg = () => 1 + tech() * CFG.defenseTech.dmg, mulLife = () => 1 + tech() * CFG.defenseTech.life, mulRate = () => 1 + tech() * CFG.defenseTech.rate;
 
   const L = {
     ctx: null, list: [], cd: { gun: 0, heavy: 0, bomb: 0 }, noteT: 0, planted: 0, kills: 0, shells: [], blasts: [], sm: null, mm: null, bm: null, gm: null,
-    stock(kind) { const v = WZ.Save.data.inv; return (v && v[INV[kind]]) | 0; },
+    stock(kind) { const v = WZ.Save && WZ.Save.data && WZ.Save.data.inv; return v ? (v[INV[kind]] | 0) : 99; },
     countKind(kind) { let n = 0; for (const t of L.list) if (t.kind === kind) n++; return n; },
-    cdPct(kind) { const c = L.cd[kind]; return c <= 0 ? 1 : 1 - c / DEF[kind].cooldown; },
+    cdPct(kind) { const k = kind || 'gun', c = L.cd[k]; return c <= 0 ? 1 : 1 - c / DEF[k].cooldown; },
+    get ready() { return L.cd.gun <= 0; },
     get count() { return L.list.length; },
 
     init(ctx) {
@@ -154,7 +162,7 @@
       ring.position.set(spot.x, gy + 0.12, spot.z); shock.position.set(spot.x, gy + 0.18, spot.z);
       m.root.position.set(spot.x, gy, spot.z); m.root.scale.setScalar(0.01);
       c.scene.add(m.root, ring, shock);
-      const S = WZ.Save.data; S.inv[INV[kind]] = Math.max(0, S.inv[INV[kind]] - 1); WZ.Save.save();
+      if (WZ.Save && WZ.Save.data && WZ.Save.data.inv) { const S = WZ.Save.data; S.inv[INV[kind]] = Math.max(0, S.inv[INV[kind]] - 1); if (WZ.Save.save) WZ.Save.save(); }
       L.list.push({ kind, def: C, x: spot.x, z: spot.z, gy, life: C.life * mulLife(), maxLife: C.life * mulLife(), age: 0, yaw: J.h, root: m.root, headG: m.headG, barG: m.barG, lamp: m.lamp, lampMat, ring, shock, cdF: 0.3, side: 1, kick: 0, target: null, retarget: 0, sfxN: 0, sc });
       L.cd[kind] = C.cooldown; L.planted++;
       WZ.Audio.sfx('build'); c.particles.dust(spot.x, gy, spot.z, 8); c.particles.poof(spot.x, gy + 0.6, spot.z, 8, 1.6 * sc);

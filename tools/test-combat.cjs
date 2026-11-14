@@ -9,7 +9,7 @@ global.document = { createElement: () => ({ width: 0, height: 0, style: {}, getC
 global.localStorage = { getItem: () => null, setItem() {} }; global.location = { search: '' }; global.performance = { now: () => 0 };
 global.matchMedia = () => ({ matches: false }); global.navigator = { language: 'en' };
 const issues = [], ok = (c, m) => { if (!c) issues.push(m); };
-const files = ['config.js', 'rng.js', 'events.js', 'util.js', 'platform.js', 'save.js', 'i18n.js'];
+const files = ['config.js', 'rng.js', 'events.js', 'util.js', 'platform.js', 'save.js', 'progress.js', 'i18n.js'];
 for (const f of files) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
 const WZ = global.WZ; const sfx = {}, texts = [];
 WZ.Audio = new Proxy({ sfx: (n) => { sfx[n] = (sfx[n] || 0) + 1; } }, { get: (t, k) => t[k] || (() => {}) });
@@ -20,7 +20,7 @@ WZ.Cam = { cam: new THREE.PerspectiveCamera(), yaw: 0, snap() {}, update() {}, o
 WZ.Quality = { level: 2 }; WZ.Main = { renderer: { renderLists: { dispose() {} } }, startIndex: 1, go() {} };
 WZ.Debug = {};
 for (const f of ['assets.js', 'art/geo.js', 'art/textures.js', 'art/props.js', 'art/heroes.js', 'art/vehicles.js', 'art/vehicles_extra.js', 'art/enemies.js', 'world/navgrid.js', 'world/collision.js', 'world/gen.js', 'world/worldview.js',
-  'systems/particles.js', 'systems/spawner.js', 'systems/gun.js', 'systems/missions.js', 'systems/hazards.js', 'systems/landmines.js', 'systems/turrets.js', 'systems/bullets.js',
+  'systems/particles.js', 'systems/spawner.js', 'systems/gun.js', 'systems/missions.js', 'systems/hazards.js', 'systems/landmines.js', 'systems/turrets.js', 'systems/bullets.js', 'systems/pickups.js',
   'entities/smallprops.js', 'entities/crate.js', 'entities/jeep.js', 'entities/enemy.js', 'entities/nana.js', 'scenes/mission.js']) {
   try { vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f }); } catch (e) { console.log('LOAD FAIL', f, e.message); process.exit(1); }
 }

@@ -35,7 +35,9 @@
     rotor.add(rb(1.0, 0.11, 0.62, 0.03), { x: 5.4, color: YEL }); rotor.add(rb(1.0, 0.11, 0.62, 0.03), { x: -5.4, color: YEL });
     rotor.add(rb(0.62, 0.11, 1.0, 0.03), { z: 5.4, color: YEL }); rotor.add(rb(0.62, 0.11, 1.0, 0.03), { z: -5.4, color: YEL });
     tail.add(rb(0.08, 1.7, 0.26, 0.03), { color: DARK }); tail.add(rb(0.08, 0.26, 1.7, 0.03), { color: DARK });
-    return { body: body.build(), rotor: rotor.build(), tail: tail.build() };
+    const out = { body: body.build(), rotor: rotor.build(), tail: tail.build() };
+    for (const k in out) G.mark(out[k]);
+    return out;
   }
 
   /** a complete helicopter model (also used by the shop preview) */

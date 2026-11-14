@@ -94,7 +94,7 @@ The game supports touch and keyboard input.
 | Drive | WASD / Arrow keys |
 | Deploy / recall Nana | Space |
 | Boost | Shift |
-| Pause / resume | Esc / P |
+| Pause / resume | P / Backspace |
 | Place a landmine | F / M |
 | Deploy defense | T |
 | Debug overlay | F3 / Backquote |

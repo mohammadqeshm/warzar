@@ -101,17 +101,25 @@
     presentResult(res) {
       const Main = WZ.Main, UI = WZ.UI;
       Main.lastResult = res; res.r.wallet = WZ.Save.data.coins;      // the wallet may have changed in the shop
-      const go = (theme, level, seed, coins) => {
+      const placement = res.win ? 'level_completed' : 'level_failed';
+      const withAd = (fn) => {
+        if (WZ.Platform && typeof WZ.Platform.showInterstitial === 'function') {
+          WZ.Platform.showInterstitial(placement).then(() => fn());
+        } else {
+          fn();
+        }
+      };
+      const go = (theme, level, seed, coins) => withAd(() => {
         const S = WZ.Save.data; S.settings.map = theme; P.setCurrent(theme, level); WZ.Save.save();
         Main.lastResult = null;
         Main.go('mission', { theme, level, runSeed: seed, runCoins: coins });
-      };
-      const goUnlock = (unlockId) => {
+      });
+      const goUnlock = (unlockId) => withAd(() => {
         Main.lastResult = null;
         WZ.Save.data.settings.map = res.theme;
         WZ.Save.save();
         Main.go('menu', { maps: true, unlockSeason: unlockId, fromTheme: res.theme });
-      };
+      });
       UI.showSummary(res.r, {
         main: () => {
           if (res.win) {
@@ -130,7 +138,22 @@
         menu: () => {
           const unlockId = (res.win && (res.r.unlockedSeason || (WZ.Save.data.flags && WZ.Save.data.flags.pendingUnlock))) || null;
           if (unlockId) return goUnlock(unlockId);
-          Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu');
+          withAd(() => {
+            Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu');
+          });
+        },
+        rewarded: (bonus) => {
+          if (res.r.adClaimed || !WZ.Platform || typeof WZ.Platform.showRewarded !== 'function') return Promise.resolve(false);
+          return WZ.Platform.showRewarded('bonus_coins').then((granted) => {
+            if (!granted) return false;
+            res.r.adClaimed = true;
+            const add = Math.max(1, bonus | 0);
+            WZ.Save.data.coins += add;
+            res.runCoins = (res.runCoins || 0) + add;
+            res.r.wallet = WZ.Save.data.coins;
+            WZ.Save.save(); WZ.Save.flush();
+            return true;
+          });
         },
       });
     },

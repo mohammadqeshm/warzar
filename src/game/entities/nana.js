@@ -245,7 +245,7 @@
       }
     }
 
-    dispose() { this.ctx.scene.remove(this.marker, this.rig.root); this.rig.dispose(); this.arrow.geometry.dispose(); }
+    dispose() { this.ctx.scene.remove(this.marker, this.rig.root); this.rig.dispose(); WZ.Geo.disposeTree(this.marker); }
   }
   Nana.S = S;
   WZ.Nana = Nana;

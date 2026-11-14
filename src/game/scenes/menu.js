@@ -253,8 +253,8 @@
 
       // Escort Helicopter patrolling in midground sky
       Menu.heli = null;
-      if (WZ.Turrets && WZ.Turrets.heliModel) {
-        const hmdl = WZ.Turrets.heliModel();
+      if (WZ.Heli && WZ.Heli.model) {
+        const hmdl = WZ.Heli.model();
         hmdl.root.scale.setScalar(1.15);
         scene.add(hmdl.root);
         Menu.heli = hmdl;
@@ -316,6 +316,7 @@
         if (Menu.guardian.mat) Menu.guardian.mat.dispose();
         Menu.guardian = null;
       }
+      if (Menu.heli && Menu.heli.dispose) Menu.heli.dispose();
       G.disposeTree(Menu.scene);
       WZ.Particles.dispose();
       Menu.view.dispose();
@@ -449,6 +450,7 @@
         const hz = S.z + S.dz * (26 + Math.cos(hAng) * 8) + S.rz * (11 + Math.sin(hAng) * 10);
         Menu.heli.root.position.set(hx, S.y + 11.5 + Math.sin(t * 2.1) * 0.6, hz);
         Menu.heli.root.rotation.set(0.14, Math.atan2(-S.dx, -S.dz) - 0.4 + Math.sin(hAng) * 0.25, Math.cos(hAng) * 0.12);
+        if (Menu.heli.spin) Menu.heli.spin(dt);
         if (Menu.heli.mainRotor) Menu.heli.mainRotor.rotation.y += dt * 28;
         if (Menu.heli.tailRotor) Menu.heli.tailRotor.rotation.x += dt * 34;
       }
