@@ -5,6 +5,12 @@
   const CFG = {
     version: 'M1-0.1.0',
 
+    // SEASONS & LEVELS: every season (= one map, see CFG.maps.order) has `levels` levels. Level N has exactly N supply crates.
+    // Beating level `levels` of a season unlocks the next season (which starts again at level 1).
+    // Enemy strength grows with the DIFFICULTY number = level + seasonBoost * (season index): every level is tougher than the one before,
+    // and every new season starts where the previous one was getting hard (so season 2 / level 1 is harder than season 1 / level 1).
+    progress: { levels: 10, seasonBoost: 4, seasonBonus: 150, maxGiants: 6 },
+
     world: { size: 360, half: 180, cell: 3, chunk: 120, hillAmp: 3.0, wallMargin: 6 },
     sim: { step: 1 / 60, maxSteps: 5, hitStopMax: 0.08 },
 
@@ -90,10 +96,10 @@
 
     heat: { rise: 0.08, fall: 0.15, max: 3, stillSpeed: 3 },
 
-    timer: { base: 35, perCrate: 20, decayPerMission: 0.012, decayMin: 0.75, bankCap: 45, timeCrate: 8, tutorial: 90, lowWarn: 15 },
+    timer: { base: 45, perCrate: 24, decayPerMission: 0.008, decayMin: 0.85, bankCap: 45, timeCrate: 8, tutorial: 90, lowWarn: 15 },
 
     mission: {
-      cratesBase: 2, cratesMax: 9, bossEvery: 5, tutorialCrates: 2,
+      cratesBase: 2, cratesMax: 10, bossEvery: 5, tutorialCrates: 1,
       minCrateGap: 60, minCrateFromStart: 50, extractRadius: 14, extractMinFromStart: 150,
       crateRadius: 2.2, tutorialIndex: 1,
     },
@@ -106,7 +112,7 @@
 
     // Enemies grow stronger every mission AND while a mission drags on (every `every` seconds, up to `max` steps)
     enemy: {
-      hpPerMission: 0.09, dmgPerMission: 0.06, speedPerMission: 0.012, speedMax: 1.35,
+      hpPerMission: 0.10, dmgPerMission: 0.065, speedPerMission: 0.014, speedMax: 1.35,
       ramp: { every: 28, max: 8, hp: 0.08, dmg: 0.06, speed: 0.022 },
       bruteChance: 0.1, bruteChancePerMission: 0.02, bruteChanceMax: 0.3,
     },
@@ -176,7 +182,7 @@
     //  place: spawn validation (all distances in world units, see systems/pickups.js). retry: when no valid spot is found nothing is consumed and a new try is scheduled `retryDelay` s later.
     pickups: {
       enabled: true, inTutorial: false, radius: 3.0, bob: 0.35, hover: 2.6, arrowRange: 400,
-      levelOf: (mission) => mission.index,                       // the DISPLAYED level (HUD / briefing show mission.index, 1-based)
+      levelOf: (mission) => mission.level || mission.index,                       // the DISPLAYED level (HUD / briefing show mission.index, 1-based)
       budget: (level) => Math.max(0, Math.floor(level)),     // per kind, per mission - deliberately uncapped
       heal: { healPct: 0.4, threshold: 0.5, maxActive: 1, cooldown: 12, startDelay: 1.5 },
       time: {
@@ -318,7 +324,13 @@
   // ---- difficulty formulas (GDD 4.2) ----
   // `tut` = this is the scripted tutorial mission (mission 1 on a fresh save). Defaults to "index <= tutorialIndex".
   CFG.calc = {
-    crateCount: (m, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.mission.tutorialCrates : Math.min(CFG.mission.cratesBase + Math.ceil(m / 2), CFG.mission.cratesMax)),
+    // crate count == the LEVEL number (1..10). `crateOverride` is set by WZ.World.generate for the duration of one map build.
+    crateOverride: null,
+    crateCount: (lvl, tut) => (CFG.calc.crateOverride != null ? CFG.calc.crateOverride : ((tut == null ? lvl <= CFG.mission.tutorialIndex : tut) ? CFG.mission.tutorialCrates : Math.max(1, Math.min(CFG.progress.levels, Math.round(lvl))))),
+    // difficulty scalar fed to every "per mission" formula and hazard system (mission.index)
+    difficulty: (seasonIdx, lvl) => lvl + CFG.progress.seasonBoost * seasonIdx,
+    // how many crates are guarded by a guardian (giant/dino/titan/beast/mech): grows with the level, capped
+    giantCount: (lvl, crates) => Math.max(1, Math.min(crates, CFG.progress.maxGiants, Math.ceil(lvl * 0.6))),
     timeLimit: (m, n, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.timer.tutorial : (CFG.timer.base + CFG.timer.perCrate * n) * Math.max(CFG.timer.decayMin, 1 - CFG.timer.decayPerMission * m)),
     spawnRate: (m, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.spawn.tutorialRate : CFG.spawn.base + CFG.spawn.perMission * m),
     enemyHpMul: (m) => 1 + CFG.enemy.hpPerMission * m,

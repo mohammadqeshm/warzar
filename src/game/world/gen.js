@@ -183,8 +183,10 @@
     if (tutorial) {
       const c1 = pick((x, z) => { const d = dStart(x, z); return d >= 58 && d <= 80 && losClear(start.x, start.z, x, z); }, 1500);
       if (!c1) return null; cr.push(c1);
-      const c2 = pick((x, z) => { const d = Math.hypot(x - c1.x, z - c1.z); return d >= 62 && d <= 88 && dStart(x, z) >= 100; }, 2500);
-      if (!c2) return null; cr.push(c2);
+      if (N > 1) {
+        const c2 = pick((x, z) => { const d = Math.hypot(x - c1.x, z - c1.z); return d >= 62 && d <= 88 && dStart(x, z) >= 100; }, 2500);
+        if (!c2) return null; cr.push(c2);
+      }
     } else {
       for (let k = 0; k < N; k++) {
         let c = pick((x, z) => dStart(x, z) >= minFrom && cr.every((o) => Math.hypot(o.x - x, o.z - z) >= minGap), 700);
@@ -203,7 +205,7 @@
     return map;
   }
 
-  function generate(runSeed, missionIndex, opts) {
+  function generateInner(runSeed, missionIndex, opts) {
     opts = opts || {};
     if (opts.theme === 'jurassic' && WZ.WorldJ) return WZ.WorldJ.generate(runSeed, missionIndex, opts);   // see world/gen_jurassic.js
     if (opts.theme === 'volcanic' && WZ.WorldV) return WZ.WorldV.generate(runSeed, missionIndex, opts);   // see world/gen_volcanic.js
@@ -218,6 +220,13 @@
     if (!map) throw new Error('[World] could not generate a valid map');
     map.attempts = attempt;
     return map;
+  }
+
+  /** opts.crates (optional) = exact number of crates for this map (= the level number). Applied to every theme generator through CFG.calc.crateOverride. */
+  function generate(runSeed, missionIndex, opts) {
+    const prev = CFG.calc.crateOverride;
+    CFG.calc.crateOverride = opts && opts.crates != null ? opts.crates | 0 : null;
+    try { return generateInner(runSeed, missionIndex, opts); } finally { CFG.calc.crateOverride = prev; }
   }
 
   /** menu backdrop: a map of the chosen theme (default: the village) without objectives */

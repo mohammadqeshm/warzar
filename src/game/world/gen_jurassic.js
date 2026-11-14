@@ -165,7 +165,9 @@
     const N = CFG.calc.crateCount(mi, tutorial), minFrom = CFG.mission.minCrateFromStart * rl, minGap = CFG.mission.minCrateGap * rl, cr = [];
     if (tutorial) {
       const c1 = pick((x, z) => { const d = dStart(x, z); return d >= 58 && d <= 80 && losClear(start.x, start.z, x, z); }, 1500); if (!c1) return null; cr.push(c1);
-      const c2 = pick((x, z) => { const d = Math.hypot(x - c1.x, z - c1.z); return d >= 62 && d <= 88 && dStart(x, z) >= 100; }, 2500); if (!c2) return null; cr.push(c2);
+      if (N > 1) {
+        const c2 = pick((x, z) => { const d = Math.hypot(x - c1.x, z - c1.z); return d >= 62 && d <= 88 && dStart(x, z) >= 100; }, 2500); if (!c2) return null; cr.push(c2);
+      }
     } else {
       for (let k = 0; k < N; k++) {
         let c = pick((x, z) => dStart(x, z) >= minFrom && cr.every((o) => Math.hypot(o.x - x, o.z - z) >= minGap), 700);

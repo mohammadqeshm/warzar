@@ -9,6 +9,7 @@ import './events.js';
 import './util.js';
 import './platform.js';
 import './save.js';
+import './progress.js';
 import './i18n.js';
 import './audio.js';
 import './assets.js';

@@ -13,13 +13,16 @@
     enter(data) {
       const Main = WZ.Main;
       M.data = data; M.unsub = [];
-      const tutorial = data.tutorial != null ? data.tutorial : (data.index <= CFG.mission.tutorialIndex && !WZ.Save.data.flags.tutorialDone);
-      M.mission = WZ.Missions.make(data.index, tutorial);
+      // data = { theme (season map), level (1..10), runSeed, runCoins }. `index` = the DIFFICULTY number derived from season + level (feeds all per-mission formulas).
+      const PG = WZ.Progress, themeId = data.theme || WZ.Save.data.settings.map || 'village'; M.theme = CFG.maps[themeId] && themeId !== 'order' ? themeId : 'village';
+      const LV = CFG.progress.levels; M.season = PG.seasonIndex(M.theme) + 1;
+      data.theme = M.theme; data.level = Math.max(1, Math.min(LV, (data.level | 0) || 1)); data.index = PG.difficulty(M.theme, data.level);
+      const tutorial = data.tutorial != null ? data.tutorial : (data.level === 1 && M.season === 1 && !WZ.Save.data.flags.tutorialDone);
+      M.mission = WZ.Missions.make(data.index, tutorial, data.level);
       M.scene = new T.Scene();
-      const themeId = data.theme || WZ.Save.data.settings.map || 'village'; M.theme = CFG.maps[themeId] && themeId !== 'order' ? themeId : 'village';
       const MP = CFG.maps[M.theme];
       if (!tutorial && MP.spawnMul) { M.mission.spawnRate *= MP.spawnMul; M.mission.hpMul *= MP.hpMul || 1; }     // harder maps: tougher enemy waves
-      M.map = WZ.World.generate(data.runSeed, data.index, { tutorial, theme: M.theme });
+      M.map = WZ.World.generate(data.runSeed, data.index, { tutorial, theme: M.theme, crates: M.mission.crateCount });
       M.col = WZ.Collision.create(M.map);
       M.view = WZ.WorldView.build(M.map, M.scene, { quality: WZ.Quality.level });
       WZ.Particles.init(M.scene); WZ.Blobs.init(M.scene, 72);
@@ -41,18 +44,14 @@
       WZ.Gun.init(M.scene); WZ.Spawner.reset();
       M.crates.onLanded = M.onCrateLanded;
       M.inp = { x: 0, y: 0, mag: 0, boost: false };
-      M.hud = { level: data.index, timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons.snap(), wsel: WZ.Weapons.selId, strikes: 0, rush: 0 };
+      M.hud = { level: data.level, levelText: t('hud.lvl', { s: M.season, n: data.level, m: LV }), timerText: '', timerLow: false, heat: 0, heatOn: true, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons.snap(), wsel: WZ.Weapons.selId, strikes: 0, rush: 0 };
 
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
       M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
       M.nanaOutT = 0; M.rushK = 0; M.rampStep = 0; M.failReason = '';
       M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.resultShown = false;
       M.camBlend = 0; M.fromPos = new T.Vector3(); M.fromLook = new T.Vector3();
-      const sv = WZ.Save.data, b = sv.best; M.prevBest = b.mission;
-      if (data.index > (sv.level || 1)) sv.level = data.index;
-      if (data.index > b.mission) b.mission = data.index;
-      if (WZ.Main) WZ.Main.startIndex = sv.level || data.index;
-      WZ.Save.save();
+      WZ.Save.data.settings.map = M.theme; PG.setCurrent(M.theme, data.level); WZ.Save.save();      // remember which season / level is being played
 
       M.unsub.push(
         WZ.Events.on('nana:ko', M.onNanaKO), WZ.Events.on('jeep:damaged', M.onJeepHurt),
@@ -64,8 +63,7 @@
       WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), weapon: () => WZ.Input.press('weapon'), wswap: () => WZ.Input.press('wnext'), wsel: (id) => { WZ.Input.pressed.wsel = id; }, pause: () => WZ.Main.togglePause() });
       WZ.Input.reset();
       const mapTips = { jurassic: ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], volcanic: ['brief.tipV1', 'brief.tipV2', 'brief.tipV3', 'brief.tipV4'], frozen: ['brief.tipF1', 'brief.tipF2', 'brief.tipF3', 'brief.tipF4'], harbor: ['brief.tipH1', 'brief.tipH2', 'brief.tipH3', 'brief.tipH4'] }, mt = mapTips[M.theme];
-      const seasonIdx = Math.max(1, CFG.maps.order.indexOf(M.theme) + 1);
-      M.briefEl = WZ.UI.showBriefing({ index: data.index, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: t('maps.season', { n: seasonIdx }) + ' · ' + t('maps.' + M.theme), tip: t(mt && data.index % 3 !== 0 ? mt[(data.index - 1) % mt.length] : TIPS[(data.index - 1) % TIPS.length]) }, M.startPlay);
+      M.briefEl = WZ.UI.showBriefing({ index: data.index, level: data.level, levels: LV, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: t('maps.season', { n: M.season }) + ' · ' + t('maps.' + M.theme), tip: t(mt && data.level % 3 !== 0 ? mt[(data.level - 1) % mt.length] : TIPS[(data.level - 1) % TIPS.length]) }, M.startPlay);
       void Main;
     },
 
@@ -311,14 +309,17 @@
       if (M.failT >= 0) { M.failT -= dt; if (M.failT < 0) M.fail(M.failReason || 'jeep'); }
     },
 
+    /** star rating from the time left (the same thresholds the results screen used to compute itself) */
+    starRating() { const tl = M.mission.timeLimit ? M.timeLeft / M.mission.timeLimit : 0.3; return 1 + (tl >= 0.2 ? 1 : 0) + (tl >= 0.45 ? 1 : 0); },
+
     complete() {
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'complete'; M.endT = 0;
       WZ.Pickups.stop();
-      const S = WZ.Save.data, nextLvl = (M.data.index || 1) + 1;
-      if (nextLvl > (S.level || 1)) S.level = nextLvl;
-      if (nextLvl > (S.best.mission || 0)) S.best.mission = nextLvl;
-      S.flags.tutorialDone = true;
+      const S = WZ.Save.data;
+      // season progress: level cleared -> next level opens; level 10 cleared -> the next season unlocks
+      M.stars = M.starRating();
+      M.prog = WZ.Progress.complete(M.theme, M.data.level, M.stars);
       if (WZ.Main) WZ.Main.startIndex = S.level;
       M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;   // KO loot is paid out on a win
       WZ.Save.save();
@@ -330,9 +331,7 @@
       if (M.phase !== 'play') return;
       M.phase = 'ending'; M.endKind = 'fail'; M.failReason = reason; M.endT = 0;
       WZ.Pickups.stop();
-      const S = WZ.Save.data, curLvl = Math.max(1, M.data.index || 1);
-      if (curLvl > (S.level || 1)) S.level = curLvl;
-      if (WZ.Main) WZ.Main.startIndex = S.level || curLvl;
+      const S = WZ.Save.data;
       // a lost run must never cost the player coins: the KO loot is banked right now (crate coins were saved the moment each crate landed)
       M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;
       WZ.Save.save(); WZ.Save.flush();
@@ -342,38 +341,29 @@
 
     showResult() {
       M.resultShown = true;
-      const S = WZ.Save.data, idx = M.data.index, win = M.endKind === 'complete', Main = WZ.Main;
-      const kos = WZ.Enemies.kos;
-      let coinsDone = 0, coinsTime = 0;
+      const S = WZ.Save.data, idx = M.data.index, win = M.endKind === 'complete', Main = WZ.Main, PG = WZ.Progress, LV = CFG.progress.levels;
+      const kos = WZ.Enemies.kos, level = M.data.level;
+      let coinsDone = 0, coinsTime = 0, coinsSeason = 0;
       if (win) {
         coinsDone = CFG.calc.completion(idx); coinsTime = CFG.calc.timeBonus(M.timeLeft);
-        S.coins += coinsDone + coinsTime; M.data.runCoins = (M.data.runCoins || 0) + coinsDone + coinsTime;
-        S.flags.tutorialDone = true;
-        if (idx + 1 > (S.level || 1)) S.level = idx + 1;
-        if (idx + 1 > (S.best.mission || 0)) S.best.mission = idx + 1;
+        if (M.prog && M.prog.seasonDone) coinsSeason = CFG.progress.seasonBonus * M.season;      // one-time bonus for finishing a whole season
+        S.coins += coinsDone + coinsTime + coinsSeason; M.data.runCoins = (M.data.runCoins || 0) + coinsDone + coinsTime + coinsSeason;
         if (!S.best.fastestMission || M.time < S.best.fastestMission) S.best.fastestMission = Math.round(M.time);
-      } else {
-        if (idx > (S.level || 1)) S.level = idx;
       }
-      if (Main) Main.startIndex = S.level || (win ? idx + 1 : idx);
-      const record = idx > M.prevBest && idx > 1;
+      const record = !!(win && M.prog && M.prog.firstClear && !(level === 1 && M.season === 1));
       if (kos > S.best.kos) S.best.kos = kos;
       if ((M.data.runCoins || 0) > S.best.runCoins) S.best.runCoins = M.data.runCoins;
       WZ.Save.save(); WZ.Save.flush();
-      const goMain = () => {
-        const nextIdx = win ? idx + 1 : (S.level || idx);
-        if (Main) Main.startIndex = nextIdx;
-        if (win) Main.go('mission', { index: nextIdx, runSeed: M.data.runSeed, runCoins: M.data.runCoins || 0 });
-        else Main.go('mission', { index: nextIdx, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+      // what comes next (shown on the results screen)
+      const nx = win ? PG.nextAfterWin(M.theme, level) : null;
+      const r = {
+        kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, level, levels: LV, season: M.season, theme: M.theme, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft, timeLimit: M.mission.timeLimit,
+        coinsCrates: M.coinsCrates, coinsKills: M.coinsKills, burned: 0, coinsDone, coinsTime, coinsSeason, wallet: S.coins, record, stars: M.stars || 1,
+        seasonDone: !!(M.prog && M.prog.seasonDone), unlockedSeason: (M.prog && M.prog.unlockedSeason) || null, next: nx, allClear: !!(win && !nx && level >= LV),
       };
-      WZ.UI.showSummary({
-        kind: win ? 'complete' : 'fail', reason: M.failReason, index: idx, crates: M.landed, total: M.crates.total, kos, timeLeft: M.timeLeft, timeLimit: M.mission.timeLimit,
-        coinsCrates: M.coinsCrates, coinsKills: M.coinsKills, burned: 0, coinsDone, coinsTime, wallet: S.coins, record,
-      }, {
-        main: goMain,
-        garage: () => Main.go('shop', { ret: goMain }),
-        menu: () => Main.go('menu'),
-      });
+      // the results screen can be re-opened later (e.g. after the shop), so it only needs plain data
+      PG.presentResult({ r, win, theme: M.theme, level, runSeed: M.data.runSeed, runCoins: M.data.runCoins || 0 });
+      void Main;
     },
 
     // ------------------------------------------------------------------ prompts / hints
@@ -440,7 +430,7 @@
 
     updateHud() {
       const J = M.jeep, N = M.nana, hd = M.hud;
-      hd.level = M.data.index;
+      hd.level = M.data.level;
       hd.timerText = U.fmtTime(M.timeLeft); hd.timerLow = M.timeLeft <= CFG.timer.lowWarn;
       hd.heat = M.heat; hd.heatOn = M.mission.heatOn;
       hd.cratesText = M.landed + '/' + M.crates.total;

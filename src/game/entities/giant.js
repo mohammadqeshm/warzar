@@ -80,7 +80,12 @@
       const rng = WZ.RNG.create(WZ.RNG.hash((ctx.map.seed | 0) >>> 0, 7717)), col = ctx.col, hm = ctx.map.height;
       const tut = !!mission.tutorial, hpMul = tut ? C.tutorialHp : mission.hpMul, spd = tut ? C.tutorialSpeed : 1;
       const jur = ctx.map.theme === 'jurassic', vol = ctx.map.theme === 'volcanic', ice = ctx.map.theme === 'frozen', mch = ctx.map.theme === 'harbor', Cg = mch ? CFG.mechStats : ice ? CFG.beastStats : vol ? CFG.titanStats : jur ? CFG.dinoStats : C;     // Jurassic map: fire-breathing dinosaurs; Volcanic map: Magma Titans
+      // not every crate is guarded: the number of guardians grows with the level (CFG.calc.giantCount), the guarded crates are picked by the map seed
+      const nCr = ctx.map.crates.length, guarded = new Set(), order = ctx.map.crates.map((_, k) => k);
+      for (let k = order.length - 1; k > 0; k--) { const j = Math.floor(rng.next() * (k + 1)); const tmpI = order[k]; order[k] = order[j]; order[j] = tmpI; }
+      order.slice(0, tut ? nCr : CFG.calc.giantCount(mission.level || mission.index, nCr)).forEach((k) => guarded.add(k));
       ctx.map.crates.forEach((cr, i) => {
+        if (!guarded.has(i)) return;
         let sx = cr.x + Cg.home, sz = cr.z, ok = false;
         for (let k = 0; k < 24 && !ok; k++) {
           const a = rng.range(0, 6.283), r = Cg.home * (0.75 + rng.range(0, 0.5) + k * 0.03);

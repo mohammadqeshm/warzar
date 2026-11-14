@@ -54,9 +54,9 @@ section('1. Budget = displayed mission level (levels 1, 2, 5, 10, 20, 50, 200)')
     ok(s.heal.collected === 0 && s.time.collected === 0 && s.heal.active === 0 && s.time.active === 0, `L${L}: collected / active start at 0`);
     ok(PC.budget(L) === L, `CFG.pickups.budget(${L})`);
   }
-  // the displayed level really is mission.index: HUD / briefing print data.index = mission.index (scenes/mission.js)
+  // the displayed level (1..10 inside a season) is mission.level: HUD / briefing print data.level, and the pickup budget reads mission.level (scenes/mission.js, config.js)
   const src = fs.readFileSync(base + 'scenes/mission.js', 'utf8');
-  ok(/hd\.level = M\.data\.index/.test(src) && /showBriefing\(\{ index: data\.index/.test(src) && /WZ\.Missions\.make\(data\.index/.test(src), 'displayed level == data.index == mission.index (source check)');
+  ok(/hd\.level = M\.data\.level/.test(src) && /showBriefing\(\{ index: data\.index, level: data\.level/.test(src) && /WZ\.Missions\.make\(data\.index, tutorial, data\.level/.test(src), 'displayed level == data.level == mission.level (source check)');
   Pk.init(w.ctx, { index: 5, tutorial: true }, 1); ok(!Pk.on && Pk.status().heal.total === 0, 'tutorial mission: system off (CFG.pickups.inTutorial=false)');
   Pk.dispose();
 }

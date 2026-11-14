@@ -21,7 +21,7 @@
     /** The map whose 3D scene is shown behind the menu = the selected map (Save.settings.map) */
     themeOf() {
       const m = WZ.Save.data.settings.map;
-      return WZ.CFG.maps[m] && m !== 'order' ? m : 'village';
+      return WZ.CFG.maps[m] && m !== 'order' && WZ.Progress.seasonUnlocked(m) ? m : WZ.Progress.firstOpen();
     },
 
     enter(data) {
@@ -33,16 +33,21 @@
       Menu.mapOpen = false;
       if (WZ.Audio.setMusic) WZ.Audio.setMusic('menu', Menu.theme);
       Menu.build(Menu.theme);
-      const lvl = Math.max(1, S.level || S.best.mission || 1);
-      S.level = lvl;
-      WZ.Main.startIndex = lvl;
+      S.settings.map = Menu.theme;
       WZ.UI.hudShow(false);
       WZ.UI.clearScreens();
+      clearTimeout(Menu.warmT);
+      if (data && data.result) {
+        // coming back from the shop (or anywhere) to the RESULTS screen of the level that was just played: show exactly that screen again
+        Menu.menuEl = null;
+        WZ.Progress.presentResult(data.result);
+        return;
+      }
+      WZ.Main.lastResult = null;
       Menu.menuEl = WZ.UI.showMenu(
-        { level: lvl, coins: S.coins },
+        { level: WZ.Progress.current(Menu.theme), coins: S.coins },
         { play: Menu.play, garage: () => WZ.Main.go('shop'), maps: Menu.openMaps }
       );
-      clearTimeout(Menu.warmT);
       Menu.warmT = setTimeout(() => {
         if (WZ.MapPreview && !Menu.mapOpen) WZ.MapPreview.request([Menu.theme], Menu.onImage);
       }, 1500);
@@ -324,7 +329,7 @@
       if (Menu.mapOpen) return;
       Menu.mapOpen = true;
       if (Menu.menuEl) Menu.menuEl.style.display = 'none';
-      WZ.UI.showMapSelect(Menu.want || Menu.theme, { select: Menu.pick, close: Menu.closeMaps });
+      WZ.UI.showMapSelect(Menu.want || Menu.theme, { select: Menu.pick, close: Menu.closeMaps, level: Menu.pickLevel });
       const order = WZ.CFG.maps.order.slice().sort((a, b) => (a === Menu.theme ? -1 : 0) - (b === Menu.theme ? -1 : 0));
       WZ.MapPreview.request(order, Menu.onImage);
     },
@@ -336,7 +341,10 @@
       WZ.UI.mapChipUpdate(Menu.want || Menu.theme);
     },
     /** A map card was chosen: remember it and switch the 3D scene behind the screen to that map */
+    /** a level node on a map card was chosen: START will launch that level */
+    pickLevel(id) { WZ.UI.mapChipUpdate(id); },
     pick(id) {
+      if (!WZ.Progress.seasonUnlocked(id)) return;           // locked seasons can never be selected
       WZ.Save.data.settings.map = id;
       WZ.Save.save();
       Menu.want = id;
@@ -356,9 +364,9 @@
 
     play() {
       const Main = WZ.Main, S = WZ.Save.data;
-      const lvl = Math.max(1, (S && S.level) || Main.startIndex || 1);
-      Main.startIndex = lvl;
-      Main.go('mission', { index: lvl, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+      const theme = Menu.themeOf(), lvl = WZ.Progress.current(theme);
+      Main.startIndex = lvl; void S;
+      Main.go('mission', { theme, level: lvl, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
     },
 
     exit() {

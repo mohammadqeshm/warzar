@@ -9,7 +9,7 @@
 
   const Main = {
     started: false, renderer: null, cur: null, scenes: {}, userPaused: false, platformPaused: false, w: 1, h: 1, acc: 0, last: 0, fps: 60, _fa: 0, _fn: 0,
-    startIndex: 1, params: new URLSearchParams(location.search),
+    startIndex: 1, lastResult: null, params: new URLSearchParams(location.search),
 
     get paused() { return Main.userPaused || Main.platformPaused; },
 
@@ -19,8 +19,8 @@
       try {
         WZ.Save.load(); WZ.I18n.init();
         const els = WZ.UI.mount(host);
-        const m = parseInt(Main.params.get('m') || '', 10);
-        Main.startIndex = m > 0 ? m : Math.max(1, WZ.Save.data.level || 1);
+        if (Main.params.get('unlock')) { WZ.Progress.allOpen = true; }      // QA only: open every season and level (nothing is saved)
+        Main.startIndex = Math.max(1, WZ.Save.data.level || 1);
         if (Main.params.get('debug')) WZ.UI.toggleDebug(true);
         WZ.Audio.setMuted(!WZ.Save.data.settings.sound);
         Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission, shop: WZ.Scenes.shop };
@@ -125,8 +125,8 @@
           resume: () => Main.setUserPause(false),
           restart: () => {
             Main.userPaused = false; WZ.Audio.resume();
-            const lvl = Math.max(1, (WZ.Save.data && WZ.Save.data.level) || Main.startIndex || 1);
-            Main.go('mission', { index: lvl, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+            const d = (Main.cur && Main.cur.data) || {};      // restart = the SAME season and level again
+            Main.go('mission', { theme: d.theme, level: d.level, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
           },
           menu: () => { Main.userPaused = false; WZ.Audio.resume(); Main.go('menu'); },
         });

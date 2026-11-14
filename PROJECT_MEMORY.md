@@ -287,3 +287,13 @@ Visual-only change; the rig API (`rig.root/bodyG/torso/head/legL/legR/armL/armR`
 - **Lifecycle**: `update(dt)` only runs in the mission 'play' phase with the fixed step => nothing advances while paused / briefing / ended. The tutorial mission stays pickup-free (`CFG.pickups.inTutorial=false`).
 - `mission.js` changes: `M.ctx.timeLeft` getter, `WZ.Pickups.stop()` in `complete()/fail()`, pickup line in the debug overlay. `?pkdebug=1` logs spawns/failures to the console.
 - Tests: `node tools/test-pickups.cjs [--quick]` (headless; budgets, eligibility, rewards, cooldowns, failures, restart, determinism, pooling, five-map placement, harbor cranes).
+
+---
+
+## Seasons & Levels update (latest)
+- **Structure:** every map is a *season* (order = `CFG.maps.order`); every season has **10 levels**; **level N has N crates** (level 1 = 1 crate, level 10 = 10). Clearing level 10 unlocks the next season (which starts again at level 1). Locked seasons/levels show padlocks and cannot be selected.
+- **Difficulty:** `mission.index` is now the *difficulty number* = `level + CFG.progress.seasonBoost * seasonIndex` (every level is tougher; every season starts harder than the last). `mission.level` (1..10) is the displayed level and the crate count. Guardians per mission: `CFG.calc.giantCount` (grows with the level, max `CFG.progress.maxGiants`). Timer: `CFG.timer`.
+- **Code:** `src/game/progress.js` (`WZ.Progress`: unlock rules, `complete()`, `nextAfterWin()`, `sanitize()`, `presentResult()`), save keys `prog` (stars per level), `lvlSel` (level START launches), `progV: 2` (old single-counter saves are migrated into season 1). `WZ.World.generate(seed, index, {tutorial, theme, crates})` takes the exact crate count. Mission scene data is now `{ theme, level, runSeed, runCoins }`.
+- **Map select UI:** mouse drag (desktop), LEFT/RIGHT buttons + arrow keys, swipe on touch; per-card **SELECT MAP** button (or click the card); level nodes on each card pick the level.
+- **Shop bug fix:** the results screen is plain data (`Main.lastResult`, `Progress.presentResult`); BACK in the shop returns to the same results screen (menu scene, `Main.go('menu', {result})`) instead of starting a mission.
+- **QA:** `?unlock=1` opens all seasons/levels (not saved). Tests: `node tools/test-progress.cjs`, `node tools/test-levels-gen.cjs`.
