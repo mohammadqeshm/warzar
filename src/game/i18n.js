@@ -202,7 +202,8 @@
       'hud.lvl': 'S{s} · LVL {n}/{m}',
       'maps.levels': 'LEVELS', 'maps.level': 'Level {n}', 'maps.locked': 'LOCKED', 'maps.unlockHint': 'FINISH SEASON {n} · LEVEL {m} TO UNLOCK',
       'maps.selectMap': 'SELECT MAP', 'maps.selectedBtn': 'SELECTED', 'maps.cleared': '{n}/{m} CLEARED',
-      'sum.coins.season': 'SEASON BONUS', 'sum.replay': 'PLAY AGAIN', 'sum.nextSeason': 'NEXT SEASON', 'sum.seasonClear': 'SEASON CLEAR!',
+      'maps.unlockSurprise': 'SURPRISE! NEW SEASON UNLOCKING...', 'maps.unlockedBanner': 'SEASON {n} UNLOCKED · {name}!', 'maps.unlockedBadge': 'NEW SEASON UNLOCKED!',
+      'sum.coins.season': 'SEASON BONUS', 'sum.replay': 'PLAY AGAIN', 'sum.nextSeason': 'NEXT SEASON', 'sum.unlockSeasonBtn': 'UNLOCK SEASON {n}!', 'sum.seasonClear': 'SEASON CLEAR!',
       'sum.seasonComplete': 'SEASON COMPLETE!', 'sum.seasonUnlocked': 'SEASON {n} UNLOCKED: {name}', 'sum.allClear': 'ALL SEASONS CLEARED - LEGEND!', 'sum.nextSeasonLine': 'NEXT: SEASON {n}',
     },
   };

@@ -19,7 +19,7 @@
     ach: {},
     settings: { sound: 1, music: 1, vibration: 1, shake: 1, lang: 'auto', quality: 'auto', weapon: 'gun', map: 'village' },
     inv: { mines: WZ.CFG.shop.mines.starter, turrets: WZ.CFG.shop.turrets.starter, soldiers: WZ.CFG.shop.soldiers.starter, heavy: WZ.CFG.shop.heavy.starter, bombs: WZ.CFG.shop.bombs.starter, heli: WZ.CFG.shop.heli.starter, tank: WZ.CFG.shop.tank.starter, jet: WZ.CFG.shop.jet.starter },
-    flags: { tutorialDone: false, noAds: false },
+    flags: { tutorialDone: false, noAds: false, pendingUnlock: '' },
     runSeed: 0,
   });
 

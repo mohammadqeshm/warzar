@@ -51,7 +51,12 @@
       Menu.warmT = setTimeout(() => {
         if (WZ.MapPreview && !Menu.mapOpen) WZ.MapPreview.request([Menu.theme], Menu.onImage);
       }, 1500);
-      if (data && data.maps) Menu.openMaps();
+      if ((data && data.maps) || (S.flags && S.flags.pendingUnlock)) {
+        Menu.openMaps({
+          unlockSeason: (data && data.unlockSeason) || (S.flags && S.flags.pendingUnlock) || '',
+          fromTheme: (data && data.fromTheme) || Menu.theme,
+        });
+      }
     },
 
     /** Build the cinematic 3D menu showcase for a map theme */
@@ -325,12 +330,18 @@
       if (kind === 'shot') WZ.UI.setMapShot(th, url);
       else WZ.UI.setMapPortrait(th, url);
     },
-    openMaps() {
+    openMaps(opts) {
       if (Menu.mapOpen) return;
       Menu.mapOpen = true;
       if (Menu.menuEl) Menu.menuEl.style.display = 'none';
-      WZ.UI.showMapSelect(Menu.want || Menu.theme, { select: Menu.pick, close: Menu.closeMaps, level: Menu.pickLevel });
-      const order = WZ.CFG.maps.order.slice().sort((a, b) => (a === Menu.theme ? -1 : 0) - (b === Menu.theme ? -1 : 0));
+      const uId = (opts && opts.unlockSeason) || (WZ.Save.data.flags && WZ.Save.data.flags.pendingUnlock) || '';
+      WZ.UI.showMapSelect(
+        Menu.want || Menu.theme,
+        { select: Menu.pick, close: Menu.closeMaps, level: Menu.pickLevel },
+        { unlockSeason: uId, fromTheme: opts && opts.fromTheme }
+      );
+      const prio = (id) => (id === uId ? -2 : id === Menu.theme ? -1 : 0);
+      const order = WZ.CFG.maps.order.slice().sort((a, b) => prio(a) - prio(b));
       WZ.MapPreview.request(order, Menu.onImage);
     },
     closeMaps() {

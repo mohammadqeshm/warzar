@@ -9,7 +9,7 @@
     // Beating level `levels` of a season unlocks the next season (which starts again at level 1).
     // Enemy strength grows with the DIFFICULTY number = level + seasonBoost * (season index): every level is tougher than the one before,
     // and every new season starts where the previous one was getting hard (so season 2 / level 1 is harder than season 1 / level 1).
-    progress: { levels: 10, seasonBoost: 4, seasonBonus: 150, maxGiants: 6 },
+    progress: { levels: 10, seasonBoost: 4, seasonBonus: 150, maxGiants: 10 },
 
     world: { size: 360, half: 180, cell: 3, chunk: 120, hillAmp: 3.0, wallMargin: 6 },
     sim: { step: 1 / 60, maxSteps: 5, hitStopMax: 0.08 },
@@ -329,8 +329,8 @@
     crateCount: (lvl, tut) => (CFG.calc.crateOverride != null ? CFG.calc.crateOverride : ((tut == null ? lvl <= CFG.mission.tutorialIndex : tut) ? CFG.mission.tutorialCrates : Math.max(1, Math.min(CFG.progress.levels, Math.round(lvl))))),
     // difficulty scalar fed to every "per mission" formula and hazard system (mission.index)
     difficulty: (seasonIdx, lvl) => lvl + CFG.progress.seasonBoost * seasonIdx,
-    // how many crates are guarded by a guardian (giant/dino/titan/beast/mech): grows with the level, capped
-    giantCount: (lvl, crates) => Math.max(1, Math.min(crates, CFG.progress.maxGiants, Math.ceil(lvl * 0.6))),
+    // how many crates are guarded by a guardian (giant/dino/titan/beast/mech): every crate has a guardian
+    giantCount: (lvl, crates) => Math.max(1, Math.min(crates, CFG.progress.maxGiants)),
     timeLimit: (m, n, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.timer.tutorial : (CFG.timer.base + CFG.timer.perCrate * n) * Math.max(CFG.timer.decayMin, 1 - CFG.timer.decayPerMission * m)),
     spawnRate: (m, tut) => ((tut == null ? m <= CFG.mission.tutorialIndex : tut) ? CFG.spawn.tutorialRate : CFG.spawn.base + CFG.spawn.perMission * m),
     enemyHpMul: (m) => 1 + CFG.enemy.hpPerMission * m,

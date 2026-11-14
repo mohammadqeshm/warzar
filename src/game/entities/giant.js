@@ -80,17 +80,36 @@
       const rng = WZ.RNG.create(WZ.RNG.hash((ctx.map.seed | 0) >>> 0, 7717)), col = ctx.col, hm = ctx.map.height;
       const tut = !!mission.tutorial, hpMul = tut ? C.tutorialHp : mission.hpMul, spd = tut ? C.tutorialSpeed : 1;
       const jur = ctx.map.theme === 'jurassic', vol = ctx.map.theme === 'volcanic', ice = ctx.map.theme === 'frozen', mch = ctx.map.theme === 'harbor', Cg = mch ? CFG.mechStats : ice ? CFG.beastStats : vol ? CFG.titanStats : jur ? CFG.dinoStats : C;     // Jurassic map: fire-breathing dinosaurs; Volcanic map: Magma Titans
-      // not every crate is guarded: the number of guardians grows with the level (CFG.calc.giantCount), the guarded crates are picked by the map seed
-      const nCr = ctx.map.crates.length, guarded = new Set(), order = ctx.map.crates.map((_, k) => k);
+      // every crate is guarded by a guardian (CFG.calc.giantCount)
+      const nCr = ctx.map.crates.length, guarded = new Set(), order = ctx.map.crates.map((_, k) => k), nav = ctx.map.nav && ctx.map.nav.jeep;
       for (let k = order.length - 1; k > 0; k--) { const j = Math.floor(rng.next() * (k + 1)); const tmpI = order[k]; order[k] = order[j]; order[j] = tmpI; }
       order.slice(0, tut ? nCr : CFG.calc.giantCount(mission.level || mission.index, nCr)).forEach((k) => guarded.add(k));
+      const spotOk = (cr, x, z, needLos) =>
+        col.free(x, z, Cg.radius + 0.4) &&
+        Math.hypot(x - ctx.map.start.x, z - ctx.map.start.z) > 20 &&
+        !(ctx.map.navBlock && ctx.map.navBlock(x, z)) &&
+        (!needLos || !nav || nav.los(cr.x, cr.z, x, z));
       ctx.map.crates.forEach((cr, i) => {
         if (!guarded.has(i)) return;
         let sx = cr.x + Cg.home, sz = cr.z, ok = false;
-        for (let k = 0; k < 24 && !ok; k++) {
-          const a = rng.range(0, 6.283), r = Cg.home * (0.75 + rng.range(0, 0.5) + k * 0.03);
-          sx = cr.x + Math.cos(a) * r; sz = cr.z + Math.sin(a) * r;
-          ok = col.free(sx, sz, Cg.radius + 0.5) && Math.hypot(sx - ctx.map.start.x, sz - ctx.map.start.z) > 20 && !(ctx.map.navBlock && ctx.map.navBlock(sx, sz));
+        for (let k = 0; k < 32 && !ok; k++) {
+          const a = rng.range(0, 6.283), r = Cg.home * (0.65 + rng.range(0, 0.5) + k * 0.025);
+          const tx = cr.x + Math.cos(a) * r, tz = cr.z + Math.sin(a) * r;
+          if (spotOk(cr, tx, tz, true)) { sx = tx; sz = tz; ok = true; }
+        }
+        if (!ok) {
+          for (const r of [4.2, 5.4, 6.6, 8.0, 9.6, 11.2]) {
+            for (let m = 0; m < 16 && !ok; m++) {
+              const a = (m / 16) * Math.PI * 2;
+              const tx = cr.x + Math.cos(a) * r, tz = cr.z + Math.sin(a) * r;
+              if (spotOk(cr, tx, tz, r <= 9.6)) { sx = tx; sz = tz; ok = true; }
+            }
+            if (ok) break;
+          }
+        }
+        if (!ok && nav && nav.nearestFree) {
+          const nf = nav.nearestFree(cr.x + Cg.home * 0.6, cr.z, 6);
+          if (nf) { sx = nf.x; sz = nf.z; }
         }
         const mat = new T.MeshLambertMaterial({ vertexColors: true }), rig = mch ? WZ.MechArt.rig(mat, i) : ice ? WZ.FrostArt.rig(mat, i) : vol ? WZ.MagmaArt.rig(mat, i) : jur ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
         ctx.scene.add(rig.root);

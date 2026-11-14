@@ -297,3 +297,16 @@ Visual-only change; the rig API (`rig.root/bodyG/torso/head/legL/legR/armL/armR`
 - **Map select UI:** mouse drag (desktop), LEFT/RIGHT buttons + arrow keys, swipe on touch; per-card **SELECT MAP** button (or click the card); level nodes on each card pick the level.
 - **Shop bug fix:** the results screen is plain data (`Main.lastResult`, `Progress.presentResult`); BACK in the shop returns to the same results screen (menu scene, `Main.go('menu', {result})`) instead of starting a mission.
 - **QA:** `?unlock=1` opens all seasons/levels (not saved). Tests: `node tools/test-progress.cjs`, `node tools/test-levels-gen.cjs`.
+
+---
+
+## Update — Season Unlock Surprise Ceremony, Opaque Grayscale Locked Cards, and Guardian-per-Crate Fix
+- **Season Unlock Surprise in Seasons Screen (`save.js`, `progress.js`, `scenes/menu.js`, `ui.js`, `i18n.js`, `game.css`):**
+  - Clearing level 10 of a season sets `Save.data.flags.pendingUnlock = unlockedSeason`.
+  - Proceeding from the level 10 victory summary (`UNLOCK SEASON` / `NEXT SEASON` or `MAIN MENU`, including after visiting the Shop) transitions to the **Seasons screen** (`Main.go('menu', { maps: true, unlockSeason, fromTheme })`).
+  - `UI.showMapSelect` initially displays the newly unlocked season card in its locked grayscale state (`fakeLocked`), glides the carousel from the completed season to the locked new season, plays a surprise banner + golden padlock rattle + shackle pop-open + shockwave/confetti reveal, awakens the card into full color, selects Level 1, and switches the 3D menu backdrop to the new season.
+- **Opaque Monochrome Locked Season Cards (`game.css`):**
+  - `.ms-card` and `.ms-card.locked` now have `opacity: 1` and solid opaque dark backgrounds so the 3D scene behind the carousel never bleeds through. Locked cards remain strictly grayscale/black-and-white (`--mc: #8A8E96`, `filter: grayscale(1)`) with a high-contrast padlock overlay.
+- **Every Crate Guarded (`config.js`, `entities/giant.js`, `tools/test-progress.cjs`, `tools/test-levels-gen.cjs`):**
+  - Restored `CFG.progress.maxGiants = 10` and `CFG.calc.giantCount = (lvl, crates) => Math.max(1, Math.min(crates, CFG.progress.maxGiants))` so every crate in every level (1..10) has a guardian next to it (`Math.ceil(lvl * 0.6)` previously left 1–4 crates unguarded on levels 3–10).
+  - Improved guardian placement in `Giants.init` with line-of-sight (`nav.los`) and a deterministic ring/nearestFree fallback so guardians never spawn inside obstacles or across container walls.

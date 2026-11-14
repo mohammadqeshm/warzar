@@ -325,31 +325,45 @@
      *  - Select: the SELECT MAP button on a card, or a click / tap on the card itself.
      *  - Every card shows the season progress (LEVEL x/10) and the 10 level nodes. Locked seasons (finish level 10 of the previous season) cannot be selected.
      *  - Tapping an open level node on a card picks the level the START button will launch. */
-    showMapSelect(cur, h) {
+    showMapSelect(cur, h, opts) {
       const ids = CFG_MAPS(), PG = WZ.Progress, LV = WZ.CFG.progress.levels, DIFF = { village: 1, jurassic: 2, frozen: 3, harbor: 3, volcanic: 4 };
+      const unlockId = (opts && opts.unlockSeason && ids.indexOf(opts.unlockSeason) >= 0 && PG.seasonUnlocked(opts.unlockSeason)) ? opts.unlockSeason : '';
+      let fakeLocked = unlockId, unlocking = !!unlockId;
+      if (unlockId) {
+        if (WZ.Save && WZ.Save.data && WZ.Save.data.flags) { WZ.Save.data.flags.pendingUnlock = ''; WZ.Save.save(); }
+        const prevId = (opts && opts.fromTheme && ids.indexOf(opts.fromTheme) >= 0) ? opts.fromTheme : ids[Math.max(0, ids.indexOf(unlockId) - 1)];
+        cur = prevId;
+      }
+      const isFakeLocked = (id) => id === fakeLocked;
+      const isSeasonOpen = (id) => PG.seasonUnlocked(id) && !isFakeLocked(id);
       const stars = (n) => { let o = ''; for (let i = 0; i < 4; i++) o += '<i' + (i < n ? ' class="on"' : '') + '></i>'; return o; };
-      const LOCK = '<svg viewBox="0 0 24 24" class="lk"><rect x="4.5" y="10.5" width="15" height="11" rx="2.2" fill="#ECE9E1" stroke="#0E0E0E" stroke-width="1.8"/><path d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9" fill="none" stroke="#ECE9E1" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="15.6" r="1.7" fill="#0E0E0E"/></svg>';
+      const LOCK = '<svg viewBox="0 0 24 24" class="lk"><path class="lk-shackle" d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9" fill="none" stroke="#ECE9E1" stroke-width="2.6" stroke-linecap="round"/><rect class="lk-body" x="4.5" y="10.5" width="15" height="11" rx="2.2" fill="#ECE9E1" stroke="#0E0E0E" stroke-width="1.8"/><circle class="lk-hole" cx="12" cy="15.6" r="1.7" fill="#0E0E0E"/></svg>';
       const miniStars = (n) => { let o = ''; for (let i = 0; i < 3; i++) o += '<i' + (i < n ? ' class="on"' : '') + '></i>'; return '<span class="ns">' + o + '</span>'; };
       const lvNodes = (id) => {
-        const st = PG.stars(id), cl = PG.current(id); let o = '';
+        const st = PG.stars(id), cl = PG.current(id), sOpen = isSeasonOpen(id); let o = '';
         for (let i = 0; i < LV; i++) {
-          const L = i + 1, done = st[i] > 0, open = PG.levelUnlocked(id, L);
+          const L = i + 1, done = sOpen && st[i] > 0, open = sOpen && PG.levelUnlocked(id, L);
           o += '<button class="lv ' + (done ? 'done' : open ? 'open' : 'lock') + (open && L === cl ? ' cur' : '') + '" data-lv="' + L + '" aria-label="' + t('maps.level', { n: L }) + '">' +
             (open ? '<b>' + L + '</b>' + (done ? miniStars(st[i]) : '') : LOCK) + '</button>';
         }
         return o;
       };
-      const lockMsg = (id) => { const p = PG.lockedBy(id); return p ? t('maps.unlockHint', { n: PG.seasonIndex(p) + 1, m: LV }) : ''; };
-      const card = (id, i) => '<article class="ms-card' + (id === cur ? ' sel' : '') + (PG.seasonUnlocked(id) ? '' : ' locked') + '" data-map="' + id + '">' +
+      const lockMsg = (id) => {
+        const p = PG.lockedBy(id) || (isFakeLocked(id) ? ids[Math.max(0, ids.indexOf(id) - 1)] : null);
+        return p ? t('maps.unlockHint', { n: PG.seasonIndex(p) + 1, m: LV }) : '';
+      };
+      const card = (id, i) => '<article class="ms-card' + (id === cur ? ' sel' : '') + (isSeasonOpen(id) ? '' : ' locked') + '" data-map="' + id + '">' +
         '<div class="ms-shot" data-shot="' + id + '">' + (MAP_ICO[id] || '').replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ') +
         '<span class="ms-badge"></span><div class="ms-diff" title="' + t('maps.diff') + '">' + stars(DIFF[id] || 1) + '</div><div class="ms-load">' + t('maps.loading') + '</div>' +
-        '<div class="ms-lock">' + LOCK + '<b>' + t('maps.locked') + '</b><small>' + lockMsg(id) + '</small></div></div>' +
+        '<div class="ms-lock"><div class="ms-lk-wrap"><i class="ms-lk-rays"></i><i class="ms-lk-ring"></i><i class="ms-lk-ring r2"></i>' + LOCK + '</div><b>' + t('maps.locked') + '</b><small>' + lockMsg(id) + '</small></div>' +
+        '<div class="ms-unlock-flash"></div><div class="ms-unlock-tag">\u2605 ' + t('maps.unlockedBadge') + ' \u2605</div></div>' +
         '<div class="ms-info"><div class="ms-head-block"><span class="ms-season">' + t('maps.season', { n: i + 1 }) + '</span><div class="ms-name">' + t('maps.' + id) + '</div><div class="ms-sub">' + t('maps.' + id + '.sub') + '</div></div>' +
         '<div class="ms-guard"><div class="ms-portrait" data-portrait="' + id + '"></div><div class="ms-gt"><small>' + t('maps.guardian') + '</small><b>' + t('maps.' + id + '.guard') + '</b><em>' + t('maps.' + id + '.guard.sub') + '</em></div></div>' +
-        '<div class="ms-prog"><div class="ms-ph"><span>' + t('maps.levels') + '</span><b data-prog>' + PG.cleared(id) + '/' + LV + '</b></div><div class="ms-lvls" data-lvls="' + id + '">' + lvNodes(id) + '</div></div>' +
+        '<div class="ms-prog"><div class="ms-ph"><span>' + t('maps.levels') + '</span><b data-prog>' + (isSeasonOpen(id) ? PG.cleared(id) : 0) + '/' + LV + '</b></div><div class="ms-lvls" data-lvls="' + id + '">' + lvNodes(id) + '</div></div>' +
         '<div class="ms-haz"><b>' + t('maps.hazards') + '</b><span>' + t('maps.' + id + '.haz') + '</span></div>' +
         '<button class="ms-sel" data-act="select" type="button"></button></div></article>';
       const el = UI._screen('mapsel',
+        (unlockId ? '<div class="ms-surprise" id="ms-surprise"><span class="ms-surp-txt" id="ms-surp-txt">\u2605 ' + t('maps.unlockSurprise') + ' \u2605</span></div><div class="ms-confetti" id="ms-confetti"></div>' : '') +
         '<div class="ms-top"><button class="ms-back" id="ms-back">&lsaquo; ' + t('maps.back') + '</button><div class="ms-title">' + t('maps.select') + '</div><div class="ms-count" id="ms-count"></div></div>' +
         '<div class="ms-stage"><button class="ms-arrow l" id="ms-prev" aria-label="prev">&lsaquo;</button><div class="ms-track" id="ms-track">' + ids.map(card).join('') + '</div><button class="ms-arrow r" id="ms-next" aria-label="next">&rsaquo;</button></div>' +
         '<div class="ms-dots" id="ms-dots">' + ids.map((id) => '<i data-map="' + id + '"></i>').join('') + '</div>' +
@@ -368,12 +382,12 @@
       };
       const paint = () => {
         cards.forEach((c) => {
-          const id = c.dataset.map, isSel = id === cur, locked = !PG.seasonUnlocked(id);
-          c.classList.toggle('sel', isSel); c.classList.toggle('locked', locked);
+          const id = c.dataset.map, isSel = id === cur, locked = !isSeasonOpen(id);
+          c.classList.toggle('sel', isSel && !locked); c.classList.toggle('locked', locked);
           const b = c.querySelector('.ms-badge'); b.textContent = locked ? t('maps.locked') : isSel ? t('maps.selected') : ''; b.classList.toggle('hide', !locked && !isSel);
           const sb = c.querySelector('.ms-sel'); sb.textContent = locked ? t('maps.locked') : isSel ? t('maps.selectedBtn') : t('maps.selectMap');
           sb.classList.toggle('on', isSel && !locked); sb.classList.toggle('lock', locked);
-          c.querySelector('[data-prog]').textContent = PG.cleared(id) + '/' + LV;
+          c.querySelector('[data-prog]').textContent = (locked ? 0 : PG.cleared(id)) + '/' + LV;
           c.querySelector('[data-lvls]').innerHTML = lvNodes(id);
         });
         paintView();
@@ -381,8 +395,9 @@
       const deny = (c) => { WZ.Audio.sfx('beep'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); };
       /** make `id` the active map (locked seasons refuse) */
       const apply = (id, scroll) => {
+        if (unlocking) return false;
         const c = cards[ids.indexOf(id)]; if (!c) return false;
-        if (!PG.seasonUnlocked(id)) { deny(c); if (scroll) { view = ids.indexOf(id); center(view, true); paintView(); } return false; }
+        if (!isSeasonOpen(id)) { deny(c); if (scroll) { view = ids.indexOf(id); center(view, true); paintView(); } return false; }
         if (id !== cur) { cur = id; WZ.Audio.sfx('click'); h.select(id); paint(); }
         if (scroll) { view = ids.indexOf(id); center(view, true); paintView(); }
         return true;
@@ -392,12 +407,12 @@
       cards.forEach((c) => {
         c.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; }, { passive: true });
         c.onclick = (e) => {
-          if (moved || Math.hypot(e.clientX - downX, e.clientY - downY) > 14) return;
+          if (unlocking || moved || Math.hypot(e.clientX - downX, e.clientY - downY) > 14) return;
           WZ.Audio.unlock();
           const id = c.dataset.map, node = e.target.closest('.lv');
           if (node) {
             const L = +node.dataset.lv;
-            if (!PG.levelUnlocked(id, L)) { deny(node); return; }
+            if (!isSeasonOpen(id) || !PG.levelUnlocked(id, L)) { deny(node); return; }
             if (!apply(id, false)) return;
             PG.setCurrent(id, L); WZ.Audio.sfx('click'); if (h.level) h.level(id, L); paint();
             return;
@@ -405,14 +420,14 @@
           apply(id, true);
         };
       });
-      dots.forEach((d) => { d.onclick = () => { WZ.Audio.unlock(); view = ids.indexOf(d.dataset.map); center(view, true); paintView(); }; });
-      const step = (dir) => { WZ.Audio.unlock(); view = Math.max(0, Math.min(ids.length - 1, nearest() + dir)); center(view, true); paintView(); };
+      dots.forEach((d) => { d.onclick = () => { if (unlocking) return; WZ.Audio.unlock(); view = ids.indexOf(d.dataset.map); center(view, true); paintView(); }; });
+      const step = (dir) => { if (unlocking) return; WZ.Audio.unlock(); view = Math.max(0, Math.min(ids.length - 1, nearest() + dir)); center(view, true); paintView(); };
       $('ms-prev').onclick = () => step(-1);
       $('ms-next').onclick = () => step(1);
       // ---- mouse DRAG left / right (desktop). Touch keeps its native swipe. Release snaps to the nearest card (a quick flick moves one card).
       let drag = null, scrollRaf = 0;
       track.addEventListener('pointerdown', (e) => {
-        if (e.pointerType !== 'mouse' || e.button !== 0) return;
+        if (unlocking || e.pointerType !== 'mouse' || e.button !== 0) return;
         drag = { id: e.pointerId, start: view, x: e.clientX, left: track.scrollLeft, t: performance.now(), lx: e.clientX, lt: performance.now(), v: 0, on: false };
         moved = false;
       });
@@ -438,10 +453,11 @@
       track.addEventListener('dragstart', (e) => e.preventDefault());
       // ---- touch swipe / wheel: keep the dots + counter in sync with the card that is in the middle (without selecting anything)
       track.addEventListener('scroll', () => {
-        if (scrollRaf) return;
+        if (unlocking || scrollRaf) return;
         scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; const n = nearest(); if (n !== view && !(drag && !drag.on)) { view = n; paintView(); } });
       }, { passive: true });
       track.addEventListener('wheel', (e) => {
+        if (unlocking) { e.preventDefault(); return; }
         if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
           track.scrollLeft += e.deltaY;
           e.preventDefault();
@@ -449,16 +465,67 @@
       }, { passive: false });
       const key = (e) => {
         if (!el.isConnected) { window.removeEventListener('keydown', key); return; }
+        if (unlocking) return;
         if (e.code === 'ArrowLeft') step(-1); else if (e.code === 'ArrowRight') step(1);
         else if (e.code === 'Enter') { if (apply(ids[view], true)) { /* selected */ } }
         else if (e.code === 'Escape') h.close();
       };
       window.addEventListener('keydown', key);
-      $('ms-back').onclick = $('ms-ok').onclick = () => { WZ.Audio.sfx('click'); h.close(); };
+      $('ms-back').onclick = $('ms-ok').onclick = () => { if (unlocking) return; WZ.Audio.sfx('click'); h.close(); };
       paint(); center(selIdx(), false);
       requestAnimationFrame(() => { center(selIdx(), false); view = selIdx(); paintView(); });
       // images already rendered earlier in this session
       const MP = WZ.MapPreview; if (MP) ids.forEach((id) => { if (MP.shot[id]) UI.setMapShot(id, MP.shot[id]); if (MP.portrait[id]) UI.setMapPortrait(id, MP.portrait[id]); });
+
+      // ---- Season Unlock Surprise & Lock-Opening Ceremony
+      if (unlockId) {
+        const uIdx = ids.indexOf(unlockId), uCard = cards[uIdx];
+        const surp = $('ms-surprise'), surpTxt = $('ms-surp-txt'), confBox = $('ms-confetti');
+        if (uCard) uCard.classList.add('unlock-target');
+        setTimeout(() => {
+          if (!el.isConnected) return;
+          view = uIdx; center(uIdx, true); paintView();
+          WZ.Audio.sfx('go');
+        }, 460);
+        setTimeout(() => {
+          if (!el.isConnected || !uCard) return;
+          uCard.classList.add('unlocking-shake');
+          WZ.Audio.sfx('beep'); WZ.Audio.sfx('pickup');
+        }, 1020);
+        setTimeout(() => {
+          if (!el.isConnected || !uCard) return;
+          uCard.classList.add('unlocking-open');
+          WZ.Audio.sfx('deliver');
+        }, 1620);
+        setTimeout(() => {
+          if (!el.isConnected) return;
+          fakeLocked = '';
+          cur = unlockId;
+          PG.setCurrent(unlockId, 1);
+          if (uCard) {
+            uCard.classList.remove('unlocking-shake', 'unlocking-open');
+            uCard.classList.add('just-unlocked');
+          }
+          if (surp && surpTxt) {
+            surp.classList.add('done');
+            surpTxt.textContent = '\u2605 ' + t('maps.unlockedBanner', { n: uIdx + 1, name: t('maps.' + unlockId) }) + ' \u2605';
+          }
+          if (confBox) {
+            const COL = ['#FFB400', '#FF5A3A', '#4CFF6A', '#5AD6FF', '#ECE9E1', '#FF6AD0'];
+            let cf = '';
+            for (let i = 0; i < 36; i++) {
+              const a = (i * 31 + 9) % 100, b = (i * 47 + 13) % 100;
+              cf += '<b style="left:' + a + '%;--dl:' + (b % 14) / 20 + 's;--du:' + (2.1 + (a % 15) / 10) + 's;--c:' + COL[i % COL.length] + ';--w:' + (6 + b % 7) + 'px;--sw:' + ((a % 2 ? 1 : -1) * (24 + b % 44)) + 'px"></b>';
+            }
+            confBox.innerHTML = cf;
+          }
+          paint();
+          center(uIdx, true);
+          WZ.Audio.sfx('win');
+          h.select(unlockId);
+          unlocking = false;
+        }, 2100);
+      }
       return el;
     },
 
@@ -521,11 +588,11 @@
           '<div class="sum-stars">' + [0, 1, 2].map((i) => '<span class="star' + (i < stars ? ' got' : '') + '" style="--i:' + i + '">' + STAR + '</span>').join('') + '</div>' +
           (stars === 3 ? '<div class="sum-perfect">' + t('sum.perfect') + '</div>' : '') +
           (r.record ? '<div class="sum-record">' + t('sum.newrecord') + '</div>' : '') +
-          '<div class="sum-next">' + (r.unlockedSeason ? t('sum.seasonUnlocked', { n: WZ.Progress.seasonIndex(r.unlockedSeason) + 1, name: t('maps.' + r.unlockedSeason) }) : r.allClear ? t('sum.allClear') : lastLvl ? t('sum.nextSeasonLine', { n: WZ.Progress.seasonIndex(r.theme) + 2 }) : t('sum.unlocked', { n: r.level + 1, m: LV })) + '</div></div>' +
+          '<div class="sum-next' + (r.unlockedSeason ? ' is-unlock' : '') + '">' + (r.unlockedSeason ? '\u2605 ' + t('sum.seasonUnlocked', { n: WZ.Progress.seasonIndex(r.unlockedSeason) + 1, name: t('maps.' + r.unlockedSeason) }) + ' \u2605' : r.allClear ? t('sum.allClear') : lastLvl ? t('sum.nextSeasonLine', { n: WZ.Progress.seasonIndex(r.theme) + 2 }) : t('sum.unlocked', { n: r.level + 1, m: LV })) + '</div></div>' +
           '<div class="sum-body"><div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
           '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div></div>' +
           '<div class="sum-coins">' + rows + totalRow(r.coinsSeason ? 2250 : 2100) + '</div></div>' +
-          '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + t(r.allClear ? 'sum.replay' : lastLvl ? 'sum.nextSeason' : 'sum.next') + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+          '<div class="sum-btns"><button class="btn big" id="btn-sum-main">' + (r.unlockedSeason ? t('sum.unlockSeasonBtn', { n: WZ.Progress.seasonIndex(r.unlockedSeason) + 1 }) : t(r.allClear ? 'sum.replay' : lastLvl ? 'sum.nextSeason' : 'sum.next')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
         // choreography: badge flips old level -> new level (with a sound), stars pop one after another
         setTimeout(() => { if (!el.isConnected) return; el.querySelector('.lvl-badge').classList.add('up'); WZ.Audio.sfx('pickup'); }, 650);
         el.querySelectorAll('.star').forEach((s, i) => setTimeout(() => { if (!el.isConnected) return; s.classList.add('on'); if (s.classList.contains('got')) WZ.Audio.sfx('deliver'); }, 1000 + i * 260));

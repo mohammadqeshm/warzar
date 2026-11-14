@@ -15,8 +15,11 @@ ok(P.seasonUnlocked(order[0]) && !P.seasonUnlocked(order[1]), 'fresh: only seaso
 ok(P.levelUnlocked(order[0], 1) && !P.levelUnlocked(order[0], 2), 'fresh: only level 1 is open');
 ok(P.current(order[0]) === 1, 'fresh: current level 1');
 
-// crate count == level, difficulty rises with every level and every season
-for (let l = 1; l <= 10; l++) ok(CFG.calc.crateCount(l, false) === l, 'level ' + l + ' must have ' + l + ' crates');
+// crate count == level, every crate has a guardian, difficulty rises with every level and every season
+for (let l = 1; l <= 10; l++) {
+  ok(CFG.calc.crateCount(l, false) === l, 'level ' + l + ' must have ' + l + ' crates');
+  ok(CFG.calc.giantCount(l, l) === l, 'level ' + l + ' must have ' + l + ' guardians (one per crate)');
+}
 for (let s = 0; s < order.length; s++) for (let l = 1; l < 10; l++) ok(P.difficulty(order[s], l + 1) > P.difficulty(order[s], l), 'difficulty must rise each level');
 for (let s = 1; s < order.length; s++) ok(P.difficulty(order[s], 1) > P.difficulty(order[s - 1], 1), 'season starts harder than the previous one');
 ok(CFG.calc.enemyHpMul(P.difficulty(order[0], 10)) > CFG.calc.enemyHpMul(P.difficulty(order[0], 1)), 'enemy hp grows over the levels');
@@ -26,6 +29,7 @@ for (let l = 1; l <= 9; l++) { const r = P.complete(order[0], l, 2); ok(!r.seaso
 ok(!P.seasonUnlocked(order[1]) && P.levelUnlocked(order[0], 10) && P.current(order[0]) === 10, 'after 9 wins: level 10 open, season 2 locked');
 const fin = P.complete(order[0], 10, 3);
 ok(fin.seasonDone && fin.unlockedSeason === order[1] && P.seasonUnlocked(order[1]), 'level 10 unlocks season 2');
+ok(S().flags.pendingUnlock === order[1], 'level 10 sets pendingUnlock for the seasons screen animation');
 ok(!P.seasonUnlocked(order[2]), 'season 3 still locked');
 ok(P.complete(order[0], 10, 3).seasonDone === false, 'season bonus only once');
 const nx = P.nextAfterWin(order[0], 10); ok(nx && nx.theme === order[1] && nx.level === 1, 'next after level 10 = season 2 level 1');

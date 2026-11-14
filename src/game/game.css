@@ -720,9 +720,9 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .ms-track { position: relative; flex: 1 1 auto; min-width: 0; display: flex; gap: clamp(12px, 3vw, 22px); overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x;
   padding: 6px calc(50% - var(--cw) / 2) 12px; --cw: min(80vw, 380px); }
 .ms-card { --mc: #E2B24A; position: relative; flex: 0 0 var(--cw); display: flex; flex-direction: column; min-height: 0; max-height: 100%; cursor: pointer; text-transform: uppercase;
-  background: linear-gradient(180deg, rgba(22,22,26,0.94), rgba(10,10,12,0.96)); border: 3px dashed rgba(236,233,225,0.5); border-radius: 12px; overflow: hidden; color: var(--w);
-  transform: scale(0.95); opacity: 0.86; transition: transform 0.2s, opacity 0.2s, border-color 0.2s, box-shadow 0.2s; }
-.ms-card:hover { opacity: 0.96; transform: scale(0.97); }
+  background: linear-gradient(180deg, #1b1c22, #0d0e12); border: 3px dashed rgba(236,233,225,0.5); border-radius: 12px; overflow: hidden; color: var(--w);
+  transform: scale(0.95); opacity: 1; box-shadow: 0 10px 24px rgba(0,0,0,0.65); transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s, filter 0.35s; }
+.ms-card:hover { opacity: 1; transform: scale(0.97); }
 .ms-card[data-map="jurassic"] { --mc: #6FD08C; } .ms-card[data-map="volcanic"] { --mc: #FF7A2A; } .ms-card[data-map="frozen"] { --mc: #7FDCFF; } .ms-card[data-map="harbor"] { --mc: #FFA640; }
 .ms-card.sel { transform: none; opacity: 1; border: 3px solid var(--mc); box-shadow: 0 0 0 3px rgba(0,0,0,0.65), 0 0 26px color-mix(in srgb, var(--mc) 65%, transparent), 0 14px 30px rgba(0,0,0,0.55); }
 .ms-shot { position: relative; flex: 1 1 46%; min-height: 80px; background: #15171b; overflow: hidden; border-bottom: 3px solid #0E0E0E; }
@@ -791,16 +791,72 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .ms-track.dragging .ms-card { transition: none; pointer-events: none; }
 .ms-card img { -webkit-user-drag: none; user-select: none; }
 .ms-badge.hide { display: none; }
-.ms-card.locked { border-style: dashed; border-color: rgba(236,233,225,0.28); opacity: 0.8; }
-.ms-card.locked .ms-shot > svg, .ms-card.locked .ms-shot > img { filter: grayscale(0.85) brightness(0.55); }
-.ms-card.locked .ms-badge { background: #B02A1A; color: #fff; border-style: solid; border-color: #0E0E0E; }
-.ms-card.locked .ms-name, .ms-card.locked .ms-season { color: rgba(236,233,225,0.6); border-color: rgba(236,233,225,0.4); }
-.ms-card.locked .ms-portrait img { filter: grayscale(1) brightness(0.45) drop-shadow(0 5px 6px rgba(0,0,0,0.6)); }
-.ms-lock { display: none; position: absolute; inset: 0; z-index: 4; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 8px; background: radial-gradient(ellipse at center, rgba(8,8,10,0.35), rgba(8,8,10,0.72)); pointer-events: none; }
+/* Locked season cards: 100% opaque (never transparent so the 3D scene behind never bleeds through), strictly monochrome black-and-white with lock overlay */
+.ms-card.locked { --mc: #8A8E96; opacity: 1; background: linear-gradient(180deg, #1d1e22, #111215); border-style: dashed; border-color: #4d5058; box-shadow: 0 10px 26px rgba(0,0,0,0.75); }
+.ms-card.locked:hover { opacity: 1; }
+.ms-card.locked .ms-shot { background: #141518; }
+.ms-card.locked .ms-shot > svg, .ms-card.locked .ms-shot > img { filter: grayscale(1) contrast(1.06) brightness(0.48); transition: filter 0.55s ease; }
+.ms-card.locked .ms-badge { background: #2c2e34; color: #d4d7de; border-style: solid; border-color: #0E0E0E; }
+.ms-card.locked .ms-diff i.on { background: #7e828a; }
+.ms-card.locked .ms-season { background: #23252b; color: #a4a8b0; border-color: #565a62; }
+.ms-card.locked .ms-name { color: #c4c8d0; text-shadow: 0 2px 0 #000; }
+.ms-card.locked .ms-sub { color: #8c9098; opacity: 1; }
+.ms-card.locked .ms-guard { background: #16171b; border-left-color: #565a62; }
+.ms-card.locked .ms-portrait { background: radial-gradient(circle at 50% 40%, #2b2d34, #0c0d10 78%); box-shadow: inset 0 0 0 2px #464952; }
+.ms-card.locked .ms-portrait img { filter: grayscale(1) contrast(1.08) brightness(0.5) drop-shadow(0 5px 6px rgba(0,0,0,0.75)); transition: filter 0.55s ease, transform 0.4s; }
+.ms-card.locked .ms-gt small, .ms-card.locked .ms-gt em, .ms-card.locked .ms-haz { color: #8c9098; opacity: 1; }
+.ms-card.locked .ms-gt b { color: #c4c8d0; }
+.ms-card.locked .ms-haz b, .ms-card.locked .ms-ph b { color: #9ea2aa; }
+.ms-card.locked .ms-lvls .lv.lock { background: #1c1e23; border-color: #0E0E0E; }
+.ms-card.locked .ms-lvls .lv .lk { opacity: 0.65; }
+.ms-lock { display: none; position: absolute; inset: 0; z-index: 4; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; padding: 10px; background: radial-gradient(ellipse at center, rgba(12,13,16,0.48), rgba(10,11,14,0.84)); pointer-events: none; }
 .ms-card.locked .ms-lock { display: flex; }
-.ms-lock .lk { width: clamp(34px, 9vw, 56px); height: clamp(34px, 9vw, 56px); filter: drop-shadow(0 3px 0 rgba(0,0,0,0.7)); }
-.ms-lock b { font-size: clamp(16px, 4vw, 24px); letter-spacing: 0.14em; color: var(--w); text-shadow: 0 2px 0 #000; }
-.ms-lock small { font-size: clamp(9px, 2.4vw, 12px); letter-spacing: 0.08em; color: var(--y); background: rgba(14,14,14,0.85); padding: 3px 8px; border-radius: 4px; }
+.ms-lk-wrap { position: relative; display: grid; place-items: center; width: clamp(46px, 11vw, 68px); height: clamp(46px, 11vw, 68px); }
+.ms-lock .lk { position: relative; z-index: 2; width: clamp(38px, 9.5vw, 58px); height: clamp(38px, 9.5vw, 58px); filter: drop-shadow(0 4px 0 rgba(0,0,0,0.85)); overflow: visible; }
+.ms-lock .lk .lk-shackle { transform-origin: 16px 10.5px; transition: transform 0.32s cubic-bezier(.2,1.6,.4,1), stroke 0.25s; }
+.ms-lock .lk .lk-body { transition: fill 0.25s; }
+.ms-lock b { font-size: clamp(16px, 4vw, 24px); letter-spacing: 0.14em; color: #d8dbe2; text-shadow: 0 2px 0 #000; }
+.ms-lock small { font-size: clamp(9px, 2.4vw, 12px); letter-spacing: 0.08em; color: #d8dbe2; background: #181a1f; border: 1.5px solid #3c3f47; padding: 3px 9px; border-radius: 4px; }
+
+/* ---- Season Unlock Surprise & Lock-Opening Ceremony ---- */
+.sum-next.is-unlock { display: inline-block; margin-top: 6px; padding: 3px 12px; border-radius: 4px; background: linear-gradient(90deg, #FFB400, #FFE27A, #FFB400); color: #0E0E0E; opacity: 1; font-size: clamp(13px, 3.5vw, 17px); letter-spacing: 0.08em; border: 2px solid #0E0E0E; box-shadow: 0 0 18px rgba(255,180,0,0.75); animation: popR 0.55s ease-in-out infinite alternate; }
+.ms-surprise { position: absolute; top: calc(52px + var(--sat)); left: 50%; transform: translateX(-50%); z-index: 9; pointer-events: none; white-space: nowrap; max-width: 94vw; overflow: hidden; text-overflow: ellipsis;
+  padding: 5px 16px; border-radius: 6px; background: linear-gradient(180deg, #FFE27A, #FFB400); color: #0E0E0E; border: 3px solid #0E0E0E;
+  box-shadow: 0 4px 0 #7a5200, 0 0 28px rgba(255,180,0,0.9); font-size: clamp(13px, 3.6vw, 19px); letter-spacing: 0.1em; animation: surpIn 0.45s cubic-bezier(.2,1.5,.4,1) both; }
+.ms-surprise.done { background: linear-gradient(180deg, #8AFF9E, #2FE05A); box-shadow: 0 4px 0 #146828, 0 0 32px rgba(76,255,106,0.9); animation: surpPop 0.55s cubic-bezier(.2,1.6,.4,1); }
+@keyframes surpIn { from { transform: translate(-50%, -30px) scale(0.6); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
+@keyframes surpPop { 0% { transform: translate(-50%, 0) scale(0.8); } 45% { transform: translate(-50%, 0) scale(1.14); } 100% { transform: translate(-50%, 0) scale(1); } }
+.ms-confetti { position: absolute; inset: 0; z-index: 8; overflow: hidden; pointer-events: none !important; }
+.ms-confetti b { position: absolute; top: -4%; width: var(--w); height: calc(var(--w) * 1.7); background: var(--c); border-radius: 1px; opacity: 0; will-change: transform; animation: confFall var(--du) linear var(--dl) 2; }
+.ms-lk-rays { position: absolute; width: 170px; height: 170px; border-radius: 50%; opacity: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255,216,74,0.55) 0deg 10deg, rgba(255,216,74,0) 10deg 24deg);
+  mask-image: radial-gradient(circle, #000 15%, transparent 70%); -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 70%); }
+.ms-lk-ring { position: absolute; inset: 0; border-radius: 50%; border: 3.5px solid #FFE27A; opacity: 0; pointer-events: none; }
+.ms-unlock-flash { position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 45%, #FFF8D6, #FFB400 55%, rgba(255,180,0,0) 100%); }
+.ms-unlock-tag { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%) scale(0); z-index: 5; pointer-events: none; white-space: nowrap;
+  background: linear-gradient(180deg, #FFE27A, #FFB400); color: #0E0E0E; border: 2.5px solid #0E0E0E; border-radius: 5px; padding: 3px 12px;
+  font-size: clamp(11px, 2.8vw, 14px); letter-spacing: 0.1em; box-shadow: 0 3px 0 #0E0E0E, 0 0 18px rgba(255,180,0,0.9); opacity: 0; }
+.ms-card.unlocking-shake { border-color: #FFB400; box-shadow: 0 0 0 3px rgba(0,0,0,0.7), 0 0 32px rgba(255,180,0,0.75); animation: unlockCardPulse 0.14s ease-in-out infinite alternate; }
+.ms-card.unlocking-shake .ms-lock .lk { animation: lkRattle 0.11s linear infinite; filter: drop-shadow(0 0 14px #FFB400) drop-shadow(0 4px 0 #000); }
+.ms-card.unlocking-shake .ms-lock .lk .lk-body, .ms-card.unlocking-shake .ms-lock .lk .lk-shackle { fill: #FFD84A; stroke: #FFE888; }
+.ms-card.unlocking-shake .ms-lock .lk .lk-shackle { fill: none; }
+.ms-card.unlocking-shake .ms-lock b { color: #FFD84A; }
+.ms-card.unlocking-shake .ms-lk-rays { opacity: 1; animation: spin 5s linear infinite; }
+.ms-card.unlocking-shake .ms-lk-ring { animation: ringOut 0.7s ease-out infinite; }
+.ms-card.unlocking-shake .ms-lk-ring.r2 { animation-delay: 0.25s; }
+.ms-card.unlocking-open .ms-lock .lk { animation: lkPopOpen 0.45s cubic-bezier(.2,1.6,.4,1) forwards; }
+.ms-card.unlocking-open .ms-lock .lk .lk-shackle { transform: translateY(-4.2px) rotate(28deg); stroke: #FFF5B8; }
+.ms-card.unlocking-open .ms-lock .lk .lk-body { fill: #FFE27A; }
+.ms-card.unlocking-open .ms-lk-rays { opacity: 1; transform: scale(1.45); transition: transform 0.4s; }
+.ms-card.just-unlocked { animation: cardAwaken 0.75s cubic-bezier(.2,1.55,.4,1); }
+.ms-card.just-unlocked .ms-unlock-flash { animation: unlockFlash 0.75s ease-out forwards; }
+.ms-card.just-unlocked .ms-unlock-tag { animation: unlockTagPop 0.55s 0.15s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes unlockCardPulse { from { transform: scale(0.97) rotate(-0.6deg); } to { transform: scale(0.99) rotate(0.6deg); } }
+@keyframes lkRattle { 0%, 100% { transform: scale(1.22) rotate(0deg); } 25% { transform: scale(1.26) rotate(-14deg); } 75% { transform: scale(1.26) rotate(14deg); } }
+@keyframes lkPopOpen { 0% { transform: scale(1.25); opacity: 1; } 55% { transform: scale(1.6) translateY(-6px); opacity: 1; } 100% { transform: scale(2.1) translateY(-18px); opacity: 0; } }
+@keyframes cardAwaken { 0% { transform: scale(0.92); filter: brightness(1.6); } 45% { transform: scale(1.03); } 100% { transform: none; filter: none; } }
+@keyframes unlockFlash { 0% { opacity: 0.95; } 100% { opacity: 0; } }
+@keyframes unlockTagPop { from { transform: translateX(-50%) scale(0) rotate(-6deg); opacity: 0; } to { transform: translateX(-50%) scale(1) rotate(-2deg); opacity: 1; } }
 
 .ms-prog { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; }
 .ms-ph { display: flex; justify-content: space-between; align-items: baseline; font-size: clamp(9px, 2.3vw, 11px); letter-spacing: 0.16em; opacity: 0.9; }

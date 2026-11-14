@@ -49,7 +49,10 @@
       if (lvl >= 1 && lvl <= N()) a[lvl - 1] = Math.max(had, clamp(stars | 0, 1, 3));
       res.seasonDone = P.seasonDone(id) && !wasDone;       // true only the first time level 10 is cleared
       const i = P.seasonIndex(id);
-      if (res.seasonDone && i + 1 < CFG.maps.order.length) res.unlockedSeason = CFG.maps.order[i + 1];
+      if (res.seasonDone && i + 1 < CFG.maps.order.length) {
+        res.unlockedSeason = CFG.maps.order[i + 1];
+        d.flags.pendingUnlock = res.unlockedSeason;
+      }
       // START continues with the next level of this season
       d.lvlSel[id] = clamp(lvl < N() ? lvl + 1 : N(), 1, N());
       d.level = 1 + P.totalCleared(); d.best.mission = Math.max(d.best.mission | 0, P.totalCleared());
@@ -84,6 +87,10 @@
       }
       const m = d.settings.map;
       if (!CFG.maps[m] || m === 'order' || !P.seasonUnlocked(m)) d.settings.map = P.firstOpen();
+      if (d.flags && d.flags.pendingUnlock) {
+        const pu = d.flags.pendingUnlock;
+        if (!CFG.maps[pu] || pu === 'order' || !P.seasonUnlocked(pu)) d.flags.pendingUnlock = '';
+      }
       if (P.totalCleared() > 0) d.flags.tutorialDone = true;
       d.level = 1 + P.totalCleared();
     },
@@ -99,17 +106,30 @@
         Main.lastResult = null;
         Main.go('mission', { theme, level, runSeed: seed, runCoins: coins });
       };
+      const goUnlock = (unlockId) => {
+        Main.lastResult = null;
+        WZ.Save.data.settings.map = res.theme;
+        WZ.Save.save();
+        Main.go('menu', { maps: true, unlockSeason: unlockId, fromTheme: res.theme });
+      };
       UI.showSummary(res.r, {
         main: () => {
           if (res.win) {
+            const unlockId = res.r.unlockedSeason || (WZ.Save.data.flags && WZ.Save.data.flags.pendingUnlock) || null;
+            if (unlockId) return goUnlock(unlockId);
             const nx = P.nextAfterWin(res.theme, res.level);
+            if (nx && nx.theme !== res.theme && P.cleared(nx.theme) === 0) return goUnlock(nx.theme);
             if (nx) return go(nx.theme, nx.level, nx.theme === res.theme ? res.runSeed : WZ.Save.newRunSeed(), nx.theme === res.theme ? res.runCoins : 0);
             return go(res.theme, res.level, WZ.Save.newRunSeed(), 0);          // the whole game is cleared: replay the last level
           }
           return go(res.theme, res.level, WZ.Save.newRunSeed(), 0);            // try again
         },
         garage: () => Main.go('shop', { ret: () => Main.go('menu', { result: res }) }),   // BACK in the shop returns to THIS results screen
-        menu: () => { Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu'); },
+        menu: () => {
+          const unlockId = (res.win && (res.r.unlockedSeason || (WZ.Save.data.flags && WZ.Save.data.flags.pendingUnlock))) || null;
+          if (unlockId) return goUnlock(unlockId);
+          Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu');
+        },
       });
     },
   };
