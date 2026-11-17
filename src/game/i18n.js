@@ -132,10 +132,10 @@
       'shop.jet.how': 'Select JET and press USE (F / U) to call in a fighter jet. It screams in from off-screen and flies three low bombing runs over the biggest group of enemies near you (or near Nana, or a giant), carpet-bombing a whole line of explosions on every pass, then climbs away. Bombs never hurt you or Nana. Call as many as you own.',
       'shop.passes': 'BOMBING RUNS', 'shop.bombs': 'BOMBS PER RUN', 'shop.jet.dmg': 'BOMB DAMAGE',
       'hud.healup': '+{n} ARMOR', 'hud.healfull': 'ARMOR IS FULL', 'hud.timeup': '+{s} SECONDS!', 'hud.pk.heal': 'REPAIR', 'hud.pk.time': 'TIME', 'hud.pk.spawnHeal': 'REPAIR HEART! {n} ARMOR', 'hud.pk.spawnTime': 'TIME CLOCK! {n}',
-      'maps.title': 'CHOOSE MAP', 'maps.village': 'DESERT VILLAGE', 'maps.jurassic': 'JURASSIC VALLEY',
+      'maps.title': 'CHOOSE MAP', 'maps.village': 'DESERT VILLAGE', 'maps.jurassic': 'DINO VALLEY',
       'maps.village.sub': 'ruined houses, dusty roads', 'maps.jurassic.sub': 'hills, river, fire-breathing dinos',
       'brief.map': 'MAP: {m}',
-      'brief.tipJ1': 'Jurassic Valley: the crate guardians are DINOSAURS. They chase you and breathe fire - when you see the mouth glow, steer sideways and keep moving!',
+      'brief.tipJ1': 'Dino Valley: the crate guardians are DINOSAURS. They chase you and breathe fire - when you see the mouth glow, steer sideways and keep moving!',
       'brief.tipJ2': 'Dino fire sweeps slowly. Boost out of the flames, or take the dinosaur down with turrets, bombs and the fighter jet before sending Nana out.',
       'brief.tipJ3': 'Cross the river by the wooden bridges - or splash through the shallows - but the water slows you down, and its current drags you downstream!',
       'hud.dino': 'DINO', 'hud.dinodown': 'DINO DOWN!', 'sum.fail.fire': 'ROASTED BY A DINOSAUR!', 'hud.fire': 'FIRE!',
@@ -154,8 +154,8 @@
       'sum.hint.rock': 'Every falling rock has a red ring on the ground. Keep moving and leave the ring early.',
       'sum.hint.vent': 'A flashing red ring on a cracked mound means it is about to blast. Wait for the blast, then cross.',
       // ---- frozen frontier
-      'maps.frozen': 'FROZEN FRONTIER', 'maps.frozen.sub': 'snow peaks, slippery ice, ice beasts',
-      'brief.tipF1': 'Frozen Frontier: the guardians are ICE BEASTS. When one rears back, a cyan lane shows where it will CHARGE - sidestep it, then run from the ice wave it sends out!',
+      'maps.frozen': 'ARCTIC FRONTIER', 'maps.frozen.sub': 'snow peaks, slippery ice, ice beasts',
+      'brief.tipF1': 'Arctic Frontier: the guardians are ICE BEASTS. When one rears back, a cyan lane shows where it will CHARGE - sidestep it, then run from the ice wave it sends out!',
       'brief.tipF2': 'Shiny blue ice is SLIPPERY: you barely steer, barely brake and slide on. Lift off the sharp turns before the ice and steer early - or go around the glossy patches.',
       'brief.tipF3': 'The frozen lake is one big sheet of ice. Cross it in a straight line, or drive around the shore on the packed snow.',
       'brief.tipF4': 'A snowstorm gust cuts your view for a few seconds - nothing extra attacks you, so keep your heading and watch the arrows. Turrets and bombs wear an Ice Beast down from far away.',
@@ -213,6 +213,7 @@
       'ad.bonus': 'WATCH AD · +{n} COINS', 'ad.shop': 'AD +{n}',
     },
     ru: {
+      'maps.jurassic': 'DINO VALLEY', 'maps.frozen': 'ARCTIC FRONTIER',
       'logo.tag1': 'ДВА БОЙЦА. ОДНА МИССИЯ.', 'logo.tag2': 'ПОЛНЫЙ ХАОС.', 'logo.label': 'СЕЗОН {n}',
       'menu.play': 'ИГРАТЬ', 'menu.level': 'УРОВЕНЬ {n}', 'menu.best': 'РЕКОРД: УРОВЕНЬ {n}', 'menu.coins': 'МОНЕТЫ: {n}',
       'menu.sound.on': 'ЗВУК: ВКЛ', 'menu.sound.off': 'ЗВУК: ВЫКЛ',
@@ -236,6 +237,7 @@
       'ad.bonus': 'РЕКЛАМА · +{n} МОНЕТ', 'ad.shop': 'РЕКЛАМА +{n}',
     },
     es: {
+      'maps.jurassic': 'DINO VALLEY', 'maps.frozen': 'ARCTIC FRONTIER',
       'logo.tag1': 'DOS SOLDADOS. UNA MISIÓN.', 'logo.tag2': 'CAOS TOTAL.', 'logo.label': 'TEMPORADA {n}',
       'menu.play': 'JUGAR', 'menu.level': 'NIVEL {n}', 'menu.best': 'MEJOR: NIVEL {n}', 'menu.coins': 'MONEDAS: {n}',
       'menu.sound.on': 'SONIDO: SÍ', 'menu.sound.off': 'SONIDO: NO',
@@ -259,6 +261,7 @@
       'ad.bonus': 'VER ANUNCIO · +{n} MONEDAS', 'ad.shop': 'ANUNCIO +{n}',
     },
     pt: {
+      'maps.jurassic': 'DINO VALLEY', 'maps.frozen': 'ARCTIC FRONTIER',
       'logo.tag1': 'DOIS SOLDADOS. UMA MISSÃO.', 'logo.tag2': 'CAOS TOTAL.', 'logo.label': 'TEMPORADA {n}',
       'menu.play': 'JOGAR', 'menu.level': 'NÍVEL {n}', 'menu.best': 'RECORDE: NÍVEL {n}', 'menu.coins': 'MOEDAS: {n}',
       'menu.sound.on': 'SOM: LIGADO', 'menu.sound.off': 'SOM: DESL.',
@@ -282,6 +285,7 @@
       'ad.bonus': 'VER ANÚNCIO · +{n} MOEDAS', 'ad.shop': 'ANÚNCIO +{n}',
     },
     tr: {
+      'maps.jurassic': 'DINO VALLEY', 'maps.frozen': 'ARCTIC FRONTIER',
       'logo.tag1': 'İKİ ASKER. TEK GÖREV.', 'logo.tag2': 'TAM KAOS.', 'logo.label': 'SEZON {n}',
       'menu.play': 'OYNA', 'menu.level': 'SEVİYE {n}', 'menu.best': 'EN İYİ: SEVİYE {n}', 'menu.coins': 'ALTIN: {n}',
       'menu.sound.on': 'SES: AÇIK', 'menu.sound.off': 'SES: KAPALI',

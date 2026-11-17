@@ -1,4 +1,4 @@
-/* WZ.Jura — procedural art for the JURASSIC VALLEY map (used by WZ.WorldView when map.theme === 'jurassic'):
+/* WZ.Jura — procedural art for the DINO VALLEY map (used by WZ.WorldView when map.theme === 'jurassic'):
  * jungle ground splat (moss, mud, dirt trails, river banks, dino footprints), merged vegetation (palms, tree ferns, conifers, ferns), mossy boulders,
  * giant bone landmarks, egg nests, steam vents, wooden bridges, the animated river, a warm hazy sky, jungle ridges + a smoking volcano, pterosaurs. */
 (function (WZ) {

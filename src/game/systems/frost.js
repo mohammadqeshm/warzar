@@ -1,4 +1,4 @@
-/* WZ.Ice — the FROZEN FRONTIER mechanics (no-op on every other map):
+/* WZ.Ice — the ARCTIC FRONTIER mechanics (no-op on every other map):
  *  - SURFACE: WZ.Ice.surface(x, z) -> 0..1 slipperiness (static lakes / patches + the dynamic patches below). The mission feeds it to the vehicle each step
  *    (WZ.Jeep.ice): less side grip, steering, braking and acceleration - the vehicle keeps its momentum and slides. Never lethal, never blocks.
  *  - ICE WAVES (WZ.Ice.wave): an expanding ring of ice from a point (the Ice Beast's slam). When the ring front passes the vehicle / Nana they are hurt and knocked

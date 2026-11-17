@@ -8,6 +8,7 @@
   WZ.Debug = WZ.Debug || {}; // QA hooks (e.g. WZ.Debug.cam) - empty in production
 
   const Main = {
+    glLost: false, _glTimer: 0, _repaint: false,
     started: false, renderer: null, cur: null, scenes: {}, userPaused: false, platformPaused: false, w: 1, h: 1, acc: 0, last: 0, fps: 60, _fa: 0, _fn: 0,
     startIndex: 1, lastResult: null, params: new URLSearchParams(typeof location !== 'undefined' ? location.search : ''),
 
@@ -59,6 +60,7 @@
         }
         const r = Main.renderer;
         r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap; r.setClearColor(0xA9D3F2);
+        Main.watchContext(els.canvas);   // survive WebGL context loss (phone app backgrounded / GPU reset) instead of a black screen
 
         WZ.Cam.init();
         WZ.Input.init(els.touch, els.stickBase, els.stickKnob); WZ.UI.setDevice(WZ.Input.device);
@@ -108,6 +110,49 @@
       } catch (e) {
         console.error('[WARZAR] boot failed', e);
       }
+    },
+
+    // ------------------------------------------------------------------ WebGL context loss / restore
+    // Mobile browsers can drop the GL context when the app is sent to the background. three.js already calls preventDefault() and re-creates its
+    // GL state + re-uploads every geometry / texture on restore, but it does NOT restore what THIS game set by hand (clear colour, viewport / pixel
+    // ratio, shadow state) and nothing repaints a paused scene - that is what used to leave a black canvas until a manual refresh.
+    watchContext(canvas) {
+      canvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();                              // mandatory: without it the browser never fires 'webglcontextrestored'
+        if (Main.glLost) return;
+        Main.glLost = true;
+        console.warn('[WARZAR] WebGL context lost');
+        try { WZ.Input.reset(); } catch (err) { /* ignore */ }
+        try { if (Main.cur && Main.cur.canPause && Main.cur.canPause()) Main.setUserPause(true, true); } catch (err) { /* ignore */ }  // don't let a mission run blind
+        Main._armGlReload();
+      }, false);
+      canvas.addEventListener('webglcontextrestored', () => {
+        console.warn('[WARZAR] WebGL context restored');
+        Main.glLost = false; clearTimeout(Main._glTimer);
+        const r = Main.renderer;
+        try {
+          r.setClearColor(0xA9D3F2);                     // three re-creates its background state on restore (clear colour falls back to black)
+          r.shadowMap.type = T.PCFSoftShadowMap;
+          Main.applyQualityRuntime(WZ.Quality ? WZ.Quality.level : 2);   // shadows + pixel ratio + viewport (also calls Main.resize)
+        } catch (err) { console.error('[WARZAR] restore failed', err); }
+        Main.last = performance.now() / 1000; Main.acc = 0;
+        Main._repaint = true;                            // draw one frame even if the game is paused so the canvas is never left black
+      }, false);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && Main.glLost) Main._armGlReload(); });
+    },
+
+    /** last resort: if the browser still has not given the context back a few seconds after the app is visible again, reload (progress is saved) */
+    _armGlReload() {
+      clearTimeout(Main._glTimer);
+      Main._glTimer = setTimeout(() => {
+        if (!Main.glLost) return;
+        if (document.hidden) return;                     // still in the background: wait, the visibilitychange handler re-arms this
+        let ok = true;
+        try { const k = 'wz_glreload', now = Date.now(), prev = +sessionStorage.getItem(k) || 0; if (now - prev < 20000) ok = false; else sessionStorage.setItem(k, String(now)); } catch (err) { /* no sessionStorage: allow */ }
+        if (!ok) return;                                 // loop guard: never reload more than once per 20 s
+        try { if (WZ.Save && WZ.Save.flush) WZ.Save.flush(); } catch (err) { /* ignore */ }
+        location.reload();
+      }, 4000);
     },
 
     go(name, data) {
@@ -202,6 +247,11 @@
       const t = now / 1000;
       let dt = Math.min(0.1, Math.max(0, t - Main.last)); Main.last = t;
       const I = WZ.Input;
+      if (Main.glLost) return;                          // context is gone: no simulation / drawing until 'webglcontextrestored' (see watchContext)
+      if (Main._repaint) {                              // one forced frame after a restore (a paused scene would otherwise stay black)
+        Main._repaint = false;
+        try { if (Main.cur) Main.cur.render(0, 0.0005); } catch (e) { console.warn('[WARZAR] repaint failed', e); }
+      }
       if (Main.platformPaused) return;
       if (I.consume('pause')) Main.togglePause();
       if (Main.userPaused) return;

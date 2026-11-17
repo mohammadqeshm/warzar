@@ -1,4 +1,4 @@
-/* WZ.WorldF.generate(runSeed, missionIndex, opts) — the FROZEN FRONTIER map (selected in the main menu; opts.theme === 'frozen').
+/* WZ.WorldF.generate(runSeed, missionIndex, opts) — the ARCTIC FRONTIER map (selected in the main menu; opts.theme === 'frozen').
  * Same contract as WZ.World.generate / WorldJ / WorldV (start, crates, extract, nav grids, colliders, roads, height()), different content:
  *   - snowy rolling HILLS with flat, frozen LAKES (analytic wobbly ellipses => cheap distance queries),
  *   - glossy ICE PATCHES scattered over the map (more of them next to the trails): map.ice.at(x, z) -> 0..1 says how slippery the surface is there;

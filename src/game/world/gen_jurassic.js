@@ -1,4 +1,4 @@
-/* WZ.WorldJ.generate(runSeed, missionIndex, opts) — the JURASSIC VALLEY map (selected in the main menu; opts.theme === 'jurassic').
+/* WZ.WorldJ.generate(runSeed, missionIndex, opts) — the DINO VALLEY map (selected in the main menu; opts.theme === 'jurassic').
  * Same contract as WZ.World.generate (start, crates, extract, nav grids, colliders, roads, height()), different content:
  *   - rolling HILLS with a stronger amplitude and flat valley floors,
  *   - a winding shallow RIVER (analytic centre line => cheap distance queries) with flat banks, crossed by wooden BRIDGES where the dirt roads meet it

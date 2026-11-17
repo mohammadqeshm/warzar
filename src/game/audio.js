@@ -26,7 +26,7 @@
       hat:  [1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0],
       style: 'oud', bassWave: 'triangle', bassCut: 240, leadCut: 1850,
     },
-    // Season 2: Jurassic Valley — Primal Jungle Marimba & Tribal Wood Percussion (A Dorian Adventure)
+    // Season 2: Dino Valley — Primal Jungle Marimba & Tribal Wood Percussion (A Dorian Adventure)
     jurassic: {
       bpm: 116,
       bass: [33, 0, 33, 40, 36, 0, 36, 43, 38, 0, 38, 45, 36, 0, 40, 38],
@@ -54,7 +54,7 @@
       hat:  [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
       style: 'brass', bassWave: 'sawtooth', bassCut: 280, leadCut: 1450,
     },
-    // Season 4: Frozen Frontier — Crystalline Electric Piano, Aurora Chimes & Nordic Pulse (C Dorian)
+    // Season 4: Arctic Frontier — Crystalline Electric Piano, Aurora Chimes & Nordic Pulse (C Dorian)
     frozen: {
       bpm: 112,
       bass: [36, 0, 36, 43, 32, 0, 32, 39, 34, 0, 34, 41, 31, 0, 38, 36],
@@ -97,6 +97,10 @@
       style: 'crystal', bassWave: 'triangle', bassCut: 210, leadCut: 1350,
     },
   };
+
+  // The one and only soundtrack (first theme). Music bus level per scene: loud at the start screen / shop, low in a mission.
+  const MUSIC_THEME = 'village';
+  const MUSIC_VOL = { menu: 0.62, shop: 0.62, mission: 0.13 };
 
   /** Helper: create a GainNode pre-zeroed to 0.0001 so it NEVER defaults to 1.0 on quantum boundaries */
   function safeGain(c, initVal) {
@@ -188,7 +192,7 @@
         A.engBus.connect(A.comp);
 
         // Music bus with warm lowpass + subtle stereo delay space
-        A.musicG = safeGain(c, 0.28);
+        A.musicG = safeGain(c, A._musicVol());
         A.musicLP = c.createBiquadFilter();
         A.musicLP.type = 'lowpass';
         A.musicLP.frequency.value = 2300;
@@ -252,16 +256,19 @@
     },
 
     /** Switch background music & atmospheric vibe for the current scene & map theme */
-    setMusic(scene, theme) {
+    /** ONE soundtrack for the whole game (the first / Desert Village theme): it never changes with the map or the shop.
+     *  Only the LEVEL changes: loud and clear in the menu & shop, ducked during a mission so the vehicle hits / SFX stand out.
+     *  (`theme` is accepted for call-site compatibility but intentionally ignored.) */
+    setMusic(scene /*, theme */) {
       if (scene) A.curScene = scene;
-      if (theme && THEMES[theme]) A.curTheme = theme;
-      else if (WZ.Save && WZ.Save.data && WZ.Save.data.settings && THEMES[WZ.Save.data.settings.map]) {
-        A.curTheme = WZ.Save.data.settings.map;
-      }
+      A.curTheme = MUSIC_THEME;
       if (A.ctx && A.musicG) {
-        const vol = A.curScene === 'mission' ? 0.28 : A.curScene === 'shop' ? 0.25 : 0.27;
-        A.musicG.gain.setTargetAtTime(vol, A.ctx.currentTime, 0.18);
+        A.musicG.gain.setTargetAtTime(A._musicVol(), A.ctx.currentTime, 0.35);
       }
+    },
+
+    _musicVol() {
+      return A.curScene === 'mission' ? MUSIC_VOL.mission : A.curScene === 'shop' ? MUSIC_VOL.shop : MUSIC_VOL.menu;
     },
 
     _startMusicLoop() {
@@ -274,8 +281,7 @@
           if (c) A._mNextT = c.currentTime + 0.06;
           return;
         }
-        const key = A.curScene === 'shop' ? 'shop' : (A.curTheme || 'village');
-        const th = THEMES[key] || THEMES.village;
+        const th = THEMES[MUSIC_THEME];   // single soundtrack everywhere (menu, shop, every map)
         const stepDur = (60 / th.bpm) / 4; // 16th note
         const now = c.currentTime;
         if (A._mNextT < now + 0.015) A._mNextT = now + 0.03;

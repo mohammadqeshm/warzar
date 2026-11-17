@@ -21,7 +21,7 @@
   const DEF_BY_KIND = { gun: 'turret', soldier: 'soldier', heavy: 'heavy', bomb: 'bomb', heli: 'heli', tank: 'tank', jet: 'jet' };
 
   const Shop = {
-    name: 'shop', t: 0, sel: 'jeep', rot: 0.6, spinV: 0, pop: 0, thumbs: {}, thumbsDone: false, scene: null, holder: null, obj: null, model: null, heroes: null, r: 5, lookY: 2.0, szY: 3.0,
+    name: 'shop', t: 0, sel: 'jeep', rot: 0.6, spinV: 0, pop: 0, thumbs: {}, thumbsDone: false, scene: null, holder: null, obj: null, model: null, heroes: null, r: 5, lookY: 2.0, szY: 3.0, rh: 4, hv: 1.5, stage: null, _stT: 0, cam3: null,
 
     // ------------------------------------------------------------------ weapon levels (1..10) & purchases (pure logic, unit-tested)
     weaponLevel(key) {
@@ -82,7 +82,7 @@
 
     // ------------------------------------------------------------------ lifecycle
     enter(data) {
-      const S = WZ.Save.data; Shop.data = data || {}; Shop.t = 0; Shop.rot = 0.6; Shop.pop = 0;
+      const S = WZ.Save.data; Shop.data = data || {}; Shop.t = 0; Shop.rot = 0.6; Shop.pop = 0; Shop.stage = null; Shop.cam3 = null; Shop._camSnap = true; Shop._stT = 0;
       Shop.sel = S.owned.vehicles.indexOf(S.equipped.vehicle) >= 0 ? S.equipped.vehicle : 'jeep';
       Shop.scene = new T.Scene(); Shop.scene.background = new T.Color(0x101318); Shop.scene.fog = new T.Fog(0x101318, 70, 150);
       Shop.buildStage();
@@ -134,13 +134,56 @@
       if (m) { for (const wl of m.wheels) wl.rotation.x = tm * 0.8; m.gunYaw.rotation.y = Math.sin(tm * 0.6) * 0.55; m.flag.rotation.y = Math.sin(tm * 5) * 0.3; }
       if (Shop.rig) { Shop.rig.headG.rotation.y = Math.sin(tm * 0.8) * 0.9; if (Shop.rig.spin) Shop.rig.spin(dt); }
       if (Shop.heroes) for (const hr of Shop.heroes) hr.update(dt);
-      const smallLayout = asp < 1 || w <= 720, r = Shop.r, szY = Shop.szY || 3.0;
-      const fit = r / (Math.tan(cam.fov * Math.PI / 360) * Math.min(1, asp * 1.12)) * (smallLayout ? 1.56 : 1.46);
-      const targetY = (Shop.lookY || (r * 0.28 + 0.6)) + szY * (smallLayout ? 0.14 : 0.06);
-      cam.position.set(fit * 0.2, targetY + r * 0.26 + 1.1, fit);
-      cam.lookAt(0, targetY, 0);
-      cam.setViewOffset(w, h, 0, smallLayout ? h * 0.18 : h * 0.03, w, h);
+      Shop.frameCamera(dt);
       Main.renderer.render(Shop.scene, cam);
+    },
+
+    // ------------------------------------------------------------------ camera framing (measured from the REAL layout)
+    /** Free rectangle of the screen (CSS px) that is NOT covered by the header, the vehicle list or the detail panel:
+     *  portrait / stacked layout -> the band between the header and the list; side-by-side layout -> the gap between list and detail panel. */
+    measureStage() {
+      const Main = WZ.Main, w = Main.w, h = Main.h, ui = Shop.ui;
+      if (!ui || !ui.isConnected) return null;
+      const top = ui.querySelector('.shop-top'), sp = ui.querySelector('.shop-stage-spacer'), list = ui.querySelector('#sh-list'), det = ui.querySelector('#sh-detail'), drag = ui.querySelector('.shop-drag');
+      if (!top || !list || !det) return null;
+      const tb = top.getBoundingClientRect(), lb = list.getBoundingClientRect(), db = det.getBoundingClientRect();
+      const stacked = !!sp && getComputedStyle(sp).display !== 'none';
+      let l, r, t, b;
+      if (stacked) { l = 0; r = w; t = tb.bottom; b = lb.top; }
+      else {
+        l = lb.right; r = db.left; t = tb.bottom; b = h;
+        if (drag && getComputedStyle(drag).display !== 'none') b = Math.min(b, drag.getBoundingClientRect().top);
+      }
+      const pad = 8; l += pad; r -= pad; t += pad; b -= pad;
+      if (r - l < 90 || b - t < 80) {           // panels leave (almost) nothing: fall back to a safe band in the upper middle of the screen
+        l = w * 0.2; r = w * 0.8; t = tb.bottom + pad; b = Math.max(t + 90, h * 0.5);
+      }
+      return { l, r, t, b, w: r - l, h: b - t, cx: (l + r) / 2, cy: (t + b) / 2 };
+    },
+
+    /** Places the camera so the WHOLE model (incl. its turntable spin) stays inside the free rectangle on every screen size. */
+    frameCamera(dt) {
+      const Main = WZ.Main, cam = Shop.cam, w = Main.w, h = Main.h;
+      Shop._stT -= dt;
+      if (!Shop.stage || Shop._stT <= 0 || Shop._stW !== w || Shop._stH !== h) {
+        const m = Shop.measureStage(); Shop._stT = 0.12; Shop._stW = w; Shop._stH = h;
+        if (m) Shop.stage = m;
+      }
+      const st = Shop.stage || { w: w * 0.6, h: h * 0.5, cx: w / 2, cy: h * 0.35 };
+      const half = Math.tan(cam.fov * Math.PI / 360), pitch = 0.27, az = 0.2, fill = 0.46, ppuK = (h / 2) / half;   // ppu = ppuK / distance
+      const rh = Shop.rh * 1.08, hv = Shop.hv * 1.08, vExt = hv * Math.cos(pitch) + rh * Math.sin(pitch);
+      const dW = rh * ppuK / (fill * st.w), dH = vExt * ppuK / (fill * st.h);
+      const dFit = Math.max(dW, dH) + rh * 0.8;                       // + a bit so the nearest part (bigger in perspective) still fits
+      const dMin = Shop.r / half * 1.4;                                // never zoom in closer than the original showroom scale (small items: mine, soldier)
+      const dTgt = Math.max(dFit, dMin);
+      const k = Shop._camSnap ? 1 : 1 - Math.exp(-dt * 7);
+      Shop._camSnap = false;
+      const c = Shop.cam3 || (Shop.cam3 = { d: dTgt, cx: st.cx, cy: st.cy });
+      c.d += (dTgt - c.d) * k; c.cx += (st.cx - c.cx) * k; c.cy += (st.cy - c.cy) * k;
+      const ty = Shop.lookY || (Shop.r * 0.28 + 0.6);
+      cam.position.set(Math.sin(az) * Math.cos(pitch) * c.d, ty + Math.sin(pitch) * c.d, Math.cos(az) * Math.cos(pitch) * c.d);
+      cam.lookAt(0, ty, 0);
+      cam.setViewOffset(w, h, w / 2 - c.cx, h / 2 - c.cy, w, h);       // slide the (centred) model onto the centre of the free rectangle
     },
 
     back() { const d = Shop.data; if (d && d.ret) d.ret(); else WZ.Main.go('menu'); },
@@ -190,7 +233,9 @@
         const box = new T.Box3().setFromObject(obj);
         const sz = box.getSize(new T.Vector3()), ctr = box.getCenter(new T.Vector3());
         const r = Math.max(Math.max(sz.x, sz.z) * 0.58, sz.y * 0.72) + 0.85;
-        return Object.assign({ obj, model: null, heroes: null, rig: null, r, lookY: 0.62 + ctr.y, szY: sz.y }, extra || {});
+        // the model spins around the turntable axis (x = z = 0): the widest it can ever get on screen is its farthest corner from that axis
+        const rh = Math.max(Math.hypot(box.min.x, box.min.z), Math.hypot(box.min.x, box.max.z), Math.hypot(box.max.x, box.min.z), Math.hypot(box.max.x, box.max.z));
+        return Object.assign({ obj, model: null, heroes: null, rig: null, r, rh, hv: sz.y / 2, lookY: 0.62 + ctr.y, szY: sz.y }, extra || {});
       };
       if (id === 'mine') {
         const m = WZ.Vehicles.mineModel();
@@ -230,14 +275,14 @@
 
     show(id) {
       Shop.disposeObj(); const o = Shop.make(id);
-      Shop.obj = o.obj; Shop.model = o.model; Shop.heroes = o.heroes; Shop.rig = o.rig || null; Shop.r = o.r; Shop.lookY = o.lookY || 2.0; Shop.szY = o.szY || 3.0; Shop.holder.add(o.obj); Shop.pop = 0;
+      Shop.obj = o.obj; Shop.model = o.model; Shop.heroes = o.heroes; Shop.rig = o.rig || null; Shop.r = o.r; Shop.rh = o.rh || o.r; Shop.hv = o.hv || 1.5; Shop.lookY = o.lookY || 2.0; Shop.szY = o.szY || 3.0; Shop._stT = 0; Shop.holder.add(o.obj); Shop.pop = 0;
       Shop.obj.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     },
 
     // ------------------------------------------------------------------ 3D thumbnails for the cards
     makeThumbs() {
-      if (Shop.thumbsDone) return; Shop.thumbsDone = true;
-      for (const id of CFG.vehicleOrder.concat(['mine', 'turret', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet'])) { try { Shop.thumbs[id] = Shop.thumb(id); } catch (e) { Shop.thumbs[id] = ''; } }
+      if (Shop.thumbsDone || (WZ.Main && WZ.Main.glLost)) return; Shop.thumbsDone = true;   // (context lost -> try again on the next visit instead of caching blanks)
+      for (const id of CFG.vehicleOrder.concat(['mine', 'turret', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet'])) { try { Shop.thumbs[id] = Shop.thumb(id); } catch (e) { Shop.thumbs[id] = ''; if (WZ.Main.glLost) Shop.thumbsDone = false; } }
     },
 
     thumb(id) {
@@ -251,6 +296,7 @@
       cam.position.set(ctr.x + dist * 0.6, ctr.y + dist * (isMine ? 0.52 : 0.34), ctr.z + dist * 0.74); cam.lookAt(ctr.x, ctr.y - size.y * 0.04, ctr.z);
       const prev = new T.Color(); R.getClearColor(prev); const pa = R.getClearAlpha();
       R.setClearColor(0x000000, 0); R.setRenderTarget(rt); R.clear(); R.render(sc, cam);
+      if (WZ.Main.glLost || R.getContext().isContextLost()) { R.setRenderTarget(null); R.setClearColor(prev, pa); rt.dispose(); throw new Error('context lost'); }
       const buf = new Uint8Array(W * H * 4); R.readRenderTargetPixels(rt, 0, 0, W, H, buf);
       R.setRenderTarget(null); R.setClearColor(prev, pa); rt.dispose();
       const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d'), img = cx.createImageData(W, H);

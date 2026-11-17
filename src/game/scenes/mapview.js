@@ -39,11 +39,12 @@
     _tick() {
       const Main = WZ.Main, k = MP.tasks.shift();
       if (!k || !Main || !Main.renderer || Main.cur !== WZ.Scenes.menu) { MP.running = false; MP.tasks.length = 0; return; }
+      if (MP._glDown()) { MP.tasks.unshift(k); MP.timer = setTimeout(MP._scheduleNext, 500); return; }   // WebGL context lost: never cache a black render, retry later
       MP.busyFrame = true;
       try {
         const url = k.kind === 'shot' ? MP._renderShot(k.th) : MP._renderPortrait(k.th);
         if (url) { MP[k.kind][k.th] = url; if (k.cb) k.cb(k.kind, k.th, url); }
-      } catch (e) { console.warn('[MapPreview] ' + k.kind + ' ' + k.th + ' failed', e); }
+      } catch (e) { console.warn('[MapPreview] ' + k.kind + ' ' + k.th + ' failed', e); if (MP._glDown()) MP.tasks.unshift(k); }
       if (MP.tasks.length > 0) {
         MP.timer = setTimeout(MP._scheduleNext, k.kind === 'shot' ? 140 : 60);
       } else {
@@ -52,6 +53,7 @@
     },
 
     // ------------------------------------------------------------------------------------------------ helpers
+    _glDown() { const M = WZ.Main; try { return !!(M && (M.glLost || (M.renderer && M.renderer.getContext().isContextLost()))); } catch (e) { return false; } },
     _target(w, h) { return new T.WebGLRenderTarget(w, h, { format: T.RGBAFormat, depthBuffer: true, stencilBuffer: false }); },
     /** render `scene` with `cam` into an off-screen target, hand the raw RGBA pixels (top row first) to fn, restore the renderer state */
     _render(scene, cam, w, h, clearA, fn) {
@@ -61,6 +63,7 @@
       const rt = MP._target(w, h);
       try {
         r.setRenderTarget(rt); r.setClearColor(0x000000, clearA); r.clear(); r.render(scene, cam);
+        if (MP._glDown()) throw new Error('WebGL context lost during preview render');
         const buf = new Uint8Array(w * h * 4); r.readRenderTargetPixels(rt, 0, 0, w, h, buf);
         const row = w * 4, flipped = new Uint8ClampedArray(w * h * 4);
         for (let y = 0; y < h; y++) flipped.set(buf.subarray((h - 1 - y) * row, (h - y) * row), y * row);

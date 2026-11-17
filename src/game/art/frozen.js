@@ -1,4 +1,4 @@
-/* WZ.Froze — procedural art for the FROZEN FRONTIER map (used by WZ.WorldView when map.theme === 'frozen'):
+/* WZ.Froze — procedural art for the ARCTIC FRONTIER map (used by WZ.WorldView when map.theme === 'frozen'):
  * snow ground splat (packed-snow trails, wind ripples, shore slush, sparkles), merged scenery (snowy pines, snow-capped boulders, log cabins with smoking chimneys,
  * ice spikes, drifts), GLOSSY ICE (one merged mesh for the frozen lakes + ice patches: Phong specular + an animated additive glint layer; dynamic patches for the
  * Ice Beast), a falling SNOWSTORM (blows harder in gusts: WZ.Ice.gust), an overcast sky, snow peaks + a pine-forest ring, storm clouds and icy border cliffs.

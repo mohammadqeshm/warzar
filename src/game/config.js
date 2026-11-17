@@ -215,7 +215,7 @@
       // erupting vents + rockfall (CFG.volcano) and the MAGMA TITAN guardians (CFG.titan). spawnMul / hpMul toughen the enemy waves a little (not in the tutorial).
       volcanic: { name: 'maps.volcanic', waterLevel: -0.5, waterSlow: 0.6, waterTurn: 0.22, waterGrip: 0.4, current: 2.6, hillAmp: 5.4, riverWidth: 9.6, riverWidth2: 6.8, bridges: 9,
         lavaPct: 0.13, lavaPctPerMission: 0.004, lavaPctMax: 0.22, lavaTick: 0.25, lavaNana: 11, spawnMul: 1.15, hpMul: 1.1 },
-      // FROZEN FRONTIER: snowy mountains, a frozen lake, pine forests and a drifting snowstorm. Glossy ICE (the lake + ice patches + the patches the Ice Beast leaves behind)
+      // ARCTIC FRONTIER: snowy mountains, a frozen lake, pine forests and a drifting snowstorm. Glossy ICE (the lake + ice patches + the patches the Ice Beast leaves behind)
       // takes the grip away from the vehicle: `iceGrip` = share of the normal side grip that is left (low = it slides), `iceTurn` = share of the steering authority left,
       // `iceAccel` / `iceBrake` / `iceCoast` = share of acceleration / braking / rolling resistance left. Ice is never lethal and never blocks - it only costs control.
       // The map is a little harder than the village (spawnMul / hpMul). Guardians: ICE BEAST (CFG.beast).
