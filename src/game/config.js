@@ -34,17 +34,35 @@
       truck: { name: 'ARMORED TRUCK', tier: 3, price: 2500, topSpeed: 18, boostSpeed: 27, accel: 24, hp: 220, handling: 0.62, ram: 1.7, wheelR: 0.98, radius: 1.7,  halfLen: 1.9,  enemyDamageMul: 0.3, blurb: 'A rolling fortress. Shrugs off damage and flattens enemies at low speed.' },
     },
     vehicleOrder: ['jeep', 'buggy', 'truck'],
-    // Deployable weapons in the Shop: each weapon can be upgraded up to `maxLevel` (10).
-    // Level 1 allows `baseLimit` uses per map; each level upgrade adds `perLevel` more uses per map, and the upgrade price doubles each time.
+    // ===================================================================================================================================
+    // SHOP ECONOMY (single source of truth - every price below is derived from the weapon's POWER and from the coins a player really earns).
+    //
+    // INCOME (unchanged, see CFG.economy): level L of season S (m = L + 10*S) pays  L*(25+3m) crate coins + L*(100+100S) guardian coins
+    //   + (20+5m) completion + 2/s time bonus + ~1 coin per KO.  =>  ~290 coins for level 1, ~880 for level 5, ~1900 for level 10 of season 1,
+    //   ~10k for the whole of season 1 and ~133k for all five seasons.  Rule of thumb used for the prices: a level should leave the player with
+    //   about 55-65 % of its income AFTER buying the consumables he needs for it.
+    //
+    // ONE upgrade per weapon ("WEAPON LVL", 1..maxLevel = 10) and it does exactly ONE thing: it raises the MAXIMUM NUMBER THE PLAYER MAY OWN / BUY.
+    //     maxStock(level) = step * level          (level 1 = `step`, every level adds another `step`)
+    //     upgrade price   = upgradePrice * 2^(level-1)   (every upgrade costs exactly TWICE the previous one)
+    //   `step` follows the power of the item (strong items = small step): mines +3, turrets/soldiers/cannons/mortars +2, helicopters/tanks/jets +1.
+    //   Level 1 can never be lower than the free `starter` stock.  No other stat is touched by the upgrade (no second "tech" upgrade exists any more).
+    //
+    // UNIT PRICE (packs[0].price) ~ power: expected damage / control delivered in one deployment (life x dps x splash/utility), rounded to 5:
+    //   mine 25 (one-shot blast) < gun turret 80 < soldier 95 < heavy cannon 150 < mortar 210 < heli 300 < tank 460 < jet 800 (3 carpet-bombing runs).
+    // Bulk packs: -8 % (2nd pack) / -15 % (3rd pack).  First upgrade price ~ 18 % of the value of the capacity it unlocks (step * unit price).
+    // Cost to max one weapon = 511 * upgradePrice (e.g. mines 10.2k, jets 71.5k): maxing EVERYTHING is out of reach on purpose - the player has to choose.
+    // Reference table: `node tools/economy-sim.cjs`.
+    // ===================================================================================================================================
     shop: {
-      mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3, maxLevel: 10, baseLimit: 5, perLevel: 5, upgradePrice: 20 },
-      turrets: { packs: [{ n: 1, price: 90 }, { n: 3, price: 240 }, { n: 6, price: 450 }], cap: 20, starter: 2, maxLevel: 10, baseLimit: 5, perLevel: 5, upgradePrice: 30 },
-      soldiers: { packs: [{ n: 1, price: 110 }, { n: 3, price: 300 }, { n: 6, price: 560 }], cap: 25, starter: 2, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 35 },
-      heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 12, starter: 0, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 50 },
-      bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 45 },
-      heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 10, starter: 1, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 60 },
-      tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 10, starter: 1, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 70 },
-      jet: { packs: [{ n: 1, price: 1040 }, { n: 2, price: 1920 }, { n: 4, price: 3600 }], cap: 10, starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 100 },
+      mines:    { packs: [{ n: 1, price: 25 },  { n: 5, price: 115 },  { n: 15, price: 320 }],  starter: 3, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 20 },
+      turrets:  { packs: [{ n: 1, price: 80 },  { n: 3, price: 220 },  { n: 6, price: 410 }],   starter: 2, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 30 },
+      soldiers: { packs: [{ n: 1, price: 95 },  { n: 3, price: 265 },  { n: 6, price: 485 }],   starter: 2, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 35 },
+      heavy:    { packs: [{ n: 1, price: 150 }, { n: 3, price: 415 },  { n: 6, price: 765 }],   starter: 0, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 55 },
+      bombs:    { packs: [{ n: 1, price: 210 }, { n: 3, price: 580 },  { n: 6, price: 1070 }],  starter: 1, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 75 },
+      heli:     { packs: [{ n: 1, price: 300 }, { n: 2, price: 555 },  { n: 4, price: 1020 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 55 },
+      tank:     { packs: [{ n: 1, price: 460 }, { n: 2, price: 850 },  { n: 4, price: 1560 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 85 },
+      jet:      { packs: [{ n: 1, price: 800 }, { n: 2, price: 1475 }, { n: 4, price: 2720 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 140 },
     },
     mine: { maxActive: 50, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
@@ -77,8 +95,9 @@
     // Defense Tech: +damage, and +1 bomb per run at levels 2 and 4.
     jet: { cooldown: 1.0, passes: 3, bombsPerPass: 7, spacing: 4.8, speed: 76, boostSpeed: 150, cruiseAlt: 36, bombAlt: 25, turnRate: 2.3, gravity: 34,
       damage: 26, blast: 8.6, knock: 17, searchRange: 62, minSafe: 12, defaultAhead: 32, approach: 205, maxBombs: 90, leaveTime: 5.5, bombCap: 8 },
-    // Permanent defense tech (Shop): each level boosts every turret
-    defenseTech: { max: 4, prices: [250, 550, 950, 1500], dmg: 0.2, life: 0.12, rate: 0.08 },
+    // LEGACY "Defense Tech" (a second shop upgrade) was REMOVED: the shop has exactly one upgrade per weapon (weapon level = max stock).
+    // The systems still read these multipliers, so they are fixed at 0 (and Save.load resets + refunds any old tech level).
+    defenseTech: { max: 0, prices: [], dmg: 0, life: 0, rate: 0 },
 
     gun: {
       damage: 2.3, rate: 7, range: 38,   // nerfed: was damage 4, rate 8 (a grunt now takes ~5 hits instead of 3)
@@ -342,7 +361,7 @@
     giantHpMul: (globalLvl, tut) => (tut ? CFG.giant.tutorialHp : 1 + CFG.giant.hpPerLevel * Math.max(0, (globalLvl || 1) - 1)),
     // guardian kill reward: 100 coins in season 1, +100 coins each subsequent season
     giantKillCoins: (seasonIdx) => CFG.economy.kill.giant + (CFG.economy.kill.giantPerSeason || 100) * Math.max(0, seasonIdx | 0),
-    // shop weapon level helpers (1..10 levels; each upgrade adds `perLevel` map uses and doubles the next upgrade price)
+    // shop weapon level helpers (1..10 levels; the level ONLY sets the max number the player may own/buy: step * level; every upgrade costs 2x the previous one)
     weaponMaxLevel: (key) => (CFG.shop[key] && CFG.shop[key].maxLevel) || 10,
     weaponMapLimit: (key, lvl) => {
       const sh = CFG.shop[key]; if (!sh) return 5;
@@ -357,7 +376,7 @@
     },
     weaponStockCap: (key, lvl) => {
       const sh = CFG.shop[key]; if (!sh) return 40;
-      return Math.max(sh.cap || 10, CFG.calc.weaponMapLimit(key, lvl));
+      return CFG.calc.weaponMapLimit(key, lvl);     // max purchase count == what the weapon level allows (nothing else)
     },
     // how many crates are guarded by a guardian (giant/dino/titan/beast/mech): every crate has a guardian
     giantCount: (lvl, crates) => Math.max(1, Math.min(crates, CFG.progress.maxGiants)),

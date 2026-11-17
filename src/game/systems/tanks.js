@@ -116,8 +116,8 @@
     call() {
       const c = Tanks.ctx; if (!c) return false;
       const J = c.jeep; if (!J.alive || Tanks.cd > 0) return false;
-      if (Tanks.called >= Tanks.mapLimit()) { Tanks.note('hud.mapLimit'); return false; }
       if (Tanks.stock() <= 0) { Tanks.note('hud.notank'); return false; }
+      if (Tanks.called >= Tanks.mapLimit()) { Tanks.note('hud.mapLimit'); return false; }      // safety net only
       const sp = { x: 0, z: 0 };
       if (!Tanks.freeSpot(J.x, J.z, C.spawnDist, sp) && !Tanks.freeSpot(J.x, J.z, C.spawnDist * 0.6, sp) && !Tanks.freeSpot(J.x, J.z, 14, sp)) { Tanks.note('hud.turretBlocked'); return false; }
       const S = WZ.Save.data; S.inv.tank = Math.max(0, S.inv.tank - 1); WZ.Save.save();

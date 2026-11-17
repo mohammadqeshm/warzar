@@ -33,21 +33,40 @@ ok(Shop.buyVehicle('buggy') === 'poor' && S.coins === 500, 'buggy must be refuse
 S.coins = 650; ok(Shop.buyVehicle('buggy') === 'ok' && S.coins === 50 && S.equipped.vehicle === 'buggy' && S.owned.vehicles.indexOf('buggy') >= 0, 'buggy purchase');
 ok(Shop.buyVehicle('buggy') === 'owned', 'cannot buy twice'); ok(Shop.equip('truck') === 'locked', 'cannot equip unowned');
 ok(Shop.equip('jeep') === 'ok' && S.equipped.vehicle === 'jeep', 'equip jeep');
-S.coins = 1000; S.inv.mines = 0; ok(Shop.buyMines(1) === 'ok' && S.inv.mines === 5 && S.coins === 1000 - CFG.shop.mines.packs[1].price, 'buy 5 mines');
-S.inv.mines = 38; ok(Shop.buyMines(1) === 'full', 'stock cap'); S.coins = 5; S.inv.mines = 0; ok(Shop.buyMines(0) === 'poor', 'poor for mines');
+// --- purchase cap == weapon level: level 1 mines = 3, +3 per level; the cap is the ONLY thing the upgrade changes
+S.weaponLevels.mines = 1; S.coins = 1000; S.inv.mines = 0;
+ok(Shop.weaponStockCap('mines') === 3 && Shop.weaponMapLimit('mines') === 3, 'mines: max stock 3 at Lv 1');
+ok(Shop.buyMines(1) === 'full' && S.inv.mines === 0 && S.coins === 1000, 'pack of 5 refused at Lv 1 (cap 3)');
+ok(Shop.buyMines(0) === 'ok' && Shop.buyMines(0) === 'ok' && Shop.buyMines(0) === 'ok' && S.inv.mines === 3 && S.coins === 1000 - 3 * CFG.shop.mines.packs[0].price, 'buy 3 single mines');
+ok(Shop.buyMines(0) === 'full' && S.inv.mines === 3, 'a 4th mine is refused at Lv 1 (stock full)');
+ok(Shop.upgradeWeapon('mines') === 'ok' && Shop.weaponLevel('mines') === 2 && Shop.weaponStockCap('mines') === 6, 'Lv 2 -> max stock 6 (+3)');
+ok(Shop.buyMines(0) === 'ok' && S.inv.mines === 4, 'after the upgrade more mines can be bought');
+S.coins = 5; S.inv.mines = 0; ok(Shop.buyMines(0) === 'poor', 'poor for mines');
+// every weapon: Lv1 stock >= starter, constant step, price of one unit grows with power (mine < turret < soldier < cannon < mortar < heli < tank < jet)
+for (const k of Object.keys(CFG.shop)) { const sh = CFG.shop[k]; ok(CFG.calc.weaponStockCap(k, 1) >= sh.starter, k + ': Lv 1 stock must cover the free starter stock'); ok(CFG.calc.weaponStockCap(k, 2) - CFG.calc.weaponStockCap(k, 1) === sh.perLevel, k + ': constant step per level'); ok(!sh.cap, k + ': no fixed stock cap any more'); }
+const order = ['mines', 'turrets', 'soldiers', 'heavy', 'bombs', 'heli', 'tank', 'jet'].map((k) => CFG.shop[k].packs[0].price);
+ok(order.every((v, i) => i === 0 || v > order[i - 1]), 'unit prices follow the power ladder: ' + order.join('<'));
+ok(CFG.defenseTech.max === 0 && !Shop.buyTech, 'the second upgrade (Defense Tech) is gone');
 
-// --- 10-level weapon upgrades (doubling price & per-map limit growth)
-ok(Shop.weaponLevel('turrets') === 1 && Shop.weaponMapLimit('turrets') === 5, 'turrets start at Lv 1 with map limit 5');
-ok(Shop.weaponMapLimit('jet') === 1 && Shop.weaponMapLimit('tank') === 2 && Shop.weaponMapLimit('heli') === 2, 'jet=1, tank=2, heli=2 at Lv 1');
+// --- 10-level weapon upgrades (price doubles every level)
+ok(Shop.weaponLevel('turrets') === 1 && Shop.weaponMapLimit('turrets') === 2, 'turrets start at Lv 1 with max stock 2');
+ok(Shop.weaponMapLimit('jet') === 1 && Shop.weaponMapLimit('tank') === 1 && Shop.weaponMapLimit('heli') === 1, 'jet=1, tank=1, heli=1 at Lv 1');
 const p1 = Shop.weaponUpgradePrice('turrets'), p2 = CFG.calc.weaponUpgradePrice('turrets', 2);
 ok(p2 === p1 * 2, 'weapon upgrade price doubles each level');
-S.coins = 100000;
+S.coins = 1000000;
 for (let lv = 1; lv < 10; lv++) {
-  const curP = Shop.weaponUpgradePrice('turrets');
-  ok(Shop.upgradeWeapon('turrets') === 'ok', 'upgrade turrets to level ' + (lv + 1));
+  const curP = Shop.weaponUpgradePrice('turrets'), before = S.coins;
+  ok(Shop.upgradeWeapon('turrets') === 'ok' && before - S.coins === curP, 'upgrade turrets to level ' + (lv + 1) + ' costs exactly ' + curP);
   if (lv < 9) ok(Shop.weaponUpgradePrice('turrets') === curP * 2, 'next upgrade price doubled');
 }
-ok(Shop.weaponLevel('turrets') === 10 && Shop.weaponMapLimit('turrets') === 50 && Shop.upgradeWeapon('turrets') === 'max', 'turrets reach max Lv 10 with map limit 50');
+ok(Shop.weaponLevel('turrets') === 10 && Shop.weaponMapLimit('turrets') === 20 && Shop.weaponStockCap('turrets') === 20 && Shop.upgradeWeapon('turrets') === 'max', 'turrets reach max Lv 10 with max stock 20');
+
+// --- save migration: old saves keep what they paid for
+store['warzar_crate_rush_save_v1'] = JSON.stringify({ coins: 100, inv: { mines: 40, jet: 1 }, upgrades: { defense: 2 }, weaponLevels: { mines: 2 } }); WZ.Save.load();
+const M2 = WZ.Save.data;
+ok(M2.upgrades.defense === 0 && M2.inv.mines === 6 && M2.inv.jet === 1, 'old save: defense tech reset, mines clamped to the Lv 2 cap (6), jet untouched');
+ok(M2.coins === 100 + 250 + 550 + (40 - 6) * CFG.shop.mines.packs[0].price, 'old save: defense tech + surplus mines refunded, got ' + M2.coins);
+WZ.Save.data = S; S.coins = 1000000; S.weaponLevels.mines = 1; S.inv.mines = 0;     // back to the main test save
 
 // --- landmines
 const L = WZ.Landmines, enemies = []; let fxText = [];

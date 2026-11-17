@@ -63,6 +63,20 @@
       const mx = (WZ.CFG.shop[wk] && WZ.CFG.shop[wk].maxLevel) || 10;
       S.data.weaponLevels[wk] = Math.max(1, Math.min(mx, (S.data.weaponLevels[wk] | 0) || 1));
     }
+    // ECONOMY MIGRATION (nothing the player paid for is ever lost):
+    //  1) the old second upgrade "Defense Tech" no longer exists -> reset it and refund the coins its levels cost (250 / 550 / 950 / 1500).
+    //  2) the weapon level is now the max number the player may own (CFG.calc.weaponStockCap) -> stock above that cap is refunded at the current unit price.
+    if (S.data.upgrades && (S.data.upgrades.defense | 0) > 0) {
+      const old = [250, 550, 950, 1500]; let refund = 0;
+      for (let i = 0; i < Math.min(4, S.data.upgrades.defense | 0); i++) refund += old[i];
+      S.data.coins = (S.data.coins | 0) + refund; S.data.upgrades.defense = 0;
+    }
+    if (S.data.inv && WZ.CFG.calc && WZ.CFG.calc.weaponStockCap) {
+      for (const wk of Object.keys(WZ.CFG.shop)) {
+        const cap = WZ.CFG.calc.weaponStockCap(wk, S.data.weaponLevels[wk]), have = S.data.inv[wk] | 0;
+        if (have > cap) { S.data.coins = (S.data.coins | 0) + (have - cap) * WZ.CFG.shop[wk].packs[0].price; S.data.inv[wk] = cap; }
+      }
+    }
     if (WZ.Progress) WZ.Progress.sanitize();
     if (!S.data.runSeed) {
       S.data.runSeed = ((Date.now() ^ (Math.random() * 4294967296)) >>> 0) || 1;

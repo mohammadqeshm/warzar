@@ -67,8 +67,8 @@
       if (!c || !C) return false;
       const J = c.jeep;
       if (!J.alive) return false;
-      if (S.deployed >= S.mapLimit()) { S.note('hud.mapLimit'); return false; }
       if (S.stock() <= 0) { S.note('hud.nosoldiers'); return false; }
+      if (S.deployed >= S.mapLimit()) { S.note('hud.mapLimit'); return false; }      // safety net only
       if (S.cd > 0) return false;
 
       const sn = Math.sin(J.h), cs = Math.cos(J.h), back = -(J.P.halfLen + C.behind);

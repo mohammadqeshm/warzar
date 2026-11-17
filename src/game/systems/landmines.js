@@ -34,8 +34,8 @@
       const c = L.ctx; if (!c) return false;
       const J = c.jeep, S = WZ.Save.data;
       if (!J.alive || L.cd > 0) return false;
-      if (L.planted >= L.mapLimit()) { L.cd = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.mapLimit'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
       if (L.count <= 0) { L.cd = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.nomines'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
+      if (L.planted >= L.mapLimit()) { L.cd = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.mapLimit'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }      // safety net only
       if (!L.free.length) { L.cd = 0.8; WZ.Fx.text(WZ.I18n.t('hud.maxmines'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
       const off = J.P.halfLen + C.behind;
       let x = J.x - Math.sin(J.h) * off, z = J.z - Math.cos(J.h) * off;

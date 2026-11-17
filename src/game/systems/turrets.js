@@ -147,8 +147,8 @@
       const c = L.ctx, C = DEF[kind]; if (!c || !C) return false;
       const J = c.jeep; if (!J.alive) return false;
       const say = (k) => { if (L.noteT <= 0) { L.note(k); L.noteT = 0.8; } return false; };
-      if (L.plantedKind(kind) >= L.mapLimit(kind)) return say('hud.mapLimit');
       if (L.stock(kind) <= 0) return say(kind === 'heavy' ? 'hud.noheavy' : kind === 'bomb' ? 'hud.nobombs' : 'hud.noturrets');
+      if (L.plantedKind(kind) >= L.mapLimit(kind)) return say('hud.mapLimit');      // safety net only: stock can never exceed the weapon-level cap
       if (L.cd[kind] > 0) return false;
       const sc = C.scale || 1, sn = Math.sin(J.h), cs = Math.cos(J.h), back = -(J.P.halfLen + C.behind);
       // candidate spots (forward d, side s): behind the vehicle first, then the sides, then widening rings around it

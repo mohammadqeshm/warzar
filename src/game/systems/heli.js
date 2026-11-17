@@ -78,12 +78,13 @@
     call() {
       const c = Heli.ctx; if (!c) return false;
       const J = c.jeep; if (!J.alive || Heli.cd > 0) return false;
-      if (Heli.called >= Heli.mapLimit()) {
-        if (Heli.noteT <= 0) { Heli.noteT = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.mapLimit'), J.rx, J.ry + 6, J.rz, 'warn'); }
-        return false;
-      }
       if (Heli.stock() <= 0) {
         if (Heli.noteT <= 0) { Heli.noteT = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.noheli'), J.rx, J.ry + 6, J.rz, 'warn'); }
+        return false;
+      }
+      // safety net only: stock can never exceed the weapon-level cap
+      if (Heli.called >= Heli.mapLimit()) {
+        if (Heli.noteT <= 0) { Heli.noteT = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.mapLimit'), J.rx, J.ry + 6, J.rz, 'warn'); }
         return false;
       }
       const S = WZ.Save.data; S.inv.heli = Math.max(0, S.inv.heli - 1); WZ.Save.save();

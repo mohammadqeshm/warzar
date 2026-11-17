@@ -1,6 +1,6 @@
-/* Shop scene (vehicles + DEFENSE: turrets, heavy cannons, bomb turrets, escort helicopters, escort tanks, defense tech) — real-time 3D showroom (turntable, studio lights) + DOM panels. Every vehicle card shows a 3D render of the
+/* Shop scene (vehicles + DEFENSE: turrets, heavy cannons, bomb turrets, escort helicopters, escort tanks) — real-time 3D showroom (turntable, studio lights) + DOM panels. Every vehicle card shows a 3D render of the
  * vehicle (rendered once with the game's own renderer into a texture); the big model on the turntable is live and draggable.
- * Purchases: vehicles (price in CFG.vehicles), landmine packs (CFG.shop.mines), turret / cannon packs (CFG.shop.turrets / .heavy) and defense tech levels (CFG.defenseTech). No emoji, only real renders and vector icons. */
+ * Purchases: vehicles (price in CFG.vehicles), single units of every deployable (CFG.shop.*) and ONE upgrade per weapon: the weapon level (1..10) = how many of it the player may own at most. No emoji, only real renders and vector icons. */
 (function (WZ) {
   'use strict';
   const T = THREE, CFG = WZ.CFG, G = WZ.Geo, t = (k, v) => WZ.I18n.t(k, v);
@@ -74,11 +74,7 @@
       if (!p) return 'invalid'; if ((S.inv[key] | 0) + p.n > cap) return 'full'; if (S.coins < p.price) return 'poor';
       S.coins -= p.price; S.inv[key] = (S.inv[key] | 0) + p.n; WZ.Save.save(); return 'ok';
     },
-    buyTech() {
-      const S = WZ.Save.data, D = CFG.defenseTech, lvl = S.upgrades.defense | 0;
-      if (lvl >= D.max) return 'max'; const price = D.prices[lvl]; if (S.coins < price) return 'poor';
-      S.coins -= price; S.upgrades.defense = lvl + 1; WZ.Save.save(); return 'ok';
-    },
+    // (the old second upgrade "Defense Tech" was removed: the weapon level is the ONLY upgrade)
 
     // ------------------------------------------------------------------ lifecycle
     enter(data) {
@@ -385,12 +381,11 @@
     },
 
     defenseHtml(id) {
-      const S = WZ.Save.data, DF = DEFS[id], C = DF.C, SH = DF.SH, D = CFG.defenseTech;
-      const lvl = S.upgrades.defense | 0, stock = S.inv[DF.inv] | 0, cap = Shop.weaponStockCap(DF.inv);
-      const dmg = C.damage * (1 + lvl * D.dmg), rate = (C.rate || 1) * (1 + lvl * D.rate), life = (C.life || 30) * (1 + lvl * D.life);
+      const S = WZ.Save.data, DF = DEFS[id], C = DF.C, SH = DF.SH;
+      const lvl = 0, stock = S.inv[DF.inv] | 0, cap = Shop.weaponStockCap(DF.inv);
+      const dmg = C.damage, rate = C.rate || 1, life = C.life || 30;
       const bar = (lab, val, max, txt) => '<div class="st"><span>' + t(lab) + '</span><i><b style="width:' + Math.max(6, Math.min(100, val / max * 100)).toFixed(0) + '%"></b></i><em>' + txt + '</em></div>';
       const p = SH.packs[0], full = stock + 1 > cap, poor = S.coins < p.price;
-      const maxed = lvl >= D.max, techPrice = maxed ? 0 : D.prices[lvl];
       let statsHtml = '';
       if (id === 'jet') {
         statsHtml = bar('shop.jet.dmg', dmg, DF.maxDmg, dmg.toFixed(0) + ' AOE') + bar('shop.passes', C.passes, 5, String(C.passes)) + bar('shop.bombs', C.bombsPerPass + Math.floor(lvl / 2), 12, String(C.bombsPerPass + Math.floor(lvl / 2))) + bar('shop.splash', DF.splash, 10, DF.splash + ' M');
@@ -410,16 +405,6 @@
             (full ? '' : '<em>' + COIN + p.price + '</em>') +
           '</button>' +
           Shop.weaponLevelHtml(DF.inv) +
-          '<div class="tech-row">' +
-            '<div class="tech-info">' +
-              '<div class="tech-h"><b>' + t('shop.tech') + '</b><span>' + (maxed ? t('shop.tech.max') : t('shop.tech.lvl', { n: lvl, m: D.max })) + '</span></div>' +
-              '<div class="tech-pips">' + Array.from({ length: D.max }, (_, i) => '<i class="' + (i < lvl ? 'on' : '') + '"></i>').join('') + '</div>' +
-            '</div>' +
-            '<button class="btn buy tech-btn" data-act="tech"' + (maxed || S.coins < techPrice ? ' disabled' : '') + '>' +
-              '<span>' + (maxed ? t('shop.tech.max') : t('shop.upgrade')) + '</span>' +
-              (maxed ? '' : '<em>' + COIN + techPrice + '</em>') +
-            '</button>' +
-          '</div>' +
         '</div>'
       );
     },
@@ -447,7 +432,6 @@
       else if (a === 'equip') { WZ.Audio.sfx(Shop.equip(id) === 'ok' ? 'go' : 'beep'); }
       else if (a === 'tpack') { WZ.Audio.sfx(Shop.buyTurrets(b.dataset.kind, +b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
       else if (a === 'wupgrade') { WZ.Audio.sfx(Shop.upgradeWeapon(b.dataset.key) === 'ok' ? 'cash' : 'beep'); }
-      else if (a === 'tech') { WZ.Audio.sfx(Shop.buyTech() === 'ok' ? 'cash' : 'beep'); }
       else if (a === 'pack') { WZ.Audio.sfx(Shop.buyMines(+b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
       Shop.paint();
     },
