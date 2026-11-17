@@ -60,8 +60,9 @@
     for (const t of map.tents) blob(t.x + 1, t.z + 1, 5, 0.5);
     for (const t of map.steams) { const x = px(t.x), y = pz(t.z), r = 5 * k, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,110,30,.5)'); gr.addColorStop(1, 'rgba(255,110,30,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
     // speckles: soot, ash, a few embers
-    for (let i = 0; i < 26000; i++) { const r = rng(); g.fillStyle = r < 0.45 ? 'rgba(10,6,5,.28)' : r < 0.93 ? 'rgba(150,134,122,.16)' : 'rgba(255,125,45,.55)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.5, 1 + rng() * 1.5); }
-    const t = new T.CanvasTexture(c); t.anisotropy = 8; return t;
+    const nSpec = Math.round(12000 * (SPLAT / 1024) * (SPLAT / 1024));
+    for (let i = 0; i < nSpec; i++) { const r = rng(); g.fillStyle = r < 0.45 ? 'rgba(10,6,5,.28)' : r < 0.93 ? 'rgba(150,134,122,.16)' : 'rgba(255,125,45,.55)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.5, 1 + rng() * 1.5); }
+    const t = new T.CanvasTexture(c); t.anisotropy = SPLAT < 512 ? 2 : 8; return t;
   }
 
   // ------------------------------------------------------------------ scenery pieces (merged into per-chunk builders)

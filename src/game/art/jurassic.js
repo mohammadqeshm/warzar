@@ -57,9 +57,10 @@
     for (const b of map.bones) blob(b.x + 1.5, b.z + 1.5, 6, 0.4);
     for (const t of map.tents) blob(t.x + 1, t.z + 1, 5, 0.5);
     // speckles + leaf litter
-    for (let i = 0; i < 26000; i++) { const r = rng(); g.fillStyle = r < 0.4 ? 'rgba(25,50,22,.25)' : r < 0.75 ? 'rgba(160,190,90,.2)' : 'rgba(120,90,40,.22)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.6, 1 + rng() * 1.6); }
-    g.strokeStyle = 'rgba(100,160,70,.5)'; g.lineWidth = 1; for (let i = 0; i < 2600; i++) { const x = rng() * SPLAT, y = rng() * SPLAT; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rng() - 0.5) * 2, y - 3 - rng() * 3); g.stroke(); }
-    const t = new T.CanvasTexture(c); t.anisotropy = 8; return t;
+    const areaK = (SPLAT / 1024) * (SPLAT / 1024), nSpec = Math.round(12000 * areaK), nFleck = Math.round(1400 * areaK);
+    for (let i = 0; i < nSpec; i++) { const r = rng(); g.fillStyle = r < 0.4 ? 'rgba(25,50,22,.25)' : r < 0.75 ? 'rgba(160,190,90,.2)' : 'rgba(120,90,40,.22)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.6, 1 + rng() * 1.6); }
+    g.strokeStyle = 'rgba(100,160,70,.5)'; g.lineWidth = 1; for (let i = 0; i < nFleck; i++) { const x = rng() * SPLAT, y = rng() * SPLAT; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rng() - 0.5) * 2, y - 3 - rng() * 3); g.stroke(); }
+    const t = new T.CanvasTexture(c); t.anisotropy = SPLAT < 512 ? 2 : 8; return t;
   }
 
   // ------------------------------------------------------------------ vegetation (merged into per-chunk builders)

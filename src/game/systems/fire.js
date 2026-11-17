@@ -168,7 +168,7 @@
     get burning() { return F.burn.on; },
 
     // ------------------------------------------------------------------ simulation
-    update(dt) {
+    update(dt, activePlay) {
       const c = F.ctx; if (!c) return; const P = c.particles, J = c.jeep, B = F.burn;
       for (const b of F.blasts) if (b.on) { b.t += dt; if (b.t >= b.life) { b.on = false; b.ring.visible = b.ring2.visible = b.dome.visible = b.core.visible = false; } }
       // debris
@@ -208,7 +208,7 @@
           if (rnd() < dt * 3.4 * w) P.emit(SOFT, wx, y0 + f.y + 0.8, wz, vx * 0.4 + (rnd() - 0.5), 2.2 + rnd() * 1.4, vz * 0.4 + (rnd() - 0.5), 1 + rnd() * 0.7, 1.1, 3.6, 0.12, 0.11, 0.1, 0.55, 0, 1.3, 0.8);
           if (rnd() < dt * 3 * w) P.emit(GLOW, wx, y0 + f.y + 0.5, wz, vx * 0.5 + (rnd() - 0.5) * 3, 4 + rnd() * 3, vz * 0.5 + (rnd() - 0.5) * 3, 0.6 + rnd() * 0.5, 0.42, 0.1, 1, 0.7, 0.2, 1, 0, -6, 0.6);
         }
-        B.cT -= dt; if (B.cT <= 0) { B.cT = 0.5; WZ.Audio.sfx('burn', 0.5 * I); }
+        B.cT -= dt; if (B.cT <= 0) { B.cT = 0.5; if (activePlay !== false) WZ.Audio.sfx('burn', 0.5 * I); }
       }
     },
 

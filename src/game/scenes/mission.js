@@ -50,7 +50,7 @@
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
       M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
       M.nanaOutT = 0; M.rushK = 0; M.rampStep = 0; M.failReason = '';
-      M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.resultShown = false;
+      M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.lastTickSec = -1; M.resultShown = false;
       M.camBlend = 0; M.fromPos = new T.Vector3(); M.fromLook = new T.Vector3();
       WZ.Save.data.settings.map = M.theme; if (PG) PG.setCurrent(M.theme, data.level); WZ.Save.save();      // remember which season / level is being played
 
@@ -80,7 +80,8 @@
     exit() {
       if (WZ.Platform && WZ.Platform.gameplayStop) WZ.Platform.gameplayStop();
       M.unsub.forEach((f) => f());
-      WZ.Audio.engineStop(); WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
+      if (WZ.Audio.stopLoops) WZ.Audio.stopLoops(); else WZ.Audio.engineStop();
+      WZ.Input.reset(); WZ.UI.hudShow(false); WZ.UI.clearScreens(); WZ.Fx.clear();
       M.jeep.dispose(); M.nana.dispose(); M.crates.dispose(); M.small.dispose(); WZ.Enemies.dispose(); WZ.Gun.dispose();
       WZ.Blobs.dispose(M.scene); WZ.Particles.dispose(); M.view.dispose();
       WZ.Hazards.dispose(); if (WZ.Volcano) WZ.Volcano.dispose(); if (WZ.Ice) WZ.Ice.dispose(); if (WZ.Harbor) WZ.Harbor.dispose(); if (WZ.Fire) WZ.Fire.dispose(); WZ.Landmines.dispose(); WZ.Turrets.dispose(); if (WZ.Soldiers) WZ.Soldiers.dispose(); WZ.Bullets.dispose(); if (WZ.Heli) WZ.Heli.dispose(); if (WZ.Tanks) WZ.Tanks.dispose(); if (WZ.Jets) WZ.Jets.dispose(); if (WZ.Pickups) WZ.Pickups.dispose(); if (WZ.Giants) WZ.Giants.dispose();
@@ -96,7 +97,7 @@
         // Nana is down for good -> the run is over
         WZ.Fx.text(t('hud.nanadead'), n.rx, n.ry + 5, n.rz, 'warn'); WZ.Fx.flash('hurt'); WZ.Fx.shake(0.6); WZ.Fx.hitstop(0.06);
         P.poof(n.x, n.ry + 1.5, n.z, 12, 2); P.stars(n.x, n.ry + 3.4, n.z, 6);
-        if (M.failT < 0) { M.failT = 1.3; M.failReason = 'nana'; }
+        if (M.failT < 0) { M.failT = 1.3; M.failReason = 'nana'; M.stopCombatAudio(); }
         return;
       }
       M.timeLeft -= CFG.nana.koTimePenalty;
@@ -116,7 +117,12 @@
       WZ.Audio.sfx('boom'); WZ.Fx.shake(0.9);
       P.poof(j.x, j.ry + 2, j.z, 18, 2.2); P.sparks(j.x, j.ry + 2, j.z, 30, 1, 0.6, 0.2);
       j.cmdr.setMode('ko'); M.nana.cheer = false;
-      if (M.failT < 0) { M.failT = j.deathCause === 'pit' ? 0.85 : 1.1; M.failReason = j.deathCause || 'jeep'; }
+      if (M.failT < 0) { M.failT = j.deathCause === 'pit' ? 0.85 : 1.1; M.failReason = j.deathCause || 'jeep'; M.stopCombatAudio(); }
+    },
+    stopCombatAudio() {
+      if (WZ.Audio.stopLoops) WZ.Audio.stopLoops(); else WZ.Audio.engineStop();
+      if (WZ.Gun) { WZ.Gun.firing = false; WZ.Gun.target = null; WZ.Gun.n = 0; if (WZ.Gun.mesh) WZ.Gun.mesh.count = 0; }
+      if (WZ.Bullets) { WZ.Bullets.n = 0; if (WZ.Bullets.mesh) WZ.Bullets.mesh.count = 0; }
     },
     /** KO coins pile up as LOOT (HUD). They are paid out when the mission ends - on a win AND on a fail (they are never lost). */
     onEnemyKO(e) {
@@ -143,7 +149,12 @@
 
     doDeploy() {
       const r = M.nana.press();
-      if (r === 'nocrate') { M.hintKey = 'hud.nocrate'; M.hintT = 1.8; WZ.Audio.sfx('beep'); }
+      if (r === 'guarded') {
+        M.hintKey = 'hud.killguard'; M.hintT = 2.4; WZ.Audio.sfx('beep');
+        WZ.Fx.text(t('hud.killguardShort'), M.jeep.rx, M.jeep.ry + 6, M.jeep.rz, 'warn');
+      } else if (r === 'nocrate') {
+        M.hintKey = 'hud.nocrate'; M.hintT = 1.8; WZ.Audio.sfx('beep');
+      }
     },
 
     // ------------------------------------------------------------------ simulation (fixed step)
@@ -192,24 +203,38 @@
           J.slow = Math.min(J.slow, 1 - (1 - CFG.maps.volcanic.waterSlow) * wd);
         }
       }
+      const activeCombat = M.phase === 'play' && M.failT < 0 && J.alive;
       if (M.map.ice && J.alive && !J.captive) J.ice = WZ.Ice.surface(J.x, J.z);      // frozen map: slippery ice takes the grip away
-      J.step(dt, M.inp, Cam.yaw);
-      M.afterJeep(dt);
-      N.step(dt);
-      WZ.Enemies.update(dt, M.ctx);
-      if (WZ.Giants) WZ.Giants.update(dt);
-      WZ.Gun.update(dt, M.ctx);
-      M.small.hit(J, WZ.Particles); M.small.update(dt);
-      WZ.Hazards.update(dt, M.ctx, M.phase === 'play', M.time);
-      if (WZ.Volcano) WZ.Volcano.update(dt, M.ctx, M.phase === 'play', M.time);
-      if (WZ.Ice) WZ.Ice.update(dt, M.ctx, M.phase === 'play');
-      if (WZ.Harbor) WZ.Harbor.update(dt, M.ctx, M.phase === 'play');
-      if (WZ.Fire) WZ.Fire.update(dt);
-      if (M.phase === 'play') { WZ.Landmines.update(dt); WZ.Turrets.update(dt); if (WZ.Soldiers) WZ.Soldiers.update(dt); WZ.Bullets.update(dt); if (WZ.Heli) WZ.Heli.update(dt); if (WZ.Tanks) WZ.Tanks.update(dt); }
-      if ((M.phase === 'play' || M.phase === 'ending') && WZ.Jets) WZ.Jets.update(dt);
+      if (!M.resultShown) {
+        J.step(dt, activeCombat ? M.inp : { x: 0, y: 0, mag: 0, boost: false }, Cam.yaw);
+        if (activeCombat) M.afterJeep(dt);
+        if (activeCombat) N.step(dt);
+      }
+      if (activeCombat) {
+        WZ.Enemies.update(dt, M.ctx);
+        if (WZ.Giants) WZ.Giants.update(dt);
+        WZ.Gun.update(dt, M.ctx);
+        M.small.hit(J, WZ.Particles);
+      }
+      if (!M.resultShown) M.small.update(dt);
+      WZ.Hazards.update(dt, M.ctx, activeCombat, M.time);
+      if (WZ.Volcano) WZ.Volcano.update(dt, M.ctx, activeCombat, M.time);
+      if (WZ.Ice) WZ.Ice.update(dt, M.ctx, activeCombat);
+      if (WZ.Harbor) WZ.Harbor.update(dt, M.ctx, activeCombat);
+      if (WZ.Fire && !M.resultShown) WZ.Fire.update(dt, activeCombat);
+      if (activeCombat) {
+        WZ.Landmines.update(dt);
+        WZ.Turrets.update(dt);
+        if (WZ.Soldiers) WZ.Soldiers.update(dt);
+        WZ.Bullets.update(dt);
+        if (WZ.Heli) WZ.Heli.update(dt);
+        if (WZ.Tanks) WZ.Tanks.update(dt);
+        if (WZ.Jets) WZ.Jets.update(dt);
+      }
       if (M.phase === 'play') WZ.Pickups.update(dt);
-      M.effects(dt);
-      if (M.phase === 'play' && J.alive) WZ.Audio.engineSet(Math.min(1, J.speed / J.P.topSpeed), J.throttle, J.boosting);
+      if (!M.resultShown) M.effects(dt);
+      if (activeCombat) WZ.Audio.engineSet(Math.min(1, J.speed / J.P.topSpeed), J.throttle, J.boosting);
+      else if (WZ.Audio.stopLoops) WZ.Audio.stopLoops();
       else WZ.Audio.engineStop();
 
       if (M.phase === 'play') M.rules(dt);
@@ -298,8 +323,21 @@
       E.mods.rush = 1 + (RS.speedMul - 1) * M.rushK;
       WZ.Spawner.update(dt, { enabled: spawnOn, mission: M.mission, heat: M.heat, jeep: J, nana: N, map: M.map, col: M.col, enemies: E, hpMul, rushK: M.rushK, outT: M.nanaOutT });
 
+      if (M.failT >= 0) {
+        M.failT -= dt;
+        if (M.failT < 0) M.fail(M.failReason || 'jeep');
+        return;
+      }
       M.timeLeft -= dt;
-      if (M.timeLeft <= CFG.timer.lowWarn && M.timeLeft > 0) { M.beepT -= dt; if (M.beepT <= 0) { M.beepT = 1; WZ.Audio.sfx('beep'); } }
+      if (M.timeLeft <= CFG.timer.lowWarn && M.timeLeft > 0) {
+        const secNow = Math.ceil(M.timeLeft);
+        if (M.lastTickSec !== secNow) {
+          M.lastTickSec = secNow;
+          WZ.Audio.sfx('tick', secNow <= 5 ? 1.0 : 0.85);
+        }
+      } else {
+        M.lastTickSec = -1;
+      }
       if (M.timeLeft <= 0) { M.timeLeft = 0; M.fail('time'); return; }
 
       if (!M.allLoaded) {
@@ -311,7 +349,6 @@
         const ex = M.map.extract;
         if (Math.hypot(J.x - ex.x, J.z - ex.z) < ex.r) { M.complete(); return; }
       }
-      if (M.failT >= 0) { M.failT -= dt; if (M.failT < 0) M.fail(M.failReason || 'jeep'); }
     },
 
     /** star rating from the time left (the same thresholds the results screen used to compute itself) */
@@ -333,7 +370,7 @@
         WZ.Platform.sendMessage('level_completed', { world: String(M.theme), level: String(M.data.level || 1) });
         if (M.prog && (M.prog.firstClear || M.prog.seasonDone)) WZ.Platform.sendMessage('player_got_achievement');
       }
-      WZ.Audio.engineStop(); WZ.Audio.sfx('win'); WZ.UI.hudShow(false);
+      M.stopCombatAudio(); WZ.Audio.sfx('win'); WZ.UI.hudShow(false);
       M.jeep.cmdr.setMode('cheer'); M.nana.cheer = true;
       WZ.Particles.confetti(M.jeep.x, M.jeep.ry + 4, M.jeep.z, 60);
     },
@@ -350,7 +387,7 @@
         WZ.Platform.sendMessage('level_failed', { world: String(M.theme), level: String(M.data.level || 1) });
       }
       if (M.killCoins > 0) WZ.Fx.text('+' + M.killCoins, M.jeep.rx, M.jeep.ry + 7, M.jeep.rz, 'coin');
-      WZ.Audio.engineStop(); WZ.Audio.sfx('lose'); WZ.UI.hudShow(false);
+      M.stopCombatAudio(); WZ.Audio.sfx('lose'); WZ.UI.hudShow(false);
     },
 
     showResult() {
@@ -388,7 +425,8 @@
       switch (N.state) {
         case 'IN_JEEP': {
           const near = C.nearestAvailable(J.x, J.z, CFG.nana.deployRadius);
-          if (near) return WZ.Giants.guardOf(near) ? t('tut.giant') : t('tut.deploy');
+          if (near) return t('tut.deploy');
+          if (C.nearestGuarded && C.nearestGuarded(J.x, J.z, CFG.nana.deployRadius)) return t('tut.giant');
           return M.landed > 0 ? t('tut.next') : t('tut.drive');
         }
         case 'RUNNING_OUT': case 'GRABBING': return t('tut.defend');
@@ -397,11 +435,14 @@
       }
     },
     hintText() {
-      if (M.hintT > 0 && M.hintKey === 'hud.nocrate') return t(M.hintKey);
+      if (M.hintT > 0 && (M.hintKey === 'hud.nocrate' || M.hintKey === 'hud.killguard')) return t(M.hintKey);
       const hz = WZ.Hazards.hint(); if (hz && hz.indexOf('hud.tornado') === 0) return t(hz);   // tornado warning / pull / caught
       const vh = WZ.Volcano && WZ.Volcano.hint(); if (vh) return t(vh);
       const hh = WZ.Harbor && WZ.Harbor.hint(); if (hh) return t(hh);                                                                       // mech aim / missiles / cover, crane, broken deck (harbor map)
       const ih = WZ.Ice && WZ.Ice.hint(); if (ih) return t(ih);                                          // slippery ice / charge lane / ice wave warnings (frozen map)
+      if (!M.allLoaded && M.nana.state === 'IN_JEEP' && !M.crates.nearestAvailable(M.jeep.x, M.jeep.z, CFG.nana.deployRadius) && M.crates.nearestGuarded && M.crates.nearestGuarded(M.jeep.x, M.jeep.z, CFG.nana.deployRadius)) {
+        return t('hud.killguard');
+      }
       return '';
     },
 
@@ -449,7 +490,7 @@
       hd.pk = WZ.Pickups ? WZ.Pickups.hud() : null;   // repair hearts / time clocks left on this level (top bar)
       hd.cratesText = M.landed + '/' + M.crates.total;
       hd.hp = J.hp; hd.hpMax = J.maxHp; hd.nanaOut = true; hd.nanaHp = N.hp; hd.nanaMax = N.maxHp;
-      if (N.state === 'IN_JEEP') hd.deploy = M.crates.nearestAvailable(J.x, J.z, CFG.nana.deployRadius) ? 'deploy-ready' : 'deploy';
+      if (N.state === 'IN_JEEP') hd.deploy = M.crates.nearestAvailable(J.x, J.z, CFG.nana.deployRadius) ? 'deploy-ready' : 'off';
       else hd.deploy = (N.state === 'KO' || N.state === 'BOARDING' || N.state === 'RECALLING') ? 'off' : 'recall';
       hd.boostPct = J.boostPct;
       hd.prompt = M.promptText(); hd.hint = M.hintText();
@@ -473,7 +514,10 @@
             const d = (c.x - J.x) * (c.x - J.x) + (c.z - J.z) * (c.z - J.z); if (d < bd) { bd = d; bi = i; }
           }
           if (bi < 0) break;
-          last = bi; lastD = bd; const c = list[bi]; M.arrow(n++, c.x, c.gy + 4, c.z, k === 0 ? 'crate' : 'crate far', w, h);
+          last = bi; lastD = bd; const c = list[bi];
+          const guarded = M.crates.isGuarded && M.crates.isGuarded(c);
+          const lockCls = guarded ? ' locked' : ' unlocked';
+          M.arrow(n++, c.x, c.gy + 4, c.z, (k === 0 ? 'crate' : 'crate far') + lockCls, w, h);
         }
       }
       const pk = WZ.Pickups ? WZ.Pickups.arrows(J.x, J.z, M.pkList) : []; for (let i = 0; i < pk.length && n < 11; i++) M.arrow(n++, pk[i].x, pk[i].gy + 4, pk[i].z, pk[i].K.arrow, w, h);

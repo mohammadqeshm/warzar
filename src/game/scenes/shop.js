@@ -338,11 +338,11 @@
         return;
       }
       if (a === 'sel') { WZ.Audio.sfx('click'); if (Shop.sel !== id) { Shop.sel = id; Shop.show(id); } }
-      else if (a === 'buy') { const r = Shop.buyVehicle(id); WZ.Audio.sfx(r === 'ok' ? 'win' : 'beep'); if (r === 'ok') { Shop.show(id); WZ.Particles && 0; } }
+      else if (a === 'buy') { const r = Shop.buyVehicle(id); WZ.Audio.sfx(r === 'ok' ? 'cash' : 'beep'); if (r === 'ok') { Shop.show(id); } }
       else if (a === 'equip') { WZ.Audio.sfx(Shop.equip(id) === 'ok' ? 'go' : 'beep'); }
-      else if (a === 'tpack') { WZ.Audio.sfx(Shop.buyTurrets(b.dataset.kind, +b.dataset.i) === 'ok' ? 'deliver' : 'beep'); }
-      else if (a === 'tech') { WZ.Audio.sfx(Shop.buyTech() === 'ok' ? 'win' : 'beep'); }
-      else if (a === 'pack') { WZ.Audio.sfx(Shop.buyMines(+b.dataset.i) === 'ok' ? 'deliver' : 'beep'); }
+      else if (a === 'tpack') { WZ.Audio.sfx(Shop.buyTurrets(b.dataset.kind, +b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
+      else if (a === 'tech') { WZ.Audio.sfx(Shop.buyTech() === 'ok' ? 'cash' : 'beep'); }
+      else if (a === 'pack') { WZ.Audio.sfx(Shop.buyMines(+b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
       Shop.paint();
     },
   };

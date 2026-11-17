@@ -96,8 +96,9 @@
     // sea shore foam
     g.strokeStyle = 'rgba(235,250,250,.55)'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(px(Qx), pz(-half - 4)); g.lineTo(px(Qx), pz(half + 4)); g.stroke();
     g.restore();
-    for (let i = 0; i < 20000; i++) { g.fillStyle = rng() < 0.5 ? 'rgba(20,24,26,.22)' : 'rgba(210,214,214,.16)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.4, 1 + rng() * 1.4); }
-    const t = new T.CanvasTexture(c); t.anisotropy = 8; return t;
+    const nSpec = Math.round(10000 * (SPLAT / 1024) * (SPLAT / 1024));
+    for (let i = 0; i < nSpec; i++) { g.fillStyle = rng() < 0.5 ? 'rgba(20,24,26,.22)' : 'rgba(210,214,214,.16)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.4, 1 + rng() * 1.4); }
+    const t = new T.CanvasTexture(c); t.anisotropy = SPLAT < 512 ? 2 : 8; return t;
   }
 
   // ------------------------------------------------------------------ scenery pieces
