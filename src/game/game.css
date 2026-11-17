@@ -95,21 +95,16 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 #btn-boost.ready { background: #3F8FE3; }
 .dev-touch .k-keys, .dev-keys .k-touch { display: none !important; }
 
-.arrow { position: absolute; left: 0; top: 0; width: 52px; color: var(--y); text-align: center; pointer-events: none; will-change: transform; transition: opacity 0.22s, filter 0.22s, color 0.22s; }
+.arrow { position: absolute; left: 0; top: 0; width: 52px; color: var(--y); text-align: center; pointer-events: none; will-change: transform; }
 .arrow svg { width: 34px; height: 34px; display: block; margin: 0 auto; transition: transform 0.05s; }
 .arrow b { display: block; font-size: 14px; color: #fff; text-shadow: 0 2px 0 #000, 0 0 4px #000; line-height: 1; margin-top: -2px; }
-.arrow.crate.locked { color: #9C9A90; opacity: 0.38; filter: saturate(0.25) brightness(0.78); }
-.arrow.crate.locked b { color: #B8B6AE; opacity: 0.82; }
-.arrow.crate.unlocked { color: #FFB400; opacity: 1; filter: drop-shadow(0 0 8px rgba(255, 180, 0, 0.85)); }
-.arrow.crate.unlocked b { color: #FFE885; }
 .arrow.exit { color: var(--grn); }
 .arrow.storm { color: var(--red); }
 .arrow.heal { color: #FF6A86; }
 .arrow.time { color: #5AD6FF; }
 #hud-timer-box.bonus { animation: tbonus 1.1s ease-out; }
 @keyframes tbonus { 0% { transform: scale(1.35); border-color: #5AD6FF; box-shadow: 0 0 18px #5AD6FF; } 100% { transform: scale(1); } }
-.arrow.on { opacity: 0.92; }
-.arrow.on.locked { opacity: 0.36; }
+.arrow.on { opacity: 0.85; }
 .arrow.on svg { width: 26px; height: 26px; }
 
 /* floating text + flash + grain */
@@ -396,7 +391,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 
 /* ---------- weapon selector: ONE use button, a swap button and a strip with every deployable ---------- */
 #hud-defs { position: relative; align-items: center; }
-#btn-weapon { position: relative; width: 82px; height: 82px; border-radius: 50%; border: 5px solid #0E0E0E; background: #d98a1b; color: #fff; font: inherit; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: visible; pointer-events: auto; cursor: pointer; box-shadow: 0 6px 0 #5a3a08, 0 10px 18px rgba(0,0,0,0.5); transition: filter 0.15s; }
+#btn-weapon { position: relative; width: 82px; height: 82px; border-radius: 50%; border: 5px solid #0E0E0E; background: #d98a1b; color: #fff; font: inherit; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto; cursor: pointer; box-shadow: 0 6px 0 #5a3a08, 0 10px 18px rgba(0,0,0,0.5); transition: filter 0.15s; }
 #btn-weapon[data-w="mine"] { background: #3b8f46; box-shadow: 0 6px 0 #1d4a24, 0 10px 18px rgba(0,0,0,0.5); }
 #btn-weapon[data-w="gun"] { background: #d98a1b; }
 #btn-weapon[data-w="soldier"] { background: #1e68b8; box-shadow: 0 6px 0 #0d3360, 0 10px 18px rgba(0,0,0,0.5); }
@@ -405,15 +400,13 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 #btn-weapon[data-w="heli"] { background: #3a86b5; box-shadow: 0 6px 0 #17445f, 0 10px 18px rgba(0,0,0,0.5); }
 #btn-weapon[data-w="tank"] { background: #5f7d3a; box-shadow: 0 6px 0 #2c3d18, 0 10px 18px rgba(0,0,0,0.5); }
 #btn-weapon[data-w="jet"] { background: #4d6f94; box-shadow: 0 6px 0 #1f3550, 0 10px 18px rgba(0,0,0,0.5); }
-#btn-weapon .w-cd-clip { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; pointer-events: none; z-index: 0; }
 #btn-weapon .cd { position: absolute; left: 0; right: 0; top: 0; height: 0; background: rgba(0,0,0,0.6); }
-#btn-weapon #w-ico, #btn-weapon #w-name { position: relative; z-index: 1; }
+#btn-weapon > *:not(.cd) { position: relative; }
 #btn-weapon #w-ico { display: block; width: 36px; height: 36px; margin-top: 2px; }
 #btn-weapon .wi { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.45)); }
 #btn-weapon #w-name { font-size: 9px; letter-spacing: -0.02em; margin-top: 1px; text-shadow: 0 1px 0 #000; }
-#btn-weapon #w-n { position: absolute; right: -5px; top: -5px; z-index: 4; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 12px; background: #0E0E0E; color: var(--y); border: 2px solid var(--y); font-size: 14px; font-weight: 900; line-height: 20px; display: flex; align-items: center; justify-content: center; text-align: center; text-shadow: 0 1px 0 #000; box-shadow: 0 3px 6px rgba(0,0,0,0.75); pointer-events: none; }
-#btn-weapon.off #w-n { color: #FF6A4A; border-color: #FF6A4A; }
-#btn-weapon small { font-size: 9px; opacity: 0.85; position: absolute; bottom: 3px; z-index: 2; }
+#btn-weapon b { position: absolute; right: 7px; top: 7px; min-width: 20px; height: 20px; padding: 0 3px; border-radius: 10px; background: #0E0E0E; color: var(--y); font-size: 14px; line-height: 20px; text-align: center; text-shadow: none; }
+#btn-weapon small { font-size: 9px; opacity: 0.85; position: absolute; bottom: 3px; }
 #btn-weapon:active { transform: translateY(3px) scale(0.97); }
 #btn-weapon.ready { animation: wglow 0.9s ease-in-out infinite alternate; }
 #btn-weapon.off { filter: grayscale(0.85) brightness(0.7); animation: none; }

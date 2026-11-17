@@ -8,19 +8,18 @@
 
   const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
 
-  function paintGround(map, splatSize) {
-    const SP = splatSize || SPLAT;
-    if (map.theme === 'jurassic') return WZ.Jura.paintGround(map, SP, SPAN, hexA);
-    if (map.theme === 'volcanic') return WZ.Volca.paintGround(map, SP, SPAN, hexA);
-    if (map.theme === 'frozen') return WZ.Froze.paintGround(map, SP, SPAN, hexA);
-    if (map.theme === 'harbor') return WZ.Harbo.paintGround(map, SP, SPAN, hexA);
-    const c = document.createElement('canvas'); c.width = c.height = SP;
-    const g = c.getContext('2d'), rng = R.mulberry32((map.seed ^ 0xABCDEF) >>> 0), k = SP / SPAN, areaK = (SP / 1024) * (SP / 1024);
+  function paintGround(map) {
+    if (map.theme === 'jurassic') return WZ.Jura.paintGround(map, SPLAT, SPAN, hexA);
+    if (map.theme === 'volcanic') return WZ.Volca.paintGround(map, SPLAT, SPAN, hexA);
+    if (map.theme === 'frozen') return WZ.Froze.paintGround(map, SPLAT, SPAN, hexA);
+    if (map.theme === 'harbor') return WZ.Harbo.paintGround(map, SPLAT, SPAN, hexA);
+    const c = document.createElement('canvas'); c.width = c.height = SPLAT;
+    const g = c.getContext('2d'), rng = R.mulberry32((map.seed ^ 0xABCDEF) >>> 0), k = SPLAT / SPAN;
     const px = (x) => (x + SPAN / 2) * k, pz = (z) => (z + SPAN / 2) * k;
-    g.fillStyle = '#B59A5B'; g.fillRect(0, 0, SP, SP);
+    g.fillStyle = '#B59A5B'; g.fillRect(0, 0, SPLAT, SPLAT);
     const cols = ['#8F8B45', '#A38A4F', '#8A6A3F', '#B59A5B', '#9C9A55', '#C2A866'];
     for (let i = 0; i < 170; i++) {
-      const x = rng() * SP, y = rng() * SP, r = (30 + rng() * 90) * (SP / 1024), col = cols[(rng() * cols.length) | 0];
+      const x = rng() * SPLAT, y = rng() * SPLAT, r = 30 + rng() * 90, col = cols[(rng() * cols.length) | 0];
       const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, hexA(col, 0.55)); gr.addColorStop(1, hexA(col, 0));
       g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
     }
@@ -71,15 +70,14 @@
     for (const t of map.tents) blob(t.x + 1, t.z + 1, 5, 0.5);
     for (const w of map.wrecks) blob(w.x + 1.5, w.z + 1.5, 6, 0.55);
     for (const sm of map.smalls) blob(sm.x + 0.5, sm.z + 0.5, sm.t === 'barrel' ? 1.1 : 1.2, 0.4);
-    // speckles + grass flecks (scaled with canvas area so thumbnail renders stay fast)
-    const nSpec = Math.round(11000 * areaK), nFleck = Math.round(1400 * areaK);
-    for (let i = 0; i < nSpec; i++) {
+    // speckles + grass flecks
+    for (let i = 0; i < 24000; i++) {
       g.fillStyle = rng() < 0.5 ? 'rgba(60,45,20,.22)' : 'rgba(225,205,140,.22)';
-      g.fillRect(rng() * SP, rng() * SP, 1 + rng() * 1.5, 1 + rng() * 1.5);
+      g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.5, 1 + rng() * 1.5);
     }
     g.strokeStyle = 'rgba(143,139,69,.5)'; g.lineWidth = 1;
-    for (let i = 0; i < nFleck; i++) { const x = rng() * SP, y = rng() * SP; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rng() - 0.5) * 2, y - 3 - rng() * 3); g.stroke(); }
-    const t = new T.CanvasTexture(c); t.anisotropy = SP < 512 ? 2 : 8; return t;
+    for (let i = 0; i < 2600; i++) { const x = rng() * SPLAT, y = rng() * SPLAT; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rng() - 0.5) * 2, y - 3 - rng() * 3); g.stroke(); }
+    const t = new T.CanvasTexture(c); t.anisotropy = 8; return t;
   }
 
   function tuftGeo(jur, vol, fro) {
@@ -121,7 +119,7 @@
     const hemi = har ? new T.HemisphereLight(0xDDE9EE, 0x6F7C80, 0.78) : fro ? new T.HemisphereLight(0xE4F0FF, 0x8FA2BA, 0.7) : vol ? new T.HemisphereLight(0xFFC9A0, 0x6A4636, 0.98) : jur ? new T.HemisphereLight(0xE4F4D0, 0x4E6B34, 0.72) : new T.HemisphereLight(0xCFE6FF, 0xA88C5E, 0.64); scene.add(hemi);
     const sun = new T.DirectionalLight(har ? 0xFFE6C2 : fro ? 0xFFF4E2 : vol ? 0xFFC890 : jur ? 0xFFD9A0 : 0xFFE3B8, har ? 0.82 : fro ? 0.78 : vol ? 0.95 : jur ? 0.92 : 0.86);
     const initShSize = CFG.quality.shadow[q] || 1024;
-    sun.castShadow = !opts.preview && CFG.quality.shadow[q] > 0;
+    sun.castShadow = CFG.quality.shadow[q] > 0;
     {
       const ss = sun.shadow;
       ss.mapSize.set(initShSize, initShSize);
@@ -132,8 +130,8 @@
     view.sun = sun; view.hemi = hemi;
 
     // ground
-    const splat = paintGround(map, opts.preview ? 384 : SPLAT);
-    const gSeg = opts.preview ? 56 : (themed ? 152 : 96), gg = new T.PlaneGeometry(SPAN, SPAN, gSeg, gSeg); gg.rotateX(-Math.PI / 2);
+    const splat = paintGround(map);
+    const gSeg = themed ? 168 : 100, gg = new T.PlaneGeometry(SPAN, SPAN, gSeg, gSeg); gg.rotateX(-Math.PI / 2);
     const gp = gg.attributes.position;
     for (let i = 0; i < gp.count; i++) gp.setY(i, map.height(gp.getX(i), gp.getZ(i)));
     gg.computeVertexNormals();
@@ -161,8 +159,8 @@
     sets.forEach((s) => P.setMeshes(s, group));
     const cl = P.newSet(); if (har) WZ.Harbo.cliffs(cl, half, rng, map); else if (fro) WZ.Froze.cliffs(cl, half, rng); else if (vol) WZ.Volca.cliffs(cl, half, rng); else if (jur) WZ.Jura.cliffs(cl, half, rng); else P.cliffs(cl, half, rng); P.setMeshes(cl, group);
 
-    // grass tufts (allocated up to max quality tier so runtime quality changes can scale count smoothly; skipped in fast thumbnail previews)
-    const maxGrass = opts.preview ? 0 : Math.min(map.grass.length, CFG.quality.grass[2]);
+    // grass tufts (allocated up to max quality tier so runtime quality changes can scale count smoothly)
+    const maxGrass = Math.min(map.grass.length, CFG.quality.grass[2]);
     const nGrass = Math.min(maxGrass, CFG.quality.grass[q]);
     if (maxGrass > 0) {
       const gm = new T.InstancedMesh(tuftGeo(jur, vol, fro), new T.MeshLambertMaterial({ vertexColors: true }), maxGrass);

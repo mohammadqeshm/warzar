@@ -198,25 +198,10 @@
         while (g.pi < g.path.length - 1 && Math.hypot(g.path[g.pi].x - g.x, g.path[g.pi].z - g.z) < 2.6) g.pi++;
         const p = g.path[Math.min(g.pi, g.path.length - 1)]; wx = p.x; wz = p.z;
       }
-      let dx = wx - g.x, dz = wz - g.z; const d = Math.hypot(dx, dz) || 1;
-      let mx = dx / d, mz = dz / d;
-      // Steer around / flank other active guardians so multiple guardians chasing along the same path never stack
-      for (let k = 0; k < Gi.list.length; k++) {
-        const o = Gi.list[k];
-        if (o === g || !o.active) continue;
-        const ox = g.x - o.x, oz = g.z - o.z, od = Math.hypot(ox, oz);
-        const sepR = g.radius + o.radius + 4.2;
-        if (od < sepR && od > 0.001) {
-          const w = (1 - od / sepR) * 1.15;
-          const side = (g.id > o.id ? 1 : -1) * 0.35;
-          mx += (ox / od + (-oz / od) * side) * w;
-          mz += (oz / od + (ox / od) * side) * w;
-        }
-      }
-      const ml = Math.hypot(mx, mz) || 1; mx /= ml; mz /= ml;
-      g.h += U.clamp(U.angDiff(g.h, Math.atan2(mx, mz)), -5.5 * dt, 5.5 * dt);
+      const dx = wx - g.x, dz = wz - g.z, d = Math.hypot(dx, dz) || 1;
+      g.h += U.clamp(U.angDiff(g.h, Math.atan2(dx, dz)), -5 * dt, 5 * dt);
       const st = Math.min(speed * dt, d);
-      g.x += mx * st; g.z += mz * st;
+      g.x += dx / d * st; g.z += dz / d * st;
       c.col.resolve(g, g.radius);
       // stuck safety
       g.stuckT = Math.hypot(g.x - g.lx, g.z - g.lz) < speed * dt * 0.25 ? g.stuckT + dt : 0; g.lx = g.x; g.lz = g.z;
@@ -325,31 +310,6 @@
         }
         const mvd = Math.hypot(g.x - x0, g.z - z0) / dt; g.mv = U.lerp(g.mv, mvd, Math.min(1, dt * 8));
         g.walk += g.mv * dt * 0.55;
-      }
-      // Hard pairwise separation across all active guardians (all 5 seasons) so they never overlap or merge into each other
-      for (let pass = 0; pass < 2; pass++) {
-        for (let i = 0; i < Gi.list.length; i++) {
-          const a = Gi.list[i]; if (!a.active) continue;
-          for (let j = i + 1; j < Gi.list.length; j++) {
-            const b = Gi.list[j]; if (!b.active) continue;
-            let dx = a.x - b.x, dz = a.z - b.z, d = Math.hypot(dx, dz);
-            const minD = a.radius + b.radius + 1.5;
-            if (d < minD) {
-              if (d < 0.01) { const ang = i * 1.9 + j * 2.7; dx = Math.cos(ang); dz = Math.sin(ang); d = 1; }
-              const push = (minD - d) * 0.52, nx = dx / d, nz = dz / d;
-              a.x += nx * push; a.z += nz * push;
-              b.x -= nx * push; b.z -= nz * push;
-              c.col.resolve(a, a.radius);
-              c.col.resolve(b, b.radius);
-              if (J.alive) {
-                for (const g of [a, b]) {
-                  const jx = J.x - g.x, jz = J.z - g.z, jd = Math.hypot(jx, jz) || 1, jm = g.radius + 2.0;
-                  if (jd < jm) { J.x += (jx / jd) * (jm - jd); J.z += (jz / jd) * (jm - jd); }
-                }
-              }
-            }
-          }
-        }
       }
     },
 

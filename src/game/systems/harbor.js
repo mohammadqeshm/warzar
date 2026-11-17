@@ -389,7 +389,7 @@
 
     // ================================================================== per-step / render
     update(dt, ctx, playing) {
-      if (!Hb.on || !playing) return;
+      if (!Hb.on) return;
       Hb.t += dt; if (Hb.textCd > 0) Hb.textCd -= dt;
       Hb._falls(dt); Hb._cranes(dt, playing); Hb._proj(dt);
       // mech status for the hints

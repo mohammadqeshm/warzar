@@ -35,15 +35,12 @@
     get isKO() { return this.state === S.KO; }
     get returning() { return this.state === S.RETURNING || this.state === S.RECALLING; }
 
-    /** DEPLOY button. Returns 'deploy' | 'recall' | 'guarded' | 'nocrate' | 'ignored' */
+    /** DEPLOY button. Returns 'deploy' | 'recall' | 'nocrate' | 'ignored' */
     press() {
       const ctx = this.ctx, jeep = ctx.jeep;
       if (this.state === S.IN_JEEP) {
         const c = ctx.crates.nearestAvailable(jeep.x, jeep.z, N.deployRadius);
-        if (!c) {
-          if (ctx.crates.nearestGuarded && ctx.crates.nearestGuarded(jeep.x, jeep.z, N.deployRadius)) return 'guarded';
-          return 'nocrate';
-        }
+        if (!c) return 'nocrate';
         c.reserved = true; this.target = c;
         jeep.localToWorld(-3.0, 0.2, this);
         ctx.col.resolve(this, 0.9);
@@ -114,20 +111,13 @@
       switch (this.state) {
         case S.RUNNING_OUT: {
           const c = this.target;
-          if (!c || c.state !== 'idle' || (ctx.crates.isGuarded && ctx.crates.isGuarded(c))) {
-            if (c) c.reserved = false;
-            this.state = S.RECALLING; this.target = null; break;
-          }
+          if (!c || c.state !== 'idle') { this.state = S.RECALLING; this.target = null; break; }
           const d = this._goTo(c.x, c.z, dt); moving = true;
           if (d < 1.9) { this.state = S.GRABBING; this.grabT = 0; this.rig.setMode('grab'); this.h = Math.atan2(c.x - this.x, c.z - this.z); }
           break;
         }
         case S.GRABBING: {
           const c = this.target;
-          if (!c || c.state !== 'idle' || (ctx.crates.isGuarded && ctx.crates.isGuarded(c))) {
-            if (c) c.reserved = false;
-            this.state = S.RECALLING; this.target = null; this.grabT = 0; break;
-          }
           this.grabT += dt;
           if (this.grabT >= N.grabTime) {
             c.state = 'carried'; c.carrier = this; this.carry = c; this.target = null;

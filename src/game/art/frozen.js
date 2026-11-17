@@ -82,9 +82,8 @@
     for (const t of map.spikes) blob(t.x + 1.6 * t.s, t.z + 1.4 * t.s, 3.0 * t.s, 0.38);
     for (const h of map.cabins) { g.fillStyle = 'rgba(60,78,104,.42)'; g.fillRect(px(h.x - h.w / 2 - 0.8 + 1.4), pz(h.z - h.d / 2 - 0.8 + 1.4), (h.w + 1.6) * k, (h.d + 1.6) * k); blob(h.x + 3, h.z + 3, Math.max(h.w, h.d) * 0.9, 0.25); }
     for (const t of map.tents) blob(t.x + 1, t.z + 1, 5, 0.45);
-    const nSpec = Math.round(11000 * (SPLAT / 1024) * (SPLAT / 1024));
-    for (let i = 0; i < nSpec; i++) { const r = rng(); g.fillStyle = r < 0.5 ? 'rgba(255,255,255,.4)' : r < 0.9 ? 'rgba(120,150,190,.2)' : 'rgba(255,255,255,.9)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.4, 1 + rng() * 1.4); }
-    const t = new T.CanvasTexture(c); t.anisotropy = SPLAT < 512 ? 2 : 8; return t;
+    for (let i = 0; i < 24000; i++) { const r = rng(); g.fillStyle = r < 0.5 ? 'rgba(255,255,255,.4)' : r < 0.9 ? 'rgba(120,150,190,.2)' : 'rgba(255,255,255,.9)'; g.fillRect(rng() * SPLAT, rng() * SPLAT, 1 + rng() * 1.4, 1 + rng() * 1.4); }
+    const t = new T.CanvasTexture(c); t.anisotropy = 8; return t;
   }
 
   // ------------------------------------------------------------------ scenery pieces (merged into per-chunk builders)

@@ -133,23 +133,12 @@
           else if (e.holder && def.shootRange > 0 && (e.target === 1 || solT) && d < def.shootStop) { e.armT = Math.max(0, e.armT - dt * 4); } // stands off and shoots
           else {
             let mx = dx / d, mz = dz / d;
-            // Subtle flanking & separation steering while chasing so enemies spread out instead of marching in one stacked line
-            E.hash.query(e.x, e.z, 2.8, E.q);
-            for (let k = 0; k < E.q.length; k++) {
-              const o = E.q[k]; if (o === e || !o.active || o.state === KO) continue;
-              const ox = e.x - o.x, oz = e.z - o.z, od = Math.hypot(ox, oz);
-              const wantSep = def.radius + CFG.enemies[o.type].radius + 1.1;
-              if (od < wantSep && od > 0.001) {
-                const w = (1 - od / wantSep) * 0.85;
-                mx += (ox / od) * w; mz += (oz / od) * w;
-              }
-            }
             if (e.hitWall > 0) {
               e.hitWall -= dt;
               const tx2 = -e.wnz * e.slide, tz2 = e.wnx * e.slide;
               mx = mx * 0.3 + tx2 * 0.95; mz = mz * 0.3 + tz2 * 0.95;
+              const l = Math.hypot(mx, mz) || 1; mx /= l; mz /= l;
             }
-            const ml = Math.hypot(mx, mz) || 1; mx /= ml; mz /= ml;
             const sp = def.speed * e.speedMul * E.mods.speed * E.mods.rush;
             e.x += mx * sp * dt; e.z += mz * sp * dt; e.walk += sp * dt * 0.62; e.moving = true;
           }
@@ -184,50 +173,21 @@
             if (nd < 24) WZ.Audio.sfx('tshot', 0.5);
           }
         }
-        // Keep enemies out of active Guardians so they never walk inside a Giant / Dino / Titan / Beast / Mech
-        if (WZ.Giants && WZ.Giants.list) {
-          for (let gIdx = 0; gIdx < WZ.Giants.list.length; gIdx++) {
-            const g = WZ.Giants.list[gIdx];
-            if (!g.active) continue;
-            let gx = e.x - g.x, gz = e.z - g.z, gd = Math.hypot(gx, gz);
-            const gMin = g.radius + def.radius + 0.65;
-            if (gd < gMin) {
-              if (gd < 0.01) { const ang = e.id * 1.7; gx = Math.cos(ang); gz = Math.sin(ang); gd = 1; }
-              e.x += (gx / gd) * (gMin - gd);
-              e.z += (gz / gd) * (gMin - gd);
-            }
-          }
-        }
-
         if (col.resolve(e, def.radius)) { e.hitWall = 0.35; e.wnx = col.nx; e.wnz = col.nz; }
+
+        // soft separation
+        E.hash.query(e.x, e.z, 1.5, E.q);
+        for (let k = 0; k < E.q.length; k++) {
+          const o = E.q[k]; if (o === e || o.state === KO) continue;
+          const ox = e.x - o.x, oz = e.z - o.z, od = Math.hypot(ox, oz);
+          if (od < 1.35 && od > 0.001) { const p = (1.35 - od) * 0.5; e.x += ox / od * p * 0.6; e.z += oz / od * p * 0.6; }
+        }
 
         // stuck handling: flip wall-follow side, finally recycle
         e.stT += dt;
         if (e.stT > 1.2) {
           if (e.state === CHASE && Math.hypot(e.x - e.sx, e.z - e.sz) < 1.0) { e.slide = -e.slide; e.hitWall = 0.8; if (++e.stN > 3) { E._kill(e); continue; } } else e.stN = 0;
           e.sx = e.x; e.sz = e.z; e.stT = 0;
-        }
-      }
-
-      // Pairwise physical separation pass across all active enemies so they never stack inside one another
-      for (let pass = 0; pass < 2; pass++) {
-        for (let i = 0; i < MAX; i++) {
-          const a = E.list[i]; if (!a.active || a.state === KO) continue;
-          const rA = CFG.enemies[a.type].radius;
-          for (let j = i + 1; j < MAX; j++) {
-            const b = E.list[j]; if (!b.active || b.state === KO) continue;
-            const rB = CFG.enemies[b.type].radius;
-            let ox = a.x - b.x, oz = a.z - b.z, od = Math.hypot(ox, oz);
-            const minSep = rA + rB + 0.42;
-            if (od < minSep) {
-              if (od < 0.005) { const ang = (i * 1.7 + j * 2.3); ox = Math.cos(ang); oz = Math.sin(ang); od = 1; }
-              const push = (minSep - od) * 0.5, nx = ox / od, nz = oz / od;
-              a.x += nx * push; a.z += nz * push;
-              b.x -= nx * push; b.z -= nz * push;
-              col.resolve(a, rA);
-              col.resolve(b, rB);
-            }
-          }
         }
       }
     },

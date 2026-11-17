@@ -65,7 +65,7 @@
         '  <div id="hud-buttons"><div id="hud-defs">' +
         '<div id="w-wheel" class="hidden"><div id="w-label"></div><div class="w-strip">' + W_ORDER.map((id) => '<button class="wchip" data-w="' + id + '"><i class="cd"></i>' + W_ICO[id] + '<b>0</b><small class="k-keys">' + (W_ORDER.indexOf(id) + 1) + '</small></button>').join('') + '</div></div>' +
         '<button id="btn-wswap" aria-label="swap weapon">' + SWAP_ICO + '<small class="k-keys">' + t('hud.key.wswap') + '</small></button>' +
-        '<button id="btn-weapon" class="ready" data-w="gun"><span class="w-cd-clip"><i class="cd"></i></span><span id="w-ico"></span><span id="w-name">' + t('w.gun') + '</span><b id="w-n">0</b><small class="k-keys">' + t('hud.key.weapon') + '</small></button></div>' +
+        '<button id="btn-weapon" class="ready" data-w="gun"><i class="cd"></i><span id="w-ico"></span><span id="w-name">' + t('w.gun') + '</span><b id="w-n">0</b><small class="k-keys">' + t('hud.key.weapon') + '</small></button></div>' +
         '<div id="hud-main"><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div></div>' +
         '</div>' +
@@ -213,10 +213,10 @@
       let sig = sel + '|';
       for (let i = 0; i < W.length; i++) sig += W[i].n + ':' + Math.round(W[i].pct * 20) + ',';
       if (sig === UI._wsig) return; UI._wsig = sig;
-      const si = Math.max(0, W_ORDER.indexOf(sel)), it = W[si] || { n: 0, pct: 1 }, btn = h['btn-weapon'];
+      const si = W_ORDER.indexOf(sel), it = W[si], btn = h['btn-weapon'];
       // NOTE: the button ships with data-w="gun" in the markup, so we must NOT compare against dataset.w (the default "gun" icon would never be painted).
       if (UI._wico !== sel || !h['w-ico'].firstChild) { UI._wico = sel; btn.dataset.w = sel; h['w-ico'].innerHTML = W_ICO[sel]; h['w-name'].textContent = t('w.' + sel); }
-      h['w-n'].textContent = String(it.n | 0); h.wcd.style.height = (100 - it.pct * 100) + '%';
+      h['w-n'].textContent = it.n; h.wcd.style.height = (100 - it.pct * 100) + '%';
       btn.classList.toggle('ready', it.pct >= 1 && it.n > 0); btn.classList.toggle('off', !(it.n > 0));
       h.chips.forEach((ch, i) => {
         ch.classList.toggle('sel', i === si); ch.classList.toggle('off', !(W[i].n > 0)); ch.firstChild.style.height = (100 - W[i].pct * 100) + '%';

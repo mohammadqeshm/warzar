@@ -225,8 +225,7 @@
     const rig = buildBody({ camo: 'camoCmdr', vest: 0x16181A, pouch: 0x23262A, hair: 0x120D0A, type: 'commander' });
     const hb = rig._hb, cb = B(), db = B(), bb = B();
     addFace(rig, 'faceCmdr', 0.56, 0.42, 0.17);
-    hb.beam(0.66, 0.34, 0.1, 0.3, 0.2, 0.62, 0.05, 0.05, 0x0E0E0E);                  // mic boom
-    hb.add(G.sph(6, 5), { x: 0.3, y: 0.2, z: 0.64, sx: 0.08, sy: 0.08, sz: 0.08, color: 0x0E0E0E });
+    // (no mic boom: on the character sheet the face is clear; the old mic ball read as a mole on the cheek)
     // boxy patrol cap: tall flared crown, flat top, short brim, side straps
     cb.add(rb(1.5, 0.74, 1.44, 0.17), { y: 1.26, uv: [1, 0.74] });
     cb.add(rb(1.1, 0.1, 0.5, 0.04), { y: 0.97, z: 0.9, rx: 0.16, uv: [1, 0.2] });
@@ -265,11 +264,16 @@
   function nana() {
     const rig = buildBody({ camo: 'camoNana', vest: 0x131517, pouch: 0x1E2124, hair: 0x1E120C, type: 'nana' });
     const hb = rig._hb, cb = B(), db = B();
-    addFace(rig, 'faceNana', 0.5, 0.3, 0.13);
+    addFace(rig, 'faceNana', 0.5, 0.41, 0.11);
     if (!domeGeo) domeGeo = G.mark(new T.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.56));
 
     // hair peeking out from under the helmet
     for (const s of [1, -1]) hb.add(rb(0.14, 0.34, 0.5, 0.05), { x: 0.64 * s, y: 0.8, z: -0.1, color: 0x1E120C });
+    // side locks framing the face at the front corners (as on the character sheet)
+    for (const s of [1, -1]) {
+      hb.add(rb(0.17, 0.36, 0.16, 0.06), { x: 0.58 * s, y: 0.8, z: 0.53, rz: 0.12 * s, color: 0x22150E });
+      hb.add(rb(0.12, 0.22, 0.12, 0.05), { x: 0.6 * s, y: 0.56, z: 0.55, rz: -0.1 * s, color: 0x2B1A12 });
+    }
     // helmet: big dome with a rim, side mounts
     const DX = 0.9, DY = 0.66, DZ = 0.92, DC = 1.02;
     cb.add(domeGeo, { y: DC, sx: DX, sy: DY, sz: DZ });

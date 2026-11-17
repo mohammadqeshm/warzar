@@ -401,10 +401,6 @@
 
     render(alpha, dt) {
       if (!Menu.scene) return;
-      if (WZ.MapPreview && WZ.MapPreview.busyFrame) {
-        WZ.MapPreview.busyFrame = false;
-        return;
-      }
       const Main = WZ.Main, S = Menu.st, cam = Menu.cam, t = Menu.t, asp = Main.w / Main.h;
       const veh = Menu.veh;
 
@@ -459,9 +455,9 @@
         if (Menu.heli.tailRotor) Menu.heli.tailRotor.rotation.x += dt * 34;
       }
 
-      // ---- 4. Biome Atmospheric Particles & Tire Dust (paused while map selection overlay is open)
+      // ---- 4. Biome Atmospheric Particles & Tire Dust
       Menu.partT -= dt;
-      if (!Menu.mapOpen && Menu.partT <= 0 && WZ.Particles.ready && Menu.vehPos) {
+      if (Menu.partT <= 0 && WZ.Particles.ready && Menu.vehPos) {
         Menu.partT = 0.09;
         const vp = Menu.vehPos;
         // Subtle wheel dust behind rear tires
