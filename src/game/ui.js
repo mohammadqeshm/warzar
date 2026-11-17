@@ -282,14 +282,9 @@
         '<div class="menu-logo"><canvas id="logo-canvas"></canvas></div>' +
         '<div class="menu-bottom"><button class="map-chip" id="btn-maps" aria-label="' + t('maps.change') + '"><span class="mc-thumb" id="mc-thumb">' + UI._mapThumb(curMap) + '</span><span class="mc-t"><small id="mc-season">' + t('maps.current', { s: sNum }) + '</small><b id="mc-name">' + t('maps.' + curMap) + '</b><span class="mc-prog"><span class="mc-bar"><i id="mc-fill" style="width:' + (done / LV * 100) + '%"></i></span><em id="mc-n">' + t('maps.cleared', { n: done, m: LV }) + '</em></span></span><span class="mc-go">' + t('maps.change') + '</span></button>' +
         '<button class="play-btn" id="btn-play"><small class="play-lvl" id="play-lvl">' + t('menu.seasonLevel', { s: sNum, n: lvl, m: LV }) + '</small><span>' + t('menu.play') + '</span></button></div>' +
-        '<button class="garage-btn" id="btn-garage" aria-label="' + t('shop.title') + '"><span class="gi">' + SHOP_ICO + '</span><span class="gt"><b>' + t('shop.title') + '</b><small>' + COIN_ICO.replace('class="ico"', 'class="coin"') + '<em id="garage-coins">' + ((WZ.Save && WZ.Save.data.coins) || 0) + '</em></small></span></button>' +
-        '<button class="mute-btn" id="btn-mute"></button>');
+        '<button class="garage-btn" id="btn-garage" aria-label="' + t('shop.title') + '"><span class="gi">' + SHOP_ICO + '</span><span class="gt"><b>' + t('shop.title') + '</b><small>' + COIN_ICO.replace('class="ico"', 'class="coin"') + '<em id="garage-coins">' + ((WZ.Save && WZ.Save.data.coins) || 0) + '</em></small></span></button>');
       UI.drawLogo($('logo-canvas'));
       $('btn-maps').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); if (h.maps) h.maps(); };
-      const mute = $('btn-mute');
-      const paintMute = () => { mute.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="#ECE9E1"/>' + (WZ.Audio.muted ? '<path d="M15 9l6 6M21 9l-6 6" stroke="#FF5A3A" stroke-width="2.5" stroke-linecap="round"/>' : '<path d="M15.5 8.5a5 5 0 010 7M18 6a8.5 8.5 0 010 12" stroke="#ECE9E1" stroke-width="2" fill="none" stroke-linecap="round"/>') + '</svg>'; };
-      paintMute();
-      mute.onclick = () => { WZ.Audio.unlock(); WZ.Audio.setMuted(!WZ.Audio.muted); WZ.Save.data.settings.sound = WZ.Audio.muted ? 0 : 1; WZ.Save.save(); WZ.Audio.sfx('click'); paintMute(); };
       $('btn-play').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.play(); };
       $('btn-garage').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.garage(); };
       return el;
@@ -674,14 +669,13 @@
       const el = UI._screen('pause',
         '<div class="panel pause-box"><div class="pause-title">' + t('pause.title') + '</div>' +
         '<button class="btn big" id="btn-resume">' + t('pause.resume') + '</button>' +
-        '<button class="btn dark" id="btn-shake"></button><button class="btn dark" id="btn-mute2"></button>' +
+        '<button class="btn dark" id="btn-shake"></button>' +
         '<button class="btn dark" id="btn-restart">' + t('pause.restart') + '</button><button class="btn dark" id="btn-tomenu">' + t('pause.menu') + '</button></div>');
-      const sh = $('btn-shake'), mu = $('btn-mute2');
-      const paint = () => { sh.textContent = t(WZ.Save.data.settings.shake ? 'pause.shake.on' : 'pause.shake.off'); mu.textContent = t(WZ.Audio.muted ? 'menu.sound.off' : 'menu.sound.on'); };
+      const sh = $('btn-shake');
+      const paint = () => { sh.textContent = t(WZ.Save.data.settings.shake ? 'pause.shake.on' : 'pause.shake.off'); };
       paint();
       $('btn-resume').onclick = h.resume; $('btn-restart').onclick = h.restart; $('btn-tomenu').onclick = h.menu;
       sh.onclick = () => { WZ.Save.data.settings.shake = WZ.Save.data.settings.shake ? 0 : 1; WZ.Fx.shakeOn = !!WZ.Save.data.settings.shake; WZ.Save.save(); paint(); };
-      mu.onclick = () => { WZ.Audio.setMuted(!WZ.Audio.muted); WZ.Save.data.settings.sound = WZ.Audio.muted ? 0 : 1; WZ.Save.save(); paint(); };
       return el;
     },
     /** short flash on the timer when time is added */

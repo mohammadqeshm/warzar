@@ -107,10 +107,16 @@
       return false;
     },
 
+    mapLimit() {
+      const wl = WZ.Save && WZ.Save.data && WZ.Save.data.weaponLevels;
+      const lvl = (wl && wl.tank) || 1;
+      return CFG.calc.weaponMapLimit ? CFG.calc.weaponMapLimit('tank', lvl) : 2;
+    },
     /** call one escort tank (consumes one from the inventory). Returns true when it rolled in. */
     call() {
       const c = Tanks.ctx; if (!c) return false;
       const J = c.jeep; if (!J.alive || Tanks.cd > 0) return false;
+      if (Tanks.called >= Tanks.mapLimit()) { Tanks.note('hud.mapLimit'); return false; }
       if (Tanks.stock() <= 0) { Tanks.note('hud.notank'); return false; }
       const sp = { x: 0, z: 0 };
       if (!Tanks.freeSpot(J.x, J.z, C.spawnDist, sp) && !Tanks.freeSpot(J.x, J.z, C.spawnDist * 0.6, sp) && !Tanks.freeSpot(J.x, J.z, 14, sp)) { Tanks.note('hud.turretBlocked'); return false; }

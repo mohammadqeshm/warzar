@@ -21,7 +21,24 @@ for (let l = 1; l <= 10; l++) {
   ok(CFG.calc.giantCount(l, l) === l, 'level ' + l + ' must have ' + l + ' guardians (one per crate)');
 }
 for (let s = 0; s < order.length; s++) for (let l = 1; l < 10; l++) ok(P.difficulty(order[s], l + 1) > P.difficulty(order[s], l), 'difficulty must rise each level');
-for (let s = 1; s < order.length; s++) ok(P.difficulty(order[s], 1) > P.difficulty(order[s - 1], 1), 'season starts harder than the previous one');
+for (let s = 1; s < order.length; s++) {
+  ok(P.difficulty(order[s], 1) > P.difficulty(order[s - 1], 10), 'season ' + (s + 1) + ' level 1 global level must be greater than season ' + s + ' level 10');
+}
+ok(P.difficulty(order[1], 1) === 11, 'season 2 level 1 global level must be 11');
+ok(P.difficulty(order[2], 10) === 30, 'season 3 level 10 global level must be 30');
+// verify guardian HP strictly rises across every single level 1..50 across all 5 seasons
+const guardBase = { village: CFG.giant.hp, jurassic: CFG.dino.hp, volcanic: CFG.titan.hp, frozen: CFG.beast.hp, harbor: CFG.mech.hp };
+let prevGuardHp = 0;
+for (let s = 0; s < order.length; s++) {
+  for (let l = 1; l <= 10; l++) {
+    const gl = P.difficulty(order[s], l);
+    const gHp = guardBase[order[s]] * CFG.calc.giantHpMul(gl, false);
+    ok(gHp > prevGuardHp, `guardian HP at S${s + 1} L${l} (gl=${gl}, hp=${gHp.toFixed(1)}) must exceed previous (${prevGuardHp.toFixed(1)})`);
+    prevGuardHp = gHp;
+  }
+  ok(CFG.calc.giantKillCoins(s) === (s + 1) * 100, `season ${s + 1} guardian kill reward must be ${(s + 1) * 100}`);
+}
+ok(CFG.economy.kill.grunt === 1 && CFG.economy.kill.brute === 1 && CFG.economy.kill.ramMul === 1, 'regular enemies must give 1 coin even when rammed');
 ok(CFG.calc.enemyHpMul(P.difficulty(order[0], 10)) > CFG.calc.enemyHpMul(P.difficulty(order[0], 1)), 'enemy hp grows over the levels');
 
 // win 1..9 -> season 2 still locked; win 10 -> season 2 opens

@@ -19,6 +19,7 @@
     ach: {},
     settings: { sound: 1, music: 1, vibration: 1, shake: 1, lang: 'auto', quality: 'auto', weapon: 'gun', map: 'village' },
     inv: { mines: WZ.CFG.shop.mines.starter, turrets: WZ.CFG.shop.turrets.starter, soldiers: WZ.CFG.shop.soldiers.starter, heavy: WZ.CFG.shop.heavy.starter, bombs: WZ.CFG.shop.bombs.starter, heli: WZ.CFG.shop.heli.starter, tank: WZ.CFG.shop.tank.starter, jet: WZ.CFG.shop.jet.starter },
+    weaponLevels: { mines: 1, turrets: 1, soldiers: 1, heavy: 1, bombs: 1, heli: 1, tank: 1, jet: 1 },
     flags: { tutorialDone: false, noAds: false, pendingUnlock: '' },
     runSeed: 0,
   });
@@ -56,6 +57,11 @@
       }
     } else {
       S.data = defaults();
+    }
+    if (!S.data.weaponLevels || typeof S.data.weaponLevels !== 'object') S.data.weaponLevels = defaults().weaponLevels;
+    for (const wk of Object.keys(WZ.CFG.shop)) {
+      const mx = (WZ.CFG.shop[wk] && WZ.CFG.shop[wk].maxLevel) || 10;
+      S.data.weaponLevels[wk] = Math.max(1, Math.min(mx, (S.data.weaponLevels[wk] | 0) || 1));
     }
     if (WZ.Progress) WZ.Progress.sanitize();
     if (!S.data.runSeed) {

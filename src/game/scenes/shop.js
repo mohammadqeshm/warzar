@@ -21,9 +21,40 @@
   const DEF_BY_KIND = { gun: 'turret', soldier: 'soldier', heavy: 'heavy', bomb: 'bomb', heli: 'heli', tank: 'tank', jet: 'jet' };
 
   const Shop = {
-    name: 'shop', t: 0, sel: 'jeep', rot: 0.6, spinV: 0, pop: 0, thumbs: {}, thumbsDone: false, scene: null, holder: null, obj: null, model: null, heroes: null, r: 5,
+    name: 'shop', t: 0, sel: 'jeep', rot: 0.6, spinV: 0, pop: 0, thumbs: {}, thumbsDone: false, scene: null, holder: null, obj: null, model: null, heroes: null, r: 5, lookY: 2.0, szY: 3.0,
 
-    // ------------------------------------------------------------------ purchases (pure logic, unit-tested)
+    // ------------------------------------------------------------------ weapon levels (1..10) & purchases (pure logic, unit-tested)
+    weaponLevel(key) {
+      const S = WZ.Save.data;
+      if (!S.weaponLevels) S.weaponLevels = {};
+      const mx = CFG.calc.weaponMaxLevel ? CFG.calc.weaponMaxLevel(key) : 10;
+      return Math.max(1, Math.min(mx, (S.weaponLevels[key] | 0) || 1));
+    },
+    weaponMapLimit(key) {
+      const lvl = Shop.weaponLevel(key);
+      return CFG.calc.weaponMapLimit ? CFG.calc.weaponMapLimit(key, lvl) : 5;
+    },
+    weaponStockCap(key) {
+      const lvl = Shop.weaponLevel(key);
+      return CFG.calc.weaponStockCap ? CFG.calc.weaponStockCap(key, lvl) : ((CFG.shop[key] && CFG.shop[key].cap) || 20);
+    },
+    weaponUpgradePrice(key) {
+      const lvl = Shop.weaponLevel(key);
+      return CFG.calc.weaponUpgradePrice ? CFG.calc.weaponUpgradePrice(key, lvl) : 0;
+    },
+    upgradeWeapon(key) {
+      const S = WZ.Save.data, sh = CFG.shop[key];
+      if (!sh) return 'invalid';
+      if (!S.weaponLevels) S.weaponLevels = {};
+      const lvl = Shop.weaponLevel(key), mx = sh.maxLevel || 10;
+      if (lvl >= mx) return 'max';
+      const price = Shop.weaponUpgradePrice(key);
+      if (S.coins < price) return 'poor';
+      S.coins -= price;
+      S.weaponLevels[key] = lvl + 1;
+      WZ.Save.save();
+      return 'ok';
+    },
     buyVehicle(id) {
       const S = WZ.Save.data, v = CFG.vehicles[id];
       if (!v) return 'invalid'; if (S.owned.vehicles.indexOf(id) >= 0) return 'owned'; if (S.coins < v.price) return 'poor';
@@ -31,16 +62,16 @@
     },
     equip(id) { const S = WZ.Save.data; if (S.owned.vehicles.indexOf(id) < 0) return 'locked'; S.equipped.vehicle = id; WZ.Save.save(); return 'ok'; },
     buyMines(i) {
-      const S = WZ.Save.data, p = CFG.shop.mines.packs[i || 0];
-      if (!p) return 'invalid'; if (S.inv.mines + p.n > CFG.shop.mines.cap) return 'full'; if (S.coins < p.price) return 'poor';
+      const S = WZ.Save.data, p = CFG.shop.mines.packs[i || 0], cap = Shop.weaponStockCap('mines');
+      if (!p) return 'invalid'; if (S.inv.mines + p.n > cap) return 'full'; if (S.coins < p.price) return 'poor';
       S.coins -= p.price; S.inv.mines += p.n; WZ.Save.save(); return 'ok';
     },
 
     /** kind: 'gun' | 'soldier' | 'heavy' | 'bomb' | 'heli' | 'tank' | 'jet'; i = pack index */
     buyTurrets(kind, i) {
       const S = WZ.Save.data, D = DEFS[DEF_BY_KIND[kind]]; if (!D) return 'invalid';
-      const cf = D.SH, key = D.inv, p = cf.packs[i || 0];
-      if (!p) return 'invalid'; if ((S.inv[key] | 0) + p.n > cf.cap) return 'full'; if (S.coins < p.price) return 'poor';
+      const cf = D.SH, key = D.inv, p = cf.packs[i || 0], cap = Shop.weaponStockCap(key);
+      if (!p) return 'invalid'; if ((S.inv[key] | 0) + p.n > cap) return 'full'; if (S.coins < p.price) return 'poor';
       S.coins -= p.price; S.inv[key] = (S.inv[key] | 0) + p.n; WZ.Save.save(); return 'ok';
     },
     buyTech() {
@@ -103,9 +134,12 @@
       if (m) { for (const wl of m.wheels) wl.rotation.x = tm * 0.8; m.gunYaw.rotation.y = Math.sin(tm * 0.6) * 0.55; m.flag.rotation.y = Math.sin(tm * 5) * 0.3; }
       if (Shop.rig) { Shop.rig.headG.rotation.y = Math.sin(tm * 0.8) * 0.9; if (Shop.rig.spin) Shop.rig.spin(dt); }
       if (Shop.heroes) for (const hr of Shop.heroes) hr.update(dt);
-      const portrait = asp < 1, r = Shop.r, fit = r / (Math.tan(cam.fov * Math.PI / 360) * Math.min(1, asp * 1.15)) * (portrait ? 1.28 : 1.45);
-      cam.position.set(fit * 0.2, r * 0.55 + 1.8, fit); cam.lookAt(0, r * 0.26 + 0.6, 0);
-      cam.setViewOffset(w, h, 0, portrait ? h * 0.25 : 0, w, h);
+      const smallLayout = asp < 1 || w <= 720, r = Shop.r, szY = Shop.szY || 3.0;
+      const fit = r / (Math.tan(cam.fov * Math.PI / 360) * Math.min(1, asp * 1.12)) * (smallLayout ? 1.56 : 1.46);
+      const targetY = (Shop.lookY || (r * 0.28 + 0.6)) + szY * (smallLayout ? 0.14 : 0.06);
+      cam.position.set(fit * 0.2, targetY + r * 0.26 + 1.1, fit);
+      cam.lookAt(0, targetY, 0);
+      cam.setViewOffset(w, h, 0, smallLayout ? h * 0.18 : h * 0.03, w, h);
       Main.renderer.render(Shop.scene, cam);
     },
 
@@ -152,48 +186,51 @@
 
     /** build the object for a catalogue id (with the two heroes seated in vehicles) */
     make(id) {
+      const frame = (obj, extra) => {
+        const box = new T.Box3().setFromObject(obj);
+        const sz = box.getSize(new T.Vector3()), ctr = box.getCenter(new T.Vector3());
+        const r = Math.max(Math.max(sz.x, sz.z) * 0.58, sz.y * 0.72) + 0.85;
+        return Object.assign({ obj, model: null, heroes: null, rig: null, r, lookY: 0.62 + ctr.y, szY: sz.y }, extra || {});
+      };
       if (id === 'mine') {
         const m = WZ.Vehicles.mineModel();
         m.scale.setScalar(1.85);
         m.position.y = 0.05;
-        return { obj: m, model: null, heroes: null, r: 5.8 };
+        return frame(m, { r: 5.8 });
       }
       if (id === 'soldier') {
         const m = WZ.Soldiers.model(), g = new T.Group();
-        m.root.scale.setScalar(1.95);
+        m.root.scale.setScalar(1.65);
         g.add(m.root);
-        return { obj: g, model: null, heroes: null, rig: m, r: 4.8 };
+        return frame(g, { rig: m, r: 5.0 });
       }
       if (id === 'heli') {
-        const m = WZ.Heli.model(), g = new T.Group(); m.root.scale.setScalar(1.25); m.root.position.y = 2.2; g.add(m.root);
-        const sz = new T.Box3().setFromObject(g).getSize(new T.Vector3());
-        return { obj: g, model: null, heroes: null, rig: m, r: Math.max(sz.x, sz.z) * 0.5 + sz.y * 0.12 };
+        const m = WZ.Heli.model(), g = new T.Group(); m.root.scale.setScalar(1.15); m.root.position.y = 1.45; g.add(m.root);
+        return frame(g, { rig: m });
       }
       if (id === 'jet') {
-        const m = WZ.Jets.model(), g = new T.Group(); m.root.scale.setScalar(0.92); m.root.position.y = 2.6; m.root.rotation.y = 1.1; m.pivot.rotation.set(-0.07, 0, -0.2); m.setLoad(8); m.level = 0.85; g.add(m.root);
-        const sz = new T.Box3().setFromObject(g).getSize(new T.Vector3());
-        return { obj: g, model: null, heroes: null, rig: m, r: Math.max(sz.x, sz.z) * 0.55 + sz.y * 0.12 };
+        const m = WZ.Jets.model(), g = new T.Group(); m.root.scale.setScalar(0.88); m.root.position.y = 1.65; m.root.rotation.y = 1.1; m.pivot.rotation.set(-0.07, 0, -0.2); m.setLoad(8); m.level = 0.85; g.add(m.root);
+        return frame(g, { rig: m });
       }
       if (id === 'tank') {
-        const m = WZ.Tanks.model(), g = new T.Group(); m.root.scale.setScalar(1.45); m.root.position.y = 0.1; g.add(m.root);
-        const sz = new T.Box3().setFromObject(g).getSize(new T.Vector3());
-        return { obj: g, model: null, heroes: null, rig: m, r: Math.max(sz.x, sz.z) * 0.55 + sz.y * 0.12 };
+        const m = WZ.Tanks.model(), g = new T.Group(); m.root.scale.setScalar(1.38); m.root.position.y = 0.1; g.add(m.root);
+        return frame(g, { rig: m });
       }
       if (id === 'turret' || id === 'heavy' || id === 'bomb') {
-        const kind = DEFS[id].kind, m = WZ.Turrets.model(kind), g = new T.Group(); m.root.scale.setScalar(m.scale * 2.1); g.add(m.root);
-        const sz = new T.Box3().setFromObject(g).getSize(new T.Vector3());
-        return { obj: g, model: null, heroes: null, rig: m, r: Math.max(sz.x, sz.z) * 0.6 + sz.y * 0.12 };
+        const kind = DEFS[id].kind, m = WZ.Turrets.model(kind), g = new T.Group();
+        m.root.scale.setScalar(id === 'turret' ? 1.72 : 1.52);
+        g.add(m.root);
+        return frame(g, { rig: m });
       }
       const mdl = WZ.Vehicles.build(id), c = WZ.Heroes.commander(), n = WZ.Heroes.nana();
       c.setMode('sit'); n.setMode('sit'); mdl.seatCmdr.add(c.root); mdl.seatNana.add(n.root);
       for (let i = 0; i < 45; i++) { c.update(1 / 60); n.update(1 / 60); }
-      const s = new T.Box3().setFromObject(mdl.root).getSize(new T.Vector3());
-      return { obj: mdl.root, model: mdl, heroes: [c, n], r: Math.max(s.x, s.z) * 0.6 + s.y * 0.12 };
+      return frame(mdl.root, { model: mdl, heroes: [c, n] });
     },
 
     show(id) {
       Shop.disposeObj(); const o = Shop.make(id);
-      Shop.obj = o.obj; Shop.model = o.model; Shop.heroes = o.heroes; Shop.rig = o.rig || null; Shop.r = o.r; Shop.holder.add(o.obj); Shop.pop = 0;
+      Shop.obj = o.obj; Shop.model = o.model; Shop.heroes = o.heroes; Shop.rig = o.rig || null; Shop.r = o.r; Shop.lookY = o.lookY || 2.0; Shop.szY = o.szY || 3.0; Shop.holder.add(o.obj); Shop.pop = 0;
       Shop.obj.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     },
 
@@ -226,6 +263,25 @@
     },
 
     // ------------------------------------------------------------------ DOM
+    weaponLevelHtml(key) {
+      const S = WZ.Save.data, sh = CFG.shop[key] || {};
+      const wlvl = Shop.weaponLevel(key), wmax = sh.maxLevel || 10;
+      const wMaxed = wlvl >= wmax, wPrice = Shop.weaponUpgradePrice(key);
+      const mapLim = Shop.weaponMapLimit(key), step = sh.perLevel || 1;
+      return (
+        '<div class="tech-row wlvl-row">' +
+          '<div class="tech-info">' +
+            '<div class="tech-h"><b>' + t('shop.wlvl', { n: wlvl, m: wmax }) + '</b><span>' + t('shop.mapLimit', { n: mapLim }) + (wMaxed ? '' : ' <em>(+' + step + ')</em>') + '</span></div>' +
+            '<div class="tech-pips">' + Array.from({ length: wmax }, (_, i) => '<i class="' + (i < wlvl ? 'on' : '') + '"></i>').join('') + '</div>' +
+          '</div>' +
+          '<button class="btn buy tech-btn" data-act="wupgrade" data-key="' + key + '"' + (wMaxed || S.coins < wPrice ? ' disabled' : '') + '>' +
+            '<span>' + (wMaxed ? t('shop.tech.max') : t('shop.wupgrade')) + '</span>' +
+            (wMaxed ? '' : '<em>' + COIN + wPrice + '</em>') +
+          '</button>' +
+        '</div>'
+      );
+    },
+
     paint() {
       const S = WZ.Save.data, el = Shop.ui, eq = S.equipped.vehicle, own = S.owned.vehicles;
       el.querySelector('#sh-coins').textContent = S.coins;
@@ -235,21 +291,22 @@
         const tag = eq === id ? '<span class="tg eq">' + t('shop.equipped') + '</span>' : o ? '<span class="tg own">' + t('shop.owned') + '</span>' : '<span class="tg price">' + COIN + v.price + '</span>';
         return '<button class="vcard' + (Shop.sel === id ? ' sel' : '') + (o ? '' : ' locked') + '" data-act="sel" data-id="' + id + '">' + img(id) + '<div class="vinfo"><div class="vname">' + v.name + '</div>' + pips(v.tier) + tag + '</div></button>';
       }).join('');
-      list += '<button class="vcard' + (Shop.sel === 'mine' ? ' sel' : '') + '" data-act="sel" data-id="mine">' + img('mine') + '<div class="vinfo"><div class="vname">' + t('shop.mines') + '</div><span class="tg own">' + t('shop.ownedCount', { n: S.inv.mines | 0 }) + '</span></div></button>';
+      const mLvl = Shop.weaponLevel('mines');
+      list += '<button class="vcard' + (Shop.sel === 'mine' ? ' sel' : '') + '" data-act="sel" data-id="mine">' + img('mine') + '<div class="vinfo"><div class="vname">' + t('shop.mines') + '</div><span class="tg wlvl">' + t('hud.level', { n: mLvl }) + '</span><span class="tg own">' + t('shop.ownedCount', { n: S.inv.mines | 0 }) + '</span></div></button>';
       const sect = (txt) => '<div class="sh-sect">' + txt + '</div>';
       list += sect(t('shop.defense'));
       for (const id of ['turret', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet']) {
-        const D = DEFS[id], cnt = S.inv[D.inv] | 0;
-        list += '<button class="vcard' + (Shop.sel === id ? ' sel' : '') + '" data-act="sel" data-id="' + id + '">' + img(id) + '<div class="vinfo"><div class="vname">' + t(D.name) + '</div><span class="tg own">' + t('shop.ownedCount', { n: cnt }) + '</span></div></button>';
+        const D = DEFS[id], cnt = S.inv[D.inv] | 0, wl = Shop.weaponLevel(D.inv);
+        list += '<button class="vcard' + (Shop.sel === id ? ' sel' : '') + '" data-act="sel" data-id="' + id + '">' + img(id) + '<div class="vinfo"><div class="vname">' + t(D.name) + '</div><span class="tg wlvl">' + t('hud.level', { n: wl }) + '</span><span class="tg own">' + t('shop.ownedCount', { n: cnt }) + '</span></div></button>';
       }
       el.querySelector('#sh-list').innerHTML = list;
 
       const d = el.querySelector('#sh-detail');
       if (Shop.sel === 'mine') {
-        const M = CFG.shop.mines, stock = S.inv.mines | 0, p = M.packs[0], full = stock + 1 > M.cap, poor = S.coins < p.price;
+        const M = CFG.shop.mines, stock = S.inv.mines | 0, cap = Shop.weaponStockCap('mines'), p = M.packs[0], full = stock + 1 > cap, poor = S.coins < p.price;
         const bar = (lab, val, max, txt) => '<div class="st"><span>' + lab + '</span><i><b style="width:' + Math.max(8, Math.min(100, val / max * 100)).toFixed(0) + '%"></b></i><em>' + txt + '</em></div>';
         d.innerHTML =
-          '<div class="dhead"><div class="dname">' + t('shop.mines') + '</div><div class="downed-pill"><span>' + t('shop.owned') + '</span><b>' + stock + '</b><small>/' + M.cap + '</small></div></div>' +
+          '<div class="dhead"><div class="dname">' + t('shop.mines') + '</div><div class="downed-pill"><span>' + t('shop.owned') + '</span><b>' + stock + '</b><small>/' + cap + '</small></div></div>' +
           '<div class="dblurb">' + t('shop.mines.how') + '</div>' +
           '<div class="st-grid">' +
             bar(t('shop.dmg'), CFG.mine.giantDamage, 60, CFG.mine.giantDamage + ' AOE') +
@@ -260,6 +317,7 @@
               '<span>' + (full ? t('shop.full') : t('shop.buyOne')) + '</span>' +
               (full ? '' : '<em>' + COIN + p.price + '</em>') +
             '</button>' +
+            Shop.weaponLevelHtml('mines') +
           '</div>';
         return;
       }
@@ -282,10 +340,10 @@
 
     defenseHtml(id) {
       const S = WZ.Save.data, DF = DEFS[id], C = DF.C, SH = DF.SH, D = CFG.defenseTech;
-      const lvl = S.upgrades.defense | 0, stock = S.inv[DF.inv] | 0;
+      const lvl = S.upgrades.defense | 0, stock = S.inv[DF.inv] | 0, cap = Shop.weaponStockCap(DF.inv);
       const dmg = C.damage * (1 + lvl * D.dmg), rate = (C.rate || 1) * (1 + lvl * D.rate), life = (C.life || 30) * (1 + lvl * D.life);
       const bar = (lab, val, max, txt) => '<div class="st"><span>' + t(lab) + '</span><i><b style="width:' + Math.max(6, Math.min(100, val / max * 100)).toFixed(0) + '%"></b></i><em>' + txt + '</em></div>';
-      const p = SH.packs[0], full = stock + 1 > SH.cap, poor = S.coins < p.price;
+      const p = SH.packs[0], full = stock + 1 > cap, poor = S.coins < p.price;
       const maxed = lvl >= D.max, techPrice = maxed ? 0 : D.prices[lvl];
       let statsHtml = '';
       if (id === 'jet') {
@@ -297,7 +355,7 @@
         statsHtml = bar('shop.dmg', dmg, DF.maxDmg, dmg.toFixed(1) + (DF.splash ? ' AOE' : '')) + bar('shop.rate', rate, DF.maxRate, rate.toFixed(1) + '/s') + bar('shop.range', C.range, 46, C.range + ' M') + bar('shop.life', life, 50, Math.round(life) + ' S');
       }
       return (
-        '<div class="dhead"><div class="dname">' + t(DF.name) + '</div><div class="downed-pill"><span>' + t('shop.owned') + '</span><b>' + stock + '</b><small>/' + SH.cap + '</small></div></div>' +
+        '<div class="dhead"><div class="dname">' + t(DF.name) + '</div><div class="downed-pill"><span>' + t('shop.owned') + '</span><b>' + stock + '</b><small>/' + cap + '</small></div></div>' +
         '<div class="dblurb">' + t(DF.how) + '</div>' +
         '<div class="st-grid">' + statsHtml + '</div>' +
         '<div class="dact-pinned">' +
@@ -305,6 +363,7 @@
             '<span>' + (full ? t('shop.full') : t('shop.buyOne')) + '</span>' +
             (full ? '' : '<em>' + COIN + p.price + '</em>') +
           '</button>' +
+          Shop.weaponLevelHtml(DF.inv) +
           '<div class="tech-row">' +
             '<div class="tech-info">' +
               '<div class="tech-h"><b>' + t('shop.tech') + '</b><span>' + (maxed ? t('shop.tech.max') : t('shop.tech.lvl', { n: lvl, m: D.max })) + '</span></div>' +
@@ -341,6 +400,7 @@
       else if (a === 'buy') { const r = Shop.buyVehicle(id); WZ.Audio.sfx(r === 'ok' ? 'cash' : 'beep'); if (r === 'ok') { Shop.show(id); } }
       else if (a === 'equip') { WZ.Audio.sfx(Shop.equip(id) === 'ok' ? 'go' : 'beep'); }
       else if (a === 'tpack') { WZ.Audio.sfx(Shop.buyTurrets(b.dataset.kind, +b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
+      else if (a === 'wupgrade') { WZ.Audio.sfx(Shop.upgradeWeapon(b.dataset.key) === 'ok' ? 'cash' : 'beep'); }
       else if (a === 'tech') { WZ.Audio.sfx(Shop.buyTech() === 'ok' ? 'cash' : 'beep'); }
       else if (a === 'pack') { WZ.Audio.sfx(Shop.buyMines(+b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
       Shop.paint();

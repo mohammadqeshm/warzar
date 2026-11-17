@@ -56,12 +56,18 @@
       WZ.Fx.text(WZ.I18n.t(key), J.rx, J.ry + 6, J.rz, 'warn');
     },
 
+    mapLimit() {
+      const wl = WZ.Save && WZ.Save.data && WZ.Save.data.weaponLevels;
+      const lvl = (wl && wl.soldiers) || 1;
+      return CFG.calc.weaponMapLimit ? CFG.calc.weaponMapLimit('soldiers', lvl) : 3;
+    },
     /** Deploy a combat soldier at the current location on the map */
     deploy() {
       const c = S.ctx, C = CFG.soldier;
       if (!c || !C) return false;
       const J = c.jeep;
       if (!J.alive) return false;
+      if (S.deployed >= S.mapLimit()) { S.note('hud.mapLimit'); return false; }
       if (S.stock() <= 0) { S.note('hud.nosoldiers'); return false; }
       if (S.cd > 0) return false;
 

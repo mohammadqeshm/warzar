@@ -74,6 +74,7 @@
       M.fromPos.copy(Cam.cam.position); M.fromLook.set(M.jeep.rx, M.jeep.ry + 1.5, M.jeep.rz); M.camBlend = 1;
       WZ.UI.clearScreens(); WZ.UI.hudShow(true); WZ.UI.resetHudCache(); M.updateHud();
       WZ.Audio.unlock(); WZ.Audio.engineStart(); WZ.Input.reset();
+      if (WZ.Input.showInitialStick) WZ.Input.showInitialStick();
       if (WZ.Platform && WZ.Platform.gameplayStart) WZ.Platform.gameplayStart(M.theme, M.data && M.data.level);
     },
 
@@ -127,10 +128,12 @@
     /** KO coins pile up as LOOT (HUD). They are paid out when the mission ends - on a win AND on a fail (they are never lost). */
     onEnemyKO(e) {
       const en = e && e.enemy; if (!en || M.phase !== 'play') return;
-      const K = CFG.economy.kill, ram = e.cause === 'ram' && !en.giant;      // flattening a small enemy with the VEHICLE pays K.ramMul x the normal loot (close-range work)
-      const n = en.giant ? K.giant + K.giantPerMission * (M.data.index || 1) : (en.type === 'brute' ? K.brute : K.grunt) * (ram ? K.ramMul : 1);
+      const K = CFG.economy.kill;
+      const n = en.giant
+        ? (CFG.calc.giantKillCoins ? CFG.calc.giantKillCoins((M.season || 1) - 1) : (K.giant + (K.giantPerSeason || 100) * Math.max(0, (M.season || 1) - 1)))
+        : 1;
       M.killCoins += n;
-      if (n >= 3) WZ.Fx.text('+' + n, en.x, (en.ry || 0) + (en.giant ? 7 : 3.4), en.z, 'coin');
+      WZ.Fx.text('+' + n, en.x, (en.ry || 0) + (en.giant ? 7 : 3.4), en.z, 'coin');
     },
     onDeploy() {
       M.deployedOnce = true;

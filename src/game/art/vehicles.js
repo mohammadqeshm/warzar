@@ -7,12 +7,12 @@
 
   function wheelGeo() {
     const b = B();
-    b.add(G.cyl(18), { rz: Math.PI / 2, sx: 0.72, sy: 0.6, sz: 0.72, color: 0x1E1F20 });
-    b.add(G.cyl(10), { rz: Math.PI / 2, sx: 0.36, sy: 0.68, sz: 0.36, color: 0x72757A });
-    b.add(G.cyl(8), { rz: Math.PI / 2, sx: 0.14, sy: 0.74, sz: 0.14, color: 0x3A3C3E });
+    b.add(G.cyl(18), { rz: Math.PI / 2, sx: 0.65, sy: 0.6, sz: 0.65, color: 0x1E1F20 });
+    b.add(G.cyl(10), { rz: Math.PI / 2, sx: 0.34, sy: 0.68, sz: 0.34, color: 0x72757A });
+    b.add(G.cyl(8), { rz: Math.PI / 2, sx: 0.13, sy: 0.74, sz: 0.13, color: 0x3A3C3E });
     for (let i = 0; i < 9; i++) {
       const a = (i / 9) * Math.PI * 2;
-      b.add(G.box1, { y: Math.cos(a) * 0.73, z: Math.sin(a) * 0.73, rx: a, sx: 0.64, sy: 0.14, sz: 0.2, color: 0x34373A });
+      b.add(G.box1, { y: Math.cos(a) * 0.66, z: Math.sin(a) * 0.66, rx: a, sx: 0.64, sy: 0.12, sz: 0.18, color: 0x34373A });
     }
     return b.build();
   }
@@ -30,8 +30,8 @@
     cb.add(rb(2.5, 0.9, 5.0, 0.22), { y: 1.0 });
     cb.add(rb(2.3, 0.58, 1.95, 0.2), { y: 1.62, z: 1.6 });
     for (const s of [1, -1]) {
-      cb.add(rb(0.85, 0.22, 1.5, 0.1), { x: 1.38 * s, y: 1.38, z: 1.8 });
-      cb.add(rb(0.85, 0.22, 1.5, 0.1), { x: 1.38 * s, y: 1.38, z: -1.8 });
+      cb.add(rb(0.85, 0.2, 1.5, 0.09), { x: 1.38 * s, y: 1.46, z: 1.8 });
+      cb.add(rb(0.85, 0.2, 1.5, 0.09), { x: 1.38 * s, y: 1.46, z: -1.8 });
       cb.add(rb(0.2, 0.62, 2.0, 0.06), { x: 1.2 * s, y: 1.78, z: -1.4 });
     }
     cb.add(rb(2.5, 0.64, 0.2, 0.06), { y: 1.78, z: -2.42 });
@@ -100,7 +100,7 @@
     const wg = wheelGeo(), wmat = new T.MeshLambertMaterial({ vertexColors: true });
     const wheels = [], front = [];
     for (const sx of [1, -1]) for (const sz of [1.8, -1.8]) {
-      const pivot = new T.Group(); pivot.position.set(1.47 * sx, 0.72, sz); root.add(pivot);
+      const pivot = new T.Group(); pivot.position.set(1.47 * sx, 0.64, sz); root.add(pivot);
       const spin = new T.Group(); pivot.add(spin);
       const m = new T.Mesh(wg, wmat); m.castShadow = true; spin.add(m);
       wheels.push(spin); if (sz > 0) front.push(pivot);

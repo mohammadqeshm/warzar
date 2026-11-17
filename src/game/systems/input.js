@@ -4,7 +4,30 @@
   'use strict';
   const IN = {
     stick: { x: 0, y: 0, mag: 0 }, device: 'keys', keys: new Set(), pressed: { deploy: false, boost: false, pause: false, debug: false, skip: false, mine: false, turret: false, soldier: false, heavy: false, bomb: false, heli: false, tank: false, jet: false, weapon: false, wnext: false, wprev: false, wsel: false },
-    boostHeld: false, bot: null, enabled: true, _touchId: -1, _ox: 0, _oy: 0, _tx: 0, _ty: 0, _R: 70, _baseEl: null, _knobEl: null,
+    boostHeld: false, bot: null, enabled: true, _touchId: -1, _ox: 0, _oy: 0, _tx: 0, _ty: 0, _R: 70, _baseEl: null, _knobEl: null, _idleHint: false,
+
+    showInitialStick() {
+      IN._idleHint = true;
+      IN._placeIdleStick();
+    },
+
+    _placeIdleStick() {
+      if (!IN._idleHint || IN._touchId !== -1) return;
+      const w = (typeof window !== 'undefined' && window.innerWidth) || 800;
+      const h = (typeof window !== 'undefined' && window.innerHeight) || 500;
+      IN._R = Math.max(54, Math.min(96, Math.min(w, h) * 0.14));
+      const ox = Math.round(Math.max(IN._R + 24, Math.min(w * 0.22, 165)));
+      const oy = Math.round(h - Math.max(IN._R + 34, Math.min(h * 0.24, 155)));
+      if (IN._baseEl) {
+        IN._baseEl.style.display = 'block';
+        IN._baseEl.style.width = IN._baseEl.style.height = IN._R * 2 + 'px';
+        IN._baseEl.style.transform = 'translate(' + (ox - IN._R) + 'px,' + (oy - IN._R) + 'px)';
+      }
+      if (IN._knobEl) {
+        IN._knobEl.style.display = 'block';
+        IN._knobEl.style.transform = 'translate(' + (ox - 30) + 'px,' + (oy - 30) + 'px)';
+      }
+    },
 
     init(zone, baseEl, knobEl) {
       IN._baseEl = baseEl; IN._knobEl = knobEl;
@@ -13,10 +36,16 @@
       IN.device = (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 'touch' : 'keys';
       const setDev = (d) => { if (IN.device !== d) { IN.device = d; WZ.Events.emit('input:device', d); } };
 
+      window.addEventListener('resize', () => { if (IN._idleHint && IN._touchId === -1) IN._placeIdleStick(); });
+
       window.addEventListener('keydown', (e) => {
         if (e.repeat) { if (e.code.indexOf('Arrow') === 0 || e.code === 'Space') e.preventDefault(); return; }
         WZ.Audio.unlock(); setDev('keys');
         IN.keys.add(e.code);
+        if (IN._idleHint && (e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD' || e.code.indexOf('Arrow') === 0)) {
+          IN._idleHint = false;
+          if (IN._touchId === -1) IN._release();
+        }
         switch (e.code) {
           case 'Space': IN.pressed.deploy = true; e.preventDefault(); break;
           case 'ShiftLeft': case 'ShiftRight': IN.pressed.boost = true; IN.boostHeld = true; break;
@@ -98,6 +127,7 @@
         if (e.pointerType === 'mouse') { if (e.button !== 0) return; setDev('keys'); }   // only the LEFT button drives
         if (WZ.UI && WZ.UI.root && !WZ.UI.root.classList.contains('in-mission')) return;
         if (IN._touchId !== -1) return;
+        IN._idleHint = false;
         IN._touchId = e.pointerId; IN._ox = IN._tx = e.clientX; IN._oy = IN._ty = e.clientY;
         IN._R = Math.max(54, Math.min(96, Math.min(window.innerWidth, window.innerHeight) * 0.14));
         try { zone.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
@@ -126,6 +156,7 @@
 
     _release() {
       IN._touchId = -1;
+      if (IN._idleHint) { IN._placeIdleStick(); return; }
       if (IN._baseEl) IN._baseEl.style.display = 'none';
       if (IN._knobEl) { IN._knobEl.style.display = 'none'; IN._knobEl.style.transform = 'translate(-200px,-200px)'; }
     },
@@ -143,7 +174,10 @@
       if (k.has('KeyD') || k.has('ArrowRight')) x += 1;
       if (k.has('KeyW') || k.has('ArrowUp')) y += 1;
       if (k.has('KeyS') || k.has('ArrowDown')) y -= 1;
-      if (x || y) { const l = Math.hypot(x, y); x /= l; y /= l; }
+      if (x || y) {
+        const l = Math.hypot(x, y); x /= l; y /= l;
+        if (IN._idleHint) { IN._idleHint = false; if (IN._touchId === -1) IN._release(); }
+      }
       else if (IN._touchId !== -1) {
         const dx = IN._tx - IN._ox, dy = IN._ty - IN._oy, d = Math.hypot(dx, dy);
         // dead zone 6 px; FULL speed already at 60% of the ring, so a relaxed/creeping thumb never slows the jeep
@@ -151,7 +185,7 @@
       }
       s.x = x; s.y = y; s.mag = Math.min(1, Math.hypot(x, y));
     },
-    reset() { IN.keys.clear(); IN._release(); IN.stick.x = IN.stick.y = IN.stick.mag = 0; for (const k in IN.pressed) IN.pressed[k] = false; IN.boostHeld = false; },
+    reset() { IN._idleHint = false; IN.keys.clear(); IN._release(); IN.stick.x = IN.stick.y = IN.stick.mag = 0; for (const k in IN.pressed) IN.pressed[k] = false; IN.boostHeld = false; },
   };
   WZ.Input = IN;
 })(window.WZ = window.WZ || {});

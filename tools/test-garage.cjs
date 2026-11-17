@@ -36,6 +36,19 @@ ok(Shop.equip('jeep') === 'ok' && S.equipped.vehicle === 'jeep', 'equip jeep');
 S.coins = 1000; S.inv.mines = 0; ok(Shop.buyMines(1) === 'ok' && S.inv.mines === 5 && S.coins === 1000 - CFG.shop.mines.packs[1].price, 'buy 5 mines');
 S.inv.mines = 38; ok(Shop.buyMines(1) === 'full', 'stock cap'); S.coins = 5; S.inv.mines = 0; ok(Shop.buyMines(0) === 'poor', 'poor for mines');
 
+// --- 10-level weapon upgrades (doubling price & per-map limit growth)
+ok(Shop.weaponLevel('turrets') === 1 && Shop.weaponMapLimit('turrets') === 5, 'turrets start at Lv 1 with map limit 5');
+ok(Shop.weaponMapLimit('jet') === 1 && Shop.weaponMapLimit('tank') === 2 && Shop.weaponMapLimit('heli') === 2, 'jet=1, tank=2, heli=2 at Lv 1');
+const p1 = Shop.weaponUpgradePrice('turrets'), p2 = CFG.calc.weaponUpgradePrice('turrets', 2);
+ok(p2 === p1 * 2, 'weapon upgrade price doubles each level');
+S.coins = 100000;
+for (let lv = 1; lv < 10; lv++) {
+  const curP = Shop.weaponUpgradePrice('turrets');
+  ok(Shop.upgradeWeapon('turrets') === 'ok', 'upgrade turrets to level ' + (lv + 1));
+  if (lv < 9) ok(Shop.weaponUpgradePrice('turrets') === curP * 2, 'next upgrade price doubled');
+}
+ok(Shop.weaponLevel('turrets') === 10 && Shop.weaponMapLimit('turrets') === 50 && Shop.upgradeWeapon('turrets') === 'max', 'turrets reach max Lv 10 with map limit 50');
+
 // --- landmines
 const L = WZ.Landmines, enemies = []; let fxText = [];
 WZ.Audio = { sfx() {} }; WZ.Fx = { shake() {}, hitstop() {}, text(s) { fxText.push(s); } };

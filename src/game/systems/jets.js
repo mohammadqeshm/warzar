@@ -192,9 +192,18 @@
     perPass() { return C.bombsPerPass + Math.floor(tech() / 2); },
 
     // ---------------------------------------------------------------- calling a jet
+    mapLimit() {
+      const wl = WZ.Save && WZ.Save.data && WZ.Save.data.weaponLevels;
+      const lvl = (wl && wl.jet) || 1;
+      return CFG.calc.weaponMapLimit ? CFG.calc.weaponMapLimit('jet', lvl) : 1;
+    },
     call() {
       const c = Jets.ctx; if (!c) return false;
       const J = c.jeep; if (!J.alive || Jets.cd > 0) return false;
+      if (Jets.called >= Jets.mapLimit()) {
+        if (Jets.noteT <= 0) { Jets.noteT = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.mapLimit'), J.rx, J.ry + 6, J.rz, 'warn'); }
+        return false;
+      }
       if (Jets.stock() <= 0) {
         if (Jets.noteT <= 0) { Jets.noteT = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.nojet'), J.rx, J.ry + 6, J.rz, 'warn'); }
         return false;

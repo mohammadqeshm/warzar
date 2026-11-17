@@ -282,6 +282,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .tier i { width: 12px; height: 7px; background: #3a3d42; transform: skewX(-20deg); }
 .tier i.on { background: var(--y); }
 .tg { margin-left: auto; font-size: clamp(12px, 3vw, 15px); padding: 2px 8px; border-radius: 3px; background: #2a2a2c; color: var(--w); white-space: nowrap; }
+.tg.wlvl { margin-left: 0; background: rgba(255, 180, 0, 0.18); color: var(--y); border: 1px solid rgba(255, 180, 0, 0.55); font-size: clamp(11px, 2.6vw, 13px); padding: 1px 6px; }
 .tg.eq { background: var(--grn); color: #0E0E0E; }
 .tg.price { background: var(--y); color: #0E0E0E; }
 .shop-detail {
@@ -328,9 +329,11 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .tech-info { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .tech-h { display: flex; justify-content: space-between; align-items: baseline; color: var(--y); font-size: 13px; letter-spacing: 0.05em; }
 .tech-h span { font-size: 11px; color: var(--w); opacity: 0.85; }
-.tech-pips { display: flex; gap: 4px; }
+.tech-h span em { font-style: normal; color: var(--grn); }
+.tech-pips { display: flex; gap: 3px; }
 .tech-pips i { flex: 1; height: 7px; border-radius: 2px; background: rgba(255,255,255,0.14); border: 1.5px solid #0E0E0E; }
 .tech-pips i.on { background: linear-gradient(#FFD84A, #FF9A00); }
+.wlvl-row .tech-pips i.on { background: linear-gradient(#7CFF8A, #2DB84A); }
 .dact-pinned .btn.tech-btn {
   width: auto; flex: 0 0 auto; min-height: 36px; padding: 5px 10px;
   font-size: 14px; background: #2c3138; color: var(--w); box-shadow: 0 3px 0 #000;
@@ -340,8 +343,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 
 /* ---------- Portrait & Small Screen Responsive Rules ---------- */
 @media (orientation: portrait), (max-width: 720px) {
-  .shop-stage-spacer { display: block; flex: 1 1 16dvh; min-height: 50px; }
-  .shop-main { flex: 0 1 auto; max-height: 74dvh; flex-direction: column; justify-content: flex-end; gap: 6px; }
+  .shop-stage-spacer { display: block; flex: 1 1 22dvh; min-height: 92px; }
+  .shop-main { flex: 0 1 auto; max-height: 70dvh; flex-direction: column; justify-content: flex-end; gap: 6px; }
   .shop-list {
     flex: 0 0 auto; width: 100%; flex-direction: row;
     overflow-x: auto; overflow-y: hidden; padding: 2px 2px 6px; gap: 8px;

@@ -25,10 +25,16 @@
     },
 
     /** returns true when a mine was planted */
+    mapLimit() {
+      const wl = WZ.Save && WZ.Save.data && WZ.Save.data.weaponLevels;
+      const lvl = (wl && wl.mines) || 1;
+      return WZ.CFG.calc.weaponMapLimit ? WZ.CFG.calc.weaponMapLimit('mines', lvl) : 5;
+    },
     plant() {
       const c = L.ctx; if (!c) return false;
       const J = c.jeep, S = WZ.Save.data;
       if (!J.alive || L.cd > 0) return false;
+      if (L.planted >= L.mapLimit()) { L.cd = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.mapLimit'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
       if (L.count <= 0) { L.cd = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.nomines'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
       if (!L.free.length) { L.cd = 0.8; WZ.Fx.text(WZ.I18n.t('hud.maxmines'), J.rx, J.ry + 6, J.rz, 'warn'); return false; }
       const off = J.P.halfLen + C.behind;

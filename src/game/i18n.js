@@ -101,6 +101,8 @@
       'shop.heavy.how': 'Select CANNON and press USE (F) to drop a heavy cannon. Slow fire, but every shell explodes and hurts a whole group.',
       'shop.tech.how': 'Permanent upgrade for all defenses & soldiers: +damage, +lifetime, +fire rate.',
       'shop.tech.lvl': 'LVL {n}/{m}', 'shop.tech.max': 'MAX LEVEL', 'shop.upgrade': 'UPGRADE TECH',
+      'shop.wlvl': 'WEAPON LVL {n}/{m}', 'shop.mapLimit': 'MAP LIMIT: {n}', 'shop.wupgrade': 'UPGRADE LVL',
+      'hud.mapLimit': 'MAP LIMIT REACHED - UPGRADE LEVEL IN SHOP!',
       'shop.dmg': 'DAMAGE', 'shop.life': 'LIFETIME', 'shop.rate': 'FIRE RATE', 'shop.range': 'RANGE', 'shop.splash': 'SPLASH', 'shop.hp': 'HEALTH',
       'brief.tip10': 'Beware: the moment Nana leaves the jeep, enemies rush faster and shoot at her. If Nana dies, the run is over!',
       'brief.tip11': 'Two mines kill the jeep. The first one takes half of its armor.',

@@ -5,6 +5,7 @@
 (function (WZ) {
   'use strict';
   const CFG = WZ.CFG;
+  const SHOP_KEY = { mine: 'mines', gun: 'turrets', soldier: 'soldiers', heavy: 'heavy', bomb: 'bombs', heli: 'heli', tank: 'tank', jet: 'jet' };
   const ITEMS = [
     { id: 'mine', name: 'w.mine', key: '1' },
     { id: 'gun', name: 'w.gun', key: '2' },
@@ -20,11 +21,33 @@
 
     get selId() { return ITEMS[W.sel].id; },
     index(id) { for (let i = 0; i < ITEMS.length; i++) if (ITEMS[i].id === id) return i; return -1; },
+    shopKey(id) { return SHOP_KEY[id] || id; },
+    level(id) {
+      const sk = W.shopKey(id);
+      const wl = WZ.Save && WZ.Save.data && WZ.Save.data.weaponLevels;
+      return Math.max(1, (wl && wl[sk] | 0) || 1);
+    },
+    mapLimit(id) {
+      const sk = W.shopKey(id);
+      return CFG.calc.weaponMapLimit ? CFG.calc.weaponMapLimit(sk, W.level(id)) : 5;
+    },
+    used(id) {
+      switch (id) {
+        case 'mine': return (WZ.Landmines && WZ.Landmines.planted) | 0;
+        case 'gun': case 'heavy': case 'bomb': return (WZ.Turrets && WZ.Turrets.plantedKind ? WZ.Turrets.plantedKind(id) : 0) | 0;
+        case 'soldier': return (WZ.Soldiers && WZ.Soldiers.deployed) | 0;
+        case 'heli': return (WZ.Heli && WZ.Heli.called) | 0;
+        case 'tank': return (WZ.Tanks && WZ.Tanks.called) | 0;
+        case 'jet': return (WZ.Jets && WZ.Jets.called) | 0;
+        default: return 0;
+      }
+    },
+    rem(id) { return Math.max(0, W.mapLimit(id) - W.used(id)); },
 
     init() {
       const i = W.index(WZ.Save.data.settings.weapon); W.sel = i >= 0 ? i : 1;
     },
-    stock(id) {
+    rawStock(id) {
       switch (id) {
         case 'mine': return WZ.Landmines.count;
         case 'gun': return WZ.Turrets.stock('gun');
@@ -36,6 +59,9 @@
         case 'jet': return WZ.Jets.stock();
         default: return 0;
       }
+    },
+    stock(id) {
+      return Math.min(W.rawStock(id), W.rem(id));
     },
     pct(id) {
       switch (id) {

@@ -69,10 +69,19 @@
 
     init(ctx) { Heli.dispose(); Heli.ctx = ctx; Heli.list = []; Heli.called = 0; Heli.kills = 0; Heli.noteT = 0; Heli.cd = 0; },
 
+    mapLimit() {
+      const wl = WZ.Save && WZ.Save.data && WZ.Save.data.weaponLevels;
+      const lvl = (wl && wl.heli) || 1;
+      return CFG.calc.weaponMapLimit ? CFG.calc.weaponMapLimit('heli', lvl) : 2;
+    },
     /** call one helicopter (consumes one from the inventory). Returns true when it took off. */
     call() {
       const c = Heli.ctx; if (!c) return false;
       const J = c.jeep; if (!J.alive || Heli.cd > 0) return false;
+      if (Heli.called >= Heli.mapLimit()) {
+        if (Heli.noteT <= 0) { Heli.noteT = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.mapLimit'), J.rx, J.ry + 6, J.rz, 'warn'); }
+        return false;
+      }
       if (Heli.stock() <= 0) {
         if (Heli.noteT <= 0) { Heli.noteT = 0.8; WZ.Audio.sfx('beep'); WZ.Fx.text(WZ.I18n.t('hud.noheli'), J.rx, J.ry + 6, J.rz, 'warn'); }
         return false;

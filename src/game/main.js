@@ -42,9 +42,10 @@
         Main.startIndex = Math.max(1, (mParam > 0 ? mParam : WZ.Save.data.level) || 1);
         if (Main.params.get('debug')) WZ.UI.toggleDebug(true);
 
-        // 4. Apply user & platform audio state (Required Step 5)
-        WZ.Audio.setMuted(!WZ.Save.data.settings.sound);
-        if (WZ.Platform && !WZ.Platform.audioEnabled) WZ.Audio.setPlatformMuted(true);
+        // 4. Apply platform audio state via Playgama Bridge SDK (no in-game mute button per YouTube Playables guideline)
+        WZ.Save.data.settings.sound = 1;
+        WZ.Audio.setMuted(false);
+        if (WZ.Platform) WZ.Audio.setPlatformMuted(!WZ.Platform.audioEnabled);
 
         Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission, shop: WZ.Scenes.shop };
 

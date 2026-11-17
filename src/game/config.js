@@ -7,9 +7,9 @@
 
     // SEASONS & LEVELS: every season (= one map, see CFG.maps.order) has `levels` levels. Level N has exactly N supply crates.
     // Beating level `levels` of a season unlocks the next season (which starts again at level 1).
-    // Enemy strength grows with the DIFFICULTY number = level + seasonBoost * (season index): every level is tougher than the one before,
-    // and every new season starts where the previous one was getting hard (so season 2 / level 1 is harder than season 1 / level 1).
-    progress: { levels: 10, seasonBoost: 4, seasonBonus: 150, maxGiants: 10 },
+    // Enemy & guardian strength grows with the global behind-the-scenes level = level + seasonBoost * (season index) (1..50 across 5 seasons):
+    // every level is tougher than the one before, and season 2 level 1 is global level 11, season 3 level 10 is global level 30, etc.
+    progress: { levels: 10, seasonBoost: 10, seasonBonus: 150, maxGiants: 10 },
 
     world: { size: 360, half: 180, cell: 3, chunk: 120, hillAmp: 3.0, wallMargin: 6 },
     sim: { step: 1 / 60, maxSteps: 5, hitStopMax: 0.08 },
@@ -34,18 +34,19 @@
       truck: { name: 'ARMORED TRUCK', tier: 3, price: 2500, topSpeed: 18, boostSpeed: 27, accel: 24, hp: 220, handling: 0.62, ram: 1.7, wheelR: 0.98, radius: 1.7,  halfLen: 1.9,  enemyDamageMul: 0.3, blurb: 'A rolling fortress. Shrugs off damage and flattens enemies at low speed.' },
     },
     vehicleOrder: ['jeep', 'buggy', 'truck'],
-    // Landmines the player buys and plants (inventory persists between missions; used mines are gone for good)
+    // Deployable weapons in the Shop: each weapon can be upgraded up to `maxLevel` (10).
+    // Level 1 allows `baseLimit` uses per map; each level upgrade adds `perLevel` more uses per map, and the upgrade price doubles each time.
     shop: {
-      mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3 },
-      turrets: { packs: [{ n: 1, price: 90 }, { n: 3, price: 240 }, { n: 6, price: 450 }], cap: 20, starter: 2 },
-      soldiers: { packs: [{ n: 1, price: 110 }, { n: 3, price: 300 }, { n: 6, price: 560 }], cap: 25, starter: 2 },
-      heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 12, starter: 0 },
-      bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1 },
-      heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 10, starter: 1 },
-      tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 10, starter: 1 },
-      jet: { packs: [{ n: 1, price: 1040 }, { n: 2, price: 1920 }, { n: 4, price: 3600 }], cap: 10, starter: 1 },
+      mines: { packs: [{ n: 1, price: 30 }, { n: 5, price: 130 }, { n: 15, price: 360 }], cap: 40, starter: 3, maxLevel: 10, baseLimit: 5, perLevel: 5, upgradePrice: 20 },
+      turrets: { packs: [{ n: 1, price: 90 }, { n: 3, price: 240 }, { n: 6, price: 450 }], cap: 20, starter: 2, maxLevel: 10, baseLimit: 5, perLevel: 5, upgradePrice: 30 },
+      soldiers: { packs: [{ n: 1, price: 110 }, { n: 3, price: 300 }, { n: 6, price: 560 }], cap: 25, starter: 2, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 35 },
+      heavy: { packs: [{ n: 1, price: 220 }, { n: 3, price: 600 }], cap: 12, starter: 0, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 50 },
+      bombs: { packs: [{ n: 1, price: 160 }, { n: 3, price: 430 }, { n: 6, price: 800 }], cap: 15, starter: 1, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 45 },
+      heli: { packs: [{ n: 1, price: 380 }, { n: 2, price: 700 }, { n: 4, price: 1300 }], cap: 10, starter: 1, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 60 },
+      tank: { packs: [{ n: 1, price: 420 }, { n: 2, price: 780 }, { n: 4, price: 1450 }], cap: 10, starter: 1, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 70 },
+      jet: { packs: [{ n: 1, price: 1040 }, { n: 2, price: 1920 }, { n: 4, price: 3600 }], cap: 10, starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 100 },
     },
-    mine: { maxActive: 10, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
+    mine: { maxActive: 50, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
     // DEFENSE turrets. Bought with coins in the Shop (inventory in Save.inv); every deployment consumes one.
     // NO placement limit: place as many as you own, anywhere. `cooldown` is only a tiny anti double-tap delay.
@@ -105,14 +106,14 @@
     },
 
     spawn: {
-      base: 0.5, perMission: 0.1, aliveCap: 35,
+      base: 0.5, perMission: 0.055, aliveCap: 35,
       ringMin: 50, ringMax: 64, cullDist: 120,
       tutorialRate: 0.4, tutorialCap: 6, tutorialDelay: 2.5,
     },
 
     // Enemies grow stronger every mission AND while a mission drags on (every `every` seconds, up to `max` steps)
     enemy: {
-      hpPerMission: 0.10, dmgPerMission: 0.065, speedPerMission: 0.014, speedMax: 1.35,
+      hpPerMission: 0.06, dmgPerMission: 0.036, speedPerMission: 0.012, speedMax: 1.35,
       ramp: { every: 28, max: 8, hp: 0.08, dmg: 0.06, speed: 0.022 },
       bruteChance: 0.1, bruteChancePerMission: 0.02, bruteChanceMax: 0.3,
     },
@@ -159,14 +160,14 @@
     // While Nana is outside the vehicle it hunts HER instead and a single club hit kills her. Club hits on the vehicle cost armor.
     giant: {
       hp: 130, speed: 7, radius: 2.1, scale: 1, height: 8.4, home: 6.5, aggro: 36, nanaAggro: 46, leash: 85, agroTime: 7, regen: 5,
-      reach: 5.6, nanaReach: 5.2, windup: 0.75, swing: 0.3, cooldown: 1.8, jeepDamage: 22, dmgPerMission: 0.04, jeepKnock: 18,
+      reach: 5.6, nanaReach: 5.2, windup: 0.75, swing: 0.3, cooldown: 1.8, jeepDamage: 22, dmgPerMission: 0.022, jeepKnock: 18,
       ramMinSpeed: 6, ramDamage: 7, ramSelf: 9, ramCooldown: 0.8, tutorialHp: 0.5, tutorialSpeed: 0.85,
       nanaDeathDamage: 9999,
-      // GUARDIAN SCALING (every guardian type merges over this): inside EVERY season each level makes the guardians tougher AND faster than the level before.
-      //   hp    = base * mission.hpMul (difficulty number + map multiplier) * (1 + hpPerLevel * (level - 1))
-      //   speed = base * min(speedMax, (1 + speedPerLevel * (level - 1)) * (1 + speedPerSeason * seasonIndex))      (level = 1..10 of the season, seasonIndex = 0..4)
-      // The tutorial level keeps its own gentle numbers (tutorialHp / tutorialSpeed). Speed is capped so the vehicle (top speed 22+) can always out-run a guardian.
-      hpPerLevel: 0.09, speedPerLevel: 0.03, speedPerSeason: 0.035, speedMax: 1.5,
+      // GUARDIAN SCALING (every guardian type merges over this): uses the global behind-the-scenes level (1..50 across seasons 1..5).
+      //   hp    = base * (1 + hpPerLevel * (globalLevel - 1))
+      //   speed = base * min(speedMax, 1 + speedPerLevel * (globalLevel - 1))
+      // Level 1 of a new season (e.g. global level 11) is strictly tougher than level 10 of the previous season (global level 10).
+      hpPerLevel: 0.11, speedPerLevel: 0.01, speedPerSeason: 0.035, speedMax: 1.5,
     },
 
     enemies: {
@@ -258,7 +259,7 @@
     //  - ICE WAVE: a ring of ice expands from the impact (`radius`, `speed`). The vehicle or Nana touched by the ring take damage + knock-back; the ground it crossed near the impact is left as a slippery ICE PATCH.
     //  - Its melee smash (club rules from CFG.giant) also throws a smaller wave. After a charge it needs `recover` s to get its breath back.
     beast: {
-      hp: 185, speed: 7.2, radius: 2.7, height: 9.4, home: 8, aggro: 44, nanaAggro: 50, leash: 95,
+      hp: 195, speed: 7.2, radius: 2.7, height: 9.4, home: 8, aggro: 44, nanaAggro: 50, leash: 95,
       reach: 7.0, nanaReach: 6.2, windup: 0.8, swing: 0.3, cooldown: 2.3, jeepDamage: 20, jeepKnock: 18,
       charge: { minRange: 13, range: 42, nanaRange: 36, windup: 0.85, speed: 31, dur: 1.2, turn: 1.0, recover: 0.9, cooldown: 4.6, hit: 1.5, hitDamage: 24, hitKnock: 22, tutorialMul: 0.5 },
       wave: { radius: 17, speed: 27, width: 3.0, damage: 17, nanaDamage: 16, knock: 15, patchR: 6.5, patchLife: 10, small: 0.62, tutorialMul: 0.5 },
@@ -287,7 +288,7 @@
     //    A red ring marks the landing spot the whole time; the blast (`radius`) hurts and leaves a magma pool. Below `enrage` HP it throws TWO boulders per volley.
     //  - Magma TRAIL: while it walks it drips small short-lived pools under its feet, so the ground around a Titan is never safe.
     titan: {
-      hp: 190, speed: 6.4, radius: 2.7, height: 10.6, home: 8, aggro: 42, nanaAggro: 48, leash: 92,
+      hp: 175, speed: 6.4, radius: 2.7, height: 10.6, home: 8, aggro: 42, nanaAggro: 48, leash: 92,
       reach: 7.0, nanaReach: 6.3, windup: 0.85, swing: 0.3, cooldown: 2.4, jeepDamage: 24, jeepKnock: 20,
       rock: { range: 38, nanaRange: 32, minRange: 11, windup: 1.05, flight: [1.15, 1.7], cooldown: 4.4, radius: 5.0, damage: 26, nanaDamage: 18, lead: 0.5, enrage: 0.5, pair: 7,
         poolR: 4.0, poolLife: 7.5, handY: 9.4, tutorialMul: 0.5 },
@@ -315,7 +316,8 @@
       upgradeGrowth: 1.32, maxLevel: 8,
       // Coins for knock-outs pile up during the mission ("loot") and are ALWAYS paid out when the mission ends (win or fail), so a lost run
       // never leaves the player unable to afford the upgrades needed to beat the level.
-      kill: { grunt: 1, brute: 3, giant: 30, giantPerMission: 2, ramMul: 10 },   // ramMul: a small enemy flattened by the VEHICLE (cause 'ram') pays this many times the normal KO loot (it is risky, close-range work)
+      // Regular enemies always pay 1 coin (including vehicle ram); crate guardians pay 100 coins in season 1 and +100 per season.
+      kill: { grunt: 1, brute: 1, giant: 100, giantPerSeason: 100, giantPerMission: 0, ramMul: 1 },
     },
 
     ads: { firstDelay: 60, minGap: 90 },
@@ -332,8 +334,31 @@
     // crate count == the LEVEL number (1..10). `crateOverride` is set by WZ.World.generate for the duration of one map build.
     crateOverride: null,
     crateCount: (lvl, tut) => (CFG.calc.crateOverride != null ? CFG.calc.crateOverride : ((tut == null ? lvl <= CFG.mission.tutorialIndex : tut) ? CFG.mission.tutorialCrates : Math.max(1, Math.min(CFG.progress.levels, Math.round(lvl))))),
-    // difficulty scalar fed to every "per mission" formula and hazard system (mission.index)
+    // global behind-the-scenes level (1..50 across seasons 1..5): season 1 L1..10 = 1..10, season 2 L1 = 11, season 3 L10 = 30, etc.
+    globalLevel: (seasonIdx, lvl) => Math.max(0, seasonIdx | 0) * CFG.progress.levels + Math.max(1, lvl | 0),
+    // difficulty scalar fed to every "per mission" formula and hazard system (mission.index == globalLevel)
     difficulty: (seasonIdx, lvl) => lvl + CFG.progress.seasonBoost * seasonIdx,
+    // guardian HP multiplier grows continuously with the global level so level 1 of a new season is always tougher than level 10 of the previous season
+    giantHpMul: (globalLvl, tut) => (tut ? CFG.giant.tutorialHp : 1 + CFG.giant.hpPerLevel * Math.max(0, (globalLvl || 1) - 1)),
+    // guardian kill reward: 100 coins in season 1, +100 coins each subsequent season
+    giantKillCoins: (seasonIdx) => CFG.economy.kill.giant + (CFG.economy.kill.giantPerSeason || 100) * Math.max(0, seasonIdx | 0),
+    // shop weapon level helpers (1..10 levels; each upgrade adds `perLevel` map uses and doubles the next upgrade price)
+    weaponMaxLevel: (key) => (CFG.shop[key] && CFG.shop[key].maxLevel) || 10,
+    weaponMapLimit: (key, lvl) => {
+      const sh = CFG.shop[key]; if (!sh) return 5;
+      const L = Math.max(1, Math.min(sh.maxLevel || 10, (lvl | 0) || 1));
+      return (sh.baseLimit || 1) + (sh.perLevel || 1) * (L - 1);
+    },
+    weaponUpgradePrice: (key, lvl) => {
+      const sh = CFG.shop[key]; if (!sh) return 0;
+      const L = Math.max(1, (lvl | 0) || 1);
+      if (L >= (sh.maxLevel || 10)) return 0;
+      return Math.round((sh.upgradePrice || 50) * Math.pow(2, L - 1));
+    },
+    weaponStockCap: (key, lvl) => {
+      const sh = CFG.shop[key]; if (!sh) return 40;
+      return Math.max(sh.cap || 10, CFG.calc.weaponMapLimit(key, lvl));
+    },
     // how many crates are guarded by a guardian (giant/dino/titan/beast/mech): every crate has a guardian
     giantCount: (lvl, crates) => Math.max(1, Math.min(crates, CFG.progress.maxGiants)),
     timeLimit: (m, n, tut) => { void m; void n; void tut; return 120; },

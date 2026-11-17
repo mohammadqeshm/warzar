@@ -110,15 +110,22 @@
   const mulDmg = () => 1 + tech() * CFG.defenseTech.dmg, mulLife = () => 1 + tech() * CFG.defenseTech.life, mulRate = () => 1 + tech() * CFG.defenseTech.rate;
 
   const L = {
-    ctx: null, list: [], cd: { gun: 0, heavy: 0, bomb: 0 }, noteT: 0, planted: 0, kills: 0, shells: [], blasts: [], sm: null, mm: null, bm: null, gm: null,
+    ctx: null, list: [], cd: { gun: 0, heavy: 0, bomb: 0 }, noteT: 0, planted: 0, plantedByKind: { gun: 0, heavy: 0, bomb: 0 }, kills: 0, shells: [], blasts: [], sm: null, mm: null, bm: null, gm: null,
     stock(kind) { const v = WZ.Save && WZ.Save.data && WZ.Save.data.inv; return v ? (v[INV[kind]] | 0) : 99; },
+    plantedKind(kind) { return (L.plantedByKind && L.plantedByKind[kind || 'gun']) | 0; },
+    mapLimit(kind) {
+      const sk = INV[kind || 'gun'] || 'turrets';
+      const wl = WZ.Save && WZ.Save.data && WZ.Save.data.weaponLevels;
+      const lvl = (wl && wl[sk]) || 1;
+      return CFG.calc.weaponMapLimit ? CFG.calc.weaponMapLimit(sk, lvl) : 5;
+    },
     countKind(kind) { let n = 0; for (const t of L.list) if (t.kind === kind) n++; return n; },
     cdPct(kind) { const k = kind || 'gun', c = L.cd[k]; return c <= 0 ? 1 : 1 - c / DEF[k].cooldown; },
     get ready() { return L.cd.gun <= 0; },
     get count() { return L.list.length; },
 
     init(ctx) {
-      L.dispose(); L.ctx = ctx; L.list = []; L.cd.gun = L.cd.heavy = L.cd.bomb = 0; L.noteT = 0; L.planted = 0; L.kills = 0; L.shells = []; L.blasts = [];
+      L.dispose(); L.ctx = ctx; L.list = []; L.cd.gun = L.cd.heavy = L.cd.bomb = 0; L.noteT = 0; L.planted = 0; L.plantedByKind = { gun: 0, heavy: 0, bomb: 0 }; L.kills = 0; L.shells = []; L.blasts = [];
       if (!shockGeo) shockGeo = new T.RingGeometry(0.85, 1.0, 48).rotateX(-Math.PI / 2);
       for (const k of ['gun', 'heavy', 'bomb']) if (!ringGeo[k]) ringGeo[k] = new T.RingGeometry(DEF[k].range - 0.3, DEF[k].range, 72).rotateX(-Math.PI / 2);
       // bomb shells (dark ball + orange glow), landing markers and blast rings: small instanced pools
@@ -140,6 +147,7 @@
       const c = L.ctx, C = DEF[kind]; if (!c || !C) return false;
       const J = c.jeep; if (!J.alive) return false;
       const say = (k) => { if (L.noteT <= 0) { L.note(k); L.noteT = 0.8; } return false; };
+      if (L.plantedKind(kind) >= L.mapLimit(kind)) return say('hud.mapLimit');
       if (L.stock(kind) <= 0) return say(kind === 'heavy' ? 'hud.noheavy' : kind === 'bomb' ? 'hud.nobombs' : 'hud.noturrets');
       if (L.cd[kind] > 0) return false;
       const sc = C.scale || 1, sn = Math.sin(J.h), cs = Math.cos(J.h), back = -(J.P.halfLen + C.behind);
@@ -164,7 +172,7 @@
       c.scene.add(m.root, ring, shock);
       if (WZ.Save && WZ.Save.data && WZ.Save.data.inv) { const S = WZ.Save.data; S.inv[INV[kind]] = Math.max(0, S.inv[INV[kind]] - 1); if (WZ.Save.save) WZ.Save.save(); }
       L.list.push({ kind, def: C, x: spot.x, z: spot.z, gy, life: C.life * mulLife(), maxLife: C.life * mulLife(), age: 0, yaw: J.h, root: m.root, headG: m.headG, barG: m.barG, lamp: m.lamp, lampMat, ring, shock, cdF: 0.3, side: 1, kick: 0, target: null, retarget: 0, sfxN: 0, sc });
-      L.cd[kind] = C.cooldown; L.planted++;
+      L.cd[kind] = C.cooldown; L.planted++; L.plantedByKind[kind] = (L.plantedByKind[kind] | 0) + 1;
       WZ.Audio.sfx('build'); c.particles.dust(spot.x, gy, spot.z, 8); c.particles.poof(spot.x, gy + 0.6, spot.z, 8, 1.6 * sc);
       WZ.Fx.shake(0.18); WZ.Fx.text(WZ.I18n.t(kind === 'heavy' ? 'hud.heavyOn' : kind === 'bomb' ? 'hud.bombOn' : 'hud.turretOn'), spot.x, gy + 4.2 * sc, spot.z, 'good');
       return true;
