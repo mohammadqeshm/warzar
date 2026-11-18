@@ -4,6 +4,7 @@
 (function (WZ) {
   'use strict';
   const T = THREE, CFG = WZ.CFG, G = WZ.Geo, t = (k, v) => WZ.I18n.t(k, v);
+  const FOG_NEAR = 70, FOG_FAR = 150;
   const COIN = '<svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5f00" stroke-width="2"/><path d="M12 7.2l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z" fill="#8a5f00"/></svg>';
   // deployable catalogue (shop id -> weapon data). `kind` = WZ.Turrets kind / 'soldier' / 'heli'; inv = key in Save.data.inv
   const DEFS = {
@@ -75,17 +76,15 @@
 
     // ------------------------------------------------------------------ lifecycle
     enter(data) {
-      const S = WZ.Save.data; Shop.data = data || {}; Shop.t = 0; Shop.rot = 0.6; Shop.pop = 0; Shop.stage = null; Shop.cam3 = null; Shop._camSnap = true; Shop._stT = 0;
+      Shop.data = data || {}; Shop.t = 0; Shop.rot = 0.6; Shop.pop = 0; Shop.stage = null; Shop.cam3 = null; Shop._camSnap = true; Shop._stT = 0;
       Shop.sel = 'mine';   // the shop sells EQUIPMENT only (no vehicles: the game is always played with the Scout Jeep)
-      Shop.scene = new T.Scene(); Shop.scene.background = new T.Color(0x101318); Shop.scene.fog = new T.Fog(0x101318, 70, 150);
+      Shop.scene = new T.Scene(); Shop.scene.background = new T.Color(0x101318); Shop.scene.fog = new T.Fog(0x101318, FOG_NEAR, FOG_FAR);
       Shop.buildStage();
       Shop.cam = WZ.Cam.cam; Shop.cam.fov = 32; Shop.cam.updateProjectionMatrix();
       WZ.UI.hudShow(false); WZ.UI.clearScreens();
-      const adBtn = (WZ.Platform && WZ.Platform.isRewardedSupported && WZ.Platform.isRewardedSupported())
-        ? '<button class="btn ad-btn" id="sh-ad" data-act="adcoins"><svg class="ad-ico" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="#0E0E0E"/><path d="M9.5 8.2l7 3.8-7 3.8z" fill="#FFB400"/></svg><span>' + t('ad.shop', { n: 150 }) + '</span></button>'
-        : '';
       Shop.ui = WZ.UI._screen('shop', '<div class="shop-top"><button class="btn dark" data-act="back">' + t('shop.back') + '</button><div class="shop-title">' + t('shop.title') + '</div>' +
-        '<div class="shop-wallet-row">' + adBtn + '<div class="shop-coins panel">' + COIN + '<b id="sh-coins">0</b></div></div></div><div class="shop-stage-spacer"></div><div class="shop-main"><div class="shop-list" id="sh-list"></div><div class="shop-detail panel" id="sh-detail"></div></div>' +
+        '<div class="shop-coins panel">' + COIN + '<b id="sh-coins">0</b></div></div>' +
+        '<div class="shop-stage-spacer"></div><div class="shop-main"><div class="shop-list" id="sh-list"></div><div class="shop-detail panel" id="sh-detail"></div></div>' +
         '<div class="shop-drag">' + t('shop.drag') + '</div>');
       Shop.ui.onclick = Shop.click;
       let dragId = -1, dragX = 0;
@@ -148,7 +147,7 @@
         if (drag && getComputedStyle(drag).display !== 'none') b = Math.min(b, drag.getBoundingClientRect().top);
       }
       const pad = 8; l += pad; r -= pad; t += pad; b -= pad;
-      if (r - l < 90 || b - t < 80) {           // panels leave (almost) nothing: fall back to a safe band in the upper middle of the screen
+      if (stacked ? (r <= l || b <= t) : (r - l < 90 || b - t < 80)) { // fit even a short portrait band; only fall back if there is no room
         l = w * 0.2; r = w * 0.8; t = tb.bottom + pad; b = Math.max(t + 90, h * 0.5);
       }
       return { l, r, t, b, w: r - l, h: b - t, cx: (l + r) / 2, cy: (t + b) / 2 };
@@ -173,6 +172,9 @@
       Shop._camSnap = false;
       const c = Shop.cam3 || (Shop.cam3 = { d: dTgt, cx: st.cx, cy: st.cy });
       c.d += (dTgt - c.d) * k; c.cx += (st.cx - c.cx) * k; c.cy += (st.cy - c.cy) * k;
+      // A short band needs a distant camera. Keep the spinning model and turntable in front of the fog.
+      const fog = Shop.scene.fog, shift = Math.max(0, c.d + Math.max(rh, 9) - FOG_NEAR);
+      fog.near = FOG_NEAR + shift; fog.far = FOG_FAR + shift;
       const ty = Shop.lookY || (Shop.r * 0.28 + 0.6);
       cam.position.set(Math.sin(az) * Math.cos(pitch) * c.d, ty + Math.sin(pitch) * c.d, Math.cos(az) * Math.cos(pitch) * c.d);
       cam.lookAt(0, ty, 0);
@@ -201,7 +203,7 @@
       wx.save(); wx.beginPath(); wx.rect(0, 392, 1024, 56); wx.clip(); wx.fillStyle = '#FFB400'; wx.fillRect(0, 392, 1024, 56); wx.fillStyle = '#0E0E0E';
       for (let i = -2; i < 40; i++) { wx.beginPath(); wx.moveTo(i * 56, 448); wx.lineTo(i * 56 + 28, 448); wx.lineTo(i * 56 + 56, 392); wx.lineTo(i * 56 + 28, 392); wx.fill(); } wx.restore();
       wx.font = '900 150px Impact, Haettenschweiler, "Arial Black", sans-serif'; wx.textAlign = 'center'; wx.fillStyle = 'rgba(236,233,225,0.09)'; wx.fillText('WARZAR', 512, 250);
-      wx.font = '900 40px Impact, "Arial Black", sans-serif'; wx.fillStyle = 'rgba(255,180,0,0.55)'; wx.fillText('MOTOR POOL', 512, 320);
+      wx.font = '900 40px Impact, "Arial Black", sans-serif'; wx.fillStyle = 'rgba(255,180,0,0.55)'; wx.fillText(t('shop.motorPool'), 512, 320, 640);
       const wall = new T.Mesh(new T.PlaneGeometry(130, 65), new T.MeshBasicMaterial({ map: new T.CanvasTexture(wc), fog: false })); wall.position.set(0, 24, -34); sc.add(wall);
       for (const sx of [-1, 1]) { const p = mk(new T.BoxGeometry(0.5, 30, 0.5), 0xFFF0C8, { basic: true }); p.position.set(sx * 26, 15, -31); sc.add(p); }
       // lights
@@ -261,7 +263,7 @@
         return frame(g, { rig: m });
       }
       const mdl = WZ.Vehicles.build(id), c = WZ.Heroes.commander(), n = WZ.Heroes.nana();
-      c.setMode('sit'); n.setMode('sit'); mdl.seatCmdr.add(c.root); mdl.seatNana.add(n.root);
+      c.setMode('sit'); n.setMode('sit'); n.pan.visible = false; mdl.seatCmdr.add(c.root); mdl.seatNana.add(n.root);
       for (let i = 0; i < 45; i++) { c.update(1 / 60); n.update(1 / 60); }
       return frame(mdl.root, { model: mdl, heroes: [c, n] });
     },
@@ -336,54 +338,52 @@
       el.querySelector('#sh-list').innerHTML = list;
 
       const d = el.querySelector('#sh-detail');
+      const scrollTop = d.dataset.item === Shop.sel ? d.firstElementChild.scrollTop : 0;
       if (Shop.sel === 'mine') {
-        const M = CFG.shop.mines, stock = S.inv.mines | 0, cap = Shop.weaponStockCap('mines'), p = M.packs[0], full = stock + 1 > cap, poor = S.coins < p.price;
         const bar = (lab, val, max, txt) => '<div class="st"><span>' + lab + '</span><i><b style="width:' + Math.max(8, Math.min(100, val / max * 100)).toFixed(0) + '%"></b></i><em>' + txt + '</em></div>';
-        d.innerHTML =
-          '<div class="dhead"><div class="dname">' + t('shop.mines') + '</div><div class="downed-pill"><span>' + t('shop.owned') + '</span><b>' + stock + '</b><small>/' + cap + '</small></div></div>' +
-          '<div class="dblurb">' + t('shop.mines.how') + '</div>' +
-          '<div class="st-grid">' +
-            bar(t('shop.dmg'), CFG.mine.giantDamage, 60, CFG.mine.giantDamage + ' AOE') +
-            bar(t('shop.splash'), CFG.mine.blast, 10, CFG.mine.blast + ' M') +
-          '</div>' +
-          '<div class="dact-pinned">' +
-            '<button class="btn big buy-single" data-act="pack" data-i="0"' + (full || poor ? ' disabled' : '') + '>' +
-              '<span>' + (full ? t('shop.full') : t('shop.buyOne')) + '</span>' +
-              (full ? '' : '<em>' + COIN + p.price + '</em>') +
-            '</button>' +
-            Shop.weaponLevelHtml('mines') +
-          '</div>';
+        d.innerHTML = Shop.detailHtml('shop.mines', 'shop.mines.how', 'mines',
+          bar(t('shop.dmg'), CFG.mine.giantDamage, 60, t('shop.unit.areaDamage', { n: CFG.mine.giantDamage })) +
+          bar(t('shop.splash'), CFG.mine.blast, 10, t('shop.unit.distance', { n: CFG.mine.blast })));
+      } else if (DEFS[Shop.sel]) {
+        d.innerHTML = Shop.defenseHtml(Shop.sel);
+      } else {
+        Shop.sel = 'mine'; Shop.show('mine'); Shop.paint();   // safety net: an unknown selection falls back to the mines card
         return;
       }
-      if (DEFS[Shop.sel]) { d.innerHTML = Shop.defenseHtml(Shop.sel); return; }
-      Shop.sel = 'mine'; Shop.show('mine'); Shop.paint();   // safety net: an unknown selection falls back to the mines card
+      d.dataset.item = Shop.sel;
+      if (scrollTop) d.firstElementChild.scrollTop = scrollTop;
     },
 
     defenseHtml(id) {
-      const S = WZ.Save.data, DF = DEFS[id], C = DF.C, SH = DF.SH;
-      const lvl = 0, stock = S.inv[DF.inv] | 0, cap = Shop.weaponStockCap(DF.inv);
+      const DF = DEFS[id], C = DF.C, lvl = 0;
       const dmg = C.damage, rate = C.rate || 1, life = C.life || 30;
       const bar = (lab, val, max, txt) => '<div class="st"><span>' + t(lab) + '</span><i><b style="width:' + Math.max(6, Math.min(100, val / max * 100)).toFixed(0) + '%"></b></i><em>' + txt + '</em></div>';
-      const p = SH.packs[0], full = stock + 1 > cap, poor = S.coins < p.price;
       let statsHtml = '';
       if (id === 'jet') {
-        statsHtml = bar('shop.jet.dmg', dmg, DF.maxDmg, dmg.toFixed(0) + ' AOE') + bar('shop.passes', C.passes, 5, String(C.passes)) + bar('shop.bombs', C.bombsPerPass + Math.floor(lvl / 2), 12, String(C.bombsPerPass + Math.floor(lvl / 2))) + bar('shop.splash', DF.splash, 10, DF.splash + ' M');
+        statsHtml = bar('shop.jet.dmg', dmg, DF.maxDmg, t('shop.unit.areaDamage', { n: dmg.toFixed(0) })) + bar('shop.passes', C.passes, 5, String(C.passes)) + bar('shop.bombs', C.bombsPerPass + Math.floor(lvl / 2), 12, String(C.bombsPerPass + Math.floor(lvl / 2))) + bar('shop.splash', DF.splash, 10, t('shop.unit.distance', { n: DF.splash }));
       } else if (id === 'soldier') {
         const hp = Math.round(C.hp * (1 + lvl * 0.15));
-        statsHtml = bar('shop.dmg', dmg, DF.maxDmg, dmg.toFixed(1)) + bar('shop.hp', hp, 90, String(hp)) + bar('shop.rate', rate, DF.maxRate, rate.toFixed(1) + '/s') + bar('shop.life', life, 60, Math.round(life) + ' S');
+        statsHtml = bar('shop.dmg', dmg, DF.maxDmg, dmg.toFixed(1)) + bar('shop.hp', hp, 90, String(hp)) + bar('shop.rate', rate, DF.maxRate, t('shop.unit.rate', { n: rate.toFixed(1) })) + bar('shop.life', life, 60, t('shop.unit.duration', { n: Math.round(life) }));
       } else {
-        statsHtml = bar('shop.dmg', dmg, DF.maxDmg, dmg.toFixed(1) + (DF.splash ? ' AOE' : '')) + bar('shop.rate', rate, DF.maxRate, rate.toFixed(1) + '/s') + bar('shop.range', C.range, 46, C.range + ' M') + bar('shop.life', life, 50, Math.round(life) + ' S');
+        statsHtml = bar('shop.dmg', dmg, DF.maxDmg, DF.splash ? t('shop.unit.areaDamage', { n: dmg.toFixed(1) }) : dmg.toFixed(1)) + bar('shop.rate', rate, DF.maxRate, t('shop.unit.rate', { n: rate.toFixed(1) })) + bar('shop.range', C.range, 46, t('shop.unit.distance', { n: C.range })) + bar('shop.life', life, 50, t('shop.unit.duration', { n: Math.round(life) }));
       }
+      return Shop.detailHtml(DF.name, DF.how, DF.inv, statsHtml, DF.kind);
+    },
+
+    detailHtml(name, how, key, statsHtml, kind) {
+      const S = WZ.Save.data, stock = S.inv[key] | 0, cap = Shop.weaponStockCap(key), p = CFG.shop[key].packs[0];
+      const full = stock + 1 > cap, poor = S.coins < p.price;
       return (
-        '<div class="dhead"><div class="dname">' + t(DF.name) + '</div><div class="downed-pill"><span>' + t('shop.owned') + '</span><b>' + stock + '</b><small>/' + cap + '</small></div></div>' +
-        '<div class="dblurb">' + t(DF.how) + '</div>' +
-        '<div class="st-grid">' + statsHtml + '</div>' +
+        '<div class="shop-detail-body">' +
+          '<div class="dhead"><div class="dname">' + t(name) + '</div><div class="downed-pill"><span>' + t('shop.owned') + '</span><b>' + stock + '</b><small>/' + cap + '</small></div></div>' +
+          '<div class="dblurb">' + t(how) + '</div><div class="st-grid">' + statsHtml + '</div>' +
+        '</div>' +
         '<div class="dact-pinned">' +
-          '<button class="btn big buy-single" data-act="tpack" data-kind="' + DF.kind + '" data-i="0"' + (full || poor ? ' disabled' : '') + '>' +
+          '<button class="btn big buy-single" ' + (kind ? 'data-act="tpack" data-kind="' + kind + '"' : 'data-act="pack"') + ' data-i="0"' + (full || poor ? ' disabled' : '') + '>' +
             '<span>' + (full ? t('shop.full') : t('shop.buyOne')) + '</span>' +
             (full ? '' : '<em>' + COIN + p.price + '</em>') +
           '</button>' +
-          Shop.weaponLevelHtml(DF.inv) +
+          Shop.weaponLevelHtml(key) +
         '</div>'
       );
     },
@@ -392,20 +392,6 @@
       const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
       const a = b.dataset.act, id = b.dataset.id; WZ.Audio.unlock();
       if (a === 'back') { WZ.Audio.sfx('click'); Shop.back(); return; }
-      if (a === 'adcoins') {
-        if (!WZ.Platform || !WZ.Platform.showRewarded) return;
-        b.disabled = true;
-        WZ.Platform.showRewarded('shop_coins').then((granted) => {
-          b.disabled = false;
-          if (granted) {
-            WZ.Save.data.coins += 150;
-            WZ.Save.save(); WZ.Save.flush();
-            WZ.Audio.sfx('win');
-            if (Shop.ui && Shop.ui.isConnected) Shop.paint();
-          }
-        });
-        return;
-      }
       if (a === 'sel') { WZ.Audio.sfx('click'); if (Shop.sel !== id) { Shop.sel = id; Shop.show(id); } }
       else if (a === 'tpack') { WZ.Audio.sfx(Shop.buyTurrets(b.dataset.kind, +b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
       else if (a === 'wupgrade') { WZ.Audio.sfx(Shop.upgradeWeapon(b.dataset.key) === 'ok' ? 'cash' : 'beep'); }

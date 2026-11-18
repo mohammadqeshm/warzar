@@ -34,7 +34,7 @@ global.bridge = {
   },
   platform: {
     id: 'youtube',
-    language: 'es',
+    language: 'ru',
     isAudioEnabled: false,
     isPaused: false,
     on(ev, cb) { listeners.platform[ev] = cb; },
@@ -106,11 +106,11 @@ for (const f of ['config.js', 'rng.js', 'events.js', 'util.js', 'platform.js', '
   listeners.platform.audio_state_changed(true);
   ok(WZ.Audio.platformMuted === false && WZ.Audio.muted === false, 'Platform audio_state_changed(true) unmutes when userMuted is false');
 
-  // Localization from platform.language ('es')
+  // Localization from platform.language ('ru')
   await WZ.Save.init();
   WZ.I18n.init();
-  ok(WZ.I18n.lang === 'es', 'Language initialized from bridge.platform.language (es)');
-  ok(WZ.I18n.t('menu.play') === 'JUGAR', 'Spanish translation applied');
+  ok(WZ.I18n.lang === 'ru', 'Language initialized from bridge.platform.language (ru)');
+  ok(WZ.I18n.t('menu.play') === 'ИГРАТЬ', 'Russian translation applied');
 
   // Storage get/set via Bridge storage
   WZ.Save.data.coins = 777;

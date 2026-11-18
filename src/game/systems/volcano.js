@@ -171,7 +171,7 @@
       if (!doTick) return;
       if (N.out && !N.isKO && N.state !== 'BOARDING' && L.inLava(N.x, N.z)) {
         N.iframes = 0; N.hurt(MC.lavaNana * tick * V.tm); c.particles.sparks(N.x, N.ry + 0.6, N.z, 4, 1, 0.5, 0.1);
-        if (rnd() < 0.5) WZ.Fx.text('LAVA!', N.rx, N.ry + 4, N.rz, 'warn');
+        if (rnd() < 0.5) WZ.Fx.text((WZ.t ? WZ.t('hud.pool') : 'MAGMA!'), N.rx, N.ry + 4, N.rz, 'warn');
       }
       for (let i = 0; i < E.list.length; i++) {
         const e = E.list[i]; if (!e.active || e.state === 2 || !L.inLava(e.x, e.z)) continue;

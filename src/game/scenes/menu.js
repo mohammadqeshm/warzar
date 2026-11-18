@@ -377,8 +377,9 @@
     play() {
       const Main = WZ.Main, S = WZ.Save.data;
       const theme = Menu.themeOf(), lvl = WZ.Progress.current(theme);
-      Main.startIndex = lvl; void S;
-      Main.go('mission', { theme, level: lvl, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+      Main.startIndex = lvl;
+      const quickStart = theme === 'village' && lvl === 1 && !S.flags.tutorialDone;
+      Main.go('mission', { theme, level: lvl, quickStart, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
     },
 
     exit() {

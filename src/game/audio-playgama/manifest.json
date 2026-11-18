@@ -1,0 +1,1106 @@
+{
+  "version": 2,
+  "format": "mp3",
+  "sampleRate": 44100,
+  "profile": "playgama-licensed",
+  "music": "music_menu",
+  "missionMusic": "music_mission",
+  "engine": {
+    "scale": 0.72,
+    "layers": [
+      {
+        "value": 0,
+        "file": "engine_idle"
+      },
+      {
+        "value": 0.225,
+        "file": "engine_low"
+      },
+      {
+        "value": 0.45,
+        "file": "engine_cruise"
+      },
+      {
+        "value": 0.675,
+        "file": "engine_fast"
+      },
+      {
+        "value": 0.9,
+        "file": "engine_top"
+      },
+      {
+        "value": 1.1,
+        "file": "engine_boost"
+      }
+    ],
+    "baseHz": 74
+  },
+  "wind": {
+    "scale": 0.85,
+    "layers": [
+      {
+        "value": 0.14,
+        "file": "tornado_breeze"
+      },
+      {
+        "value": 0.42,
+        "file": "tornado_near"
+      },
+      {
+        "value": 0.72,
+        "file": "tornado_strong"
+      },
+      {
+        "value": 1,
+        "file": "tornado_max"
+      }
+    ]
+  },
+  "sfx": {
+    "gun": {
+      "gap": 0.06,
+      "files": [
+        "sfx_gun",
+        "sfx_gun_2",
+        "sfx_gun_3"
+      ]
+    },
+    "tshot": {
+      "gap": 0.055,
+      "files": [
+        "sfx_tshot"
+      ]
+    },
+    "bonk": {
+      "gap": 0.07,
+      "files": [
+        "sfx_bonk"
+      ]
+    },
+    "hit": {
+      "gap": 0.08,
+      "files": [
+        "sfx_hit",
+        "sfx_hit_2",
+        "sfx_hit_3"
+      ]
+    },
+    "hurt": {
+      "gap": 0.1,
+      "files": [
+        "sfx_hurt"
+      ]
+    },
+    "ko": {
+      "gap": 0.06,
+      "files": [
+        "sfx_ko"
+      ]
+    },
+    "ram": {
+      "gap": 0.09,
+      "files": [
+        "sfx_ram",
+        "sfx_ram_2",
+        "sfx_ram_3"
+      ]
+    },
+    "crash": {
+      "gap": 0.11,
+      "files": [
+        "sfx_crash",
+        "sfx_crash_2",
+        "sfx_crash_3"
+      ]
+    },
+    "thud": {
+      "gap": 0.08,
+      "files": [
+        "sfx_thud",
+        "sfx_thud_2",
+        "sfx_thud_3"
+      ]
+    },
+    "bag": {
+      "gap": 0.08,
+      "files": [
+        "sfx_bag",
+        "sfx_bag_2",
+        "sfx_bag_3"
+      ]
+    },
+    "barrel": {
+      "gap": 0.08,
+      "files": [
+        "sfx_barrel",
+        "sfx_barrel_2",
+        "sfx_barrel_3"
+      ]
+    },
+    "grab": {
+      "gap": 0.08,
+      "files": [
+        "sfx_grab"
+      ]
+    },
+    "deliver": {
+      "gap": 0.1,
+      "files": [
+        "sfx_deliver"
+      ]
+    },
+    "cash": {
+      "gap": 0.12,
+      "files": [
+        "sfx_cash"
+      ]
+    },
+    "deploy": {
+      "gap": 0.08,
+      "files": [
+        "sfx_deploy"
+      ]
+    },
+    "recall": {
+      "gap": 0.08,
+      "files": [
+        "sfx_recall"
+      ]
+    },
+    "board": {
+      "gap": 0.08,
+      "files": [
+        "sfx_board"
+      ]
+    },
+    "boost": {
+      "gap": 0.25,
+      "files": [
+        "sfx_boost"
+      ]
+    },
+    "click": {
+      "gap": 0.04,
+      "files": [
+        "sfx_click"
+      ]
+    },
+    "go": {
+      "gap": 0.15,
+      "files": [
+        "sfx_go"
+      ]
+    },
+    "beep": {
+      "gap": 0.08,
+      "files": [
+        "sfx_beep"
+      ]
+    },
+    "revive": {
+      "gap": 0.18,
+      "files": [
+        "sfx_revive"
+      ]
+    },
+    "nanako": {
+      "gap": 0.25,
+      "files": [
+        "sfx_nanako"
+      ]
+    },
+    "win": {
+      "gap": 0.4,
+      "files": [
+        "sfx_win"
+      ]
+    },
+    "lose": {
+      "gap": 0.4,
+      "files": [
+        "sfx_lose"
+      ]
+    },
+    "boom": {
+      "gap": 0.09,
+      "files": [
+        "sfx_boom",
+        "sfx_boom_2",
+        "sfx_boom_3"
+      ]
+    },
+    "blast": {
+      "gap": 0.1,
+      "files": [
+        "sfx_blast",
+        "sfx_blast_2",
+        "sfx_blast_3"
+      ]
+    },
+    "ignite": {
+      "gap": 0.38,
+      "files": [
+        "sfx_ignite"
+      ]
+    },
+    "burn": {
+      "gap": 0.35,
+      "files": [
+        "sfx_burn"
+      ]
+    },
+    "tank": {
+      "gap": 0.24,
+      "files": [
+        "sfx_tank"
+      ]
+    },
+    "cannon": {
+      "gap": 0.11,
+      "files": [
+        "sfx_cannon",
+        "sfx_cannon_2",
+        "sfx_cannon_3"
+      ]
+    },
+    "build": {
+      "gap": 0.12,
+      "files": [
+        "sfx_build"
+      ]
+    },
+    "mine": {
+      "gap": 0.09,
+      "files": [
+        "sfx_mine"
+      ]
+    },
+    "siren": {
+      "gap": 0.5,
+      "files": [
+        "sfx_siren"
+      ]
+    },
+    "wind": {
+      "gap": 0.36,
+      "files": [
+        "sfx_wind"
+      ]
+    },
+    "roar": {
+      "gap": 0.42,
+      "files": [
+        "sfx_roar"
+      ]
+    },
+    "club": {
+      "gap": 0.2,
+      "files": [
+        "sfx_club",
+        "sfx_club_2",
+        "sfx_club_3"
+      ]
+    },
+    "swish": {
+      "gap": 0.12,
+      "files": [
+        "sfx_swish"
+      ]
+    },
+    "mortar": {
+      "gap": 0.12,
+      "files": [
+        "sfx_mortar",
+        "sfx_mortar_2",
+        "sfx_mortar_3"
+      ]
+    },
+    "heli": {
+      "gap": 0.22,
+      "files": [
+        "sfx_heli"
+      ]
+    },
+    "jet": {
+      "gap": 0.55,
+      "files": [
+        "sfx_jet"
+      ]
+    },
+    "whistle": {
+      "gap": 0.11,
+      "files": [
+        "sfx_whistle"
+      ]
+    },
+    "dflame": {
+      "gap": 0.22,
+      "files": [
+        "sfx_dflame"
+      ]
+    },
+    "dino": {
+      "gap": 0.5,
+      "files": [
+        "sfx_dino"
+      ]
+    },
+    "pickup": {
+      "gap": 0.1,
+      "files": [
+        "sfx_pickup"
+      ]
+    },
+    "clock": {
+      "gap": 0.1,
+      "files": [
+        "sfx_clock"
+      ]
+    },
+    "rumble": {
+      "gap": 0.42,
+      "files": [
+        "sfx_rumble",
+        "sfx_rumble_2",
+        "sfx_rumble_3"
+      ]
+    },
+    "spawn": {
+      "gap": 0.08,
+      "files": [
+        "sfx_spawn"
+      ]
+    },
+    "buy": {
+      "gap": 0.12,
+      "files": [
+        "sfx_cash"
+      ]
+    },
+    "tick": {
+      "gap": 0.18,
+      "files": [
+        "sfx_tick_hi",
+        "sfx_tick_lo"
+      ]
+    }
+  },
+  "clips": {
+    "sfx_gun": {
+      "frames": 5733,
+      "encodedFrames": 6912,
+      "delay": 1105,
+      "bytes": 2006,
+      "peak": 0.14387,
+      "source": "sci-fi-sounds/Audio/laserSmall_000.ogg"
+    },
+    "sfx_gun_2": {
+      "frames": 5733,
+      "encodedFrames": 6912,
+      "delay": 1105,
+      "bytes": 2607,
+      "peak": 0.18701,
+      "source": "sci-fi-sounds/Audio/laserSmall_002.ogg"
+    },
+    "sfx_gun_3": {
+      "frames": 5733,
+      "encodedFrames": 6912,
+      "delay": 1105,
+      "bytes": 2137,
+      "peak": 0.22,
+      "source": "sci-fi-sounds/Audio/laserSmall_004.ogg"
+    },
+    "sfx_tshot": {
+      "frames": 7056,
+      "encodedFrames": 9216,
+      "delay": 1105,
+      "bytes": 2476,
+      "peak": 0.24,
+      "source": "sci-fi-sounds/Audio/laserSmall_003.ogg"
+    },
+    "sfx_bonk": {
+      "frames": 11907,
+      "encodedFrames": 13824,
+      "delay": 1105,
+      "bytes": 4486,
+      "peak": 0.31906,
+      "source": "rpg/OGG/metalPot2.ogg"
+    },
+    "sfx_hit": {
+      "frames": 7938,
+      "encodedFrames": 9216,
+      "delay": 1105,
+      "bytes": 1562,
+      "peak": 0.10291,
+      "source": "sci-fi-sounds/Audio/impactMetal_000.ogg"
+    },
+    "sfx_hit_2": {
+      "frames": 7938,
+      "encodedFrames": 9216,
+      "delay": 1105,
+      "bytes": 1536,
+      "peak": 0.18,
+      "source": "sci-fi-sounds/Audio/impactMetal_001.ogg"
+    },
+    "sfx_hit_3": {
+      "frames": 7938,
+      "encodedFrames": 9216,
+      "delay": 1105,
+      "bytes": 1536,
+      "peak": 0.10449,
+      "source": "sci-fi-sounds/Audio/impactMetal_004.ogg"
+    },
+    "sfx_hurt": {
+      "frames": 11466,
+      "encodedFrames": 12672,
+      "delay": 1105,
+      "bytes": 1900,
+      "peak": 0.37992,
+      "source": "sci-fi-sounds/Audio/impactMetal_002.ogg"
+    },
+    "sfx_ko": {
+      "frames": 10143,
+      "encodedFrames": 11520,
+      "delay": 1105,
+      "bytes": 4092,
+      "peak": 0.27935,
+      "source": "sci-fi-sounds/Audio/slime_000.ogg"
+    },
+    "sfx_ram": {
+      "frames": 12348,
+      "encodedFrames": 13824,
+      "delay": 1105,
+      "bytes": 2004,
+      "peak": 0.38655,
+      "source": "sci-fi-sounds/Audio/impactMetal_003.ogg"
+    },
+    "sfx_ram_2": {
+      "frames": 12348,
+      "encodedFrames": 13824,
+      "delay": 1105,
+      "bytes": 2030,
+      "peak": 0.32748,
+      "source": "sci-fi-sounds/Audio/impactMetal_004.ogg"
+    },
+    "sfx_ram_3": {
+      "frames": 12348,
+      "encodedFrames": 13824,
+      "delay": 1105,
+      "bytes": 2004,
+      "peak": 0.46,
+      "source": "sci-fi-sounds/Audio/impactMetal_002.ogg"
+    },
+    "sfx_crash": {
+      "frames": 14994,
+      "encodedFrames": 17280,
+      "delay": 1105,
+      "bytes": 4981,
+      "peak": 0.49,
+      "source": "rpg/OGG/metalPot3.ogg"
+    },
+    "sfx_crash_2": {
+      "frames": 14994,
+      "encodedFrames": 17280,
+      "delay": 1105,
+      "bytes": 4981,
+      "peak": 0.49,
+      "source": "rpg/OGG/metalPot2.ogg"
+    },
+    "sfx_crash_3": {
+      "frames": 14994,
+      "encodedFrames": 17280,
+      "delay": 1105,
+      "bytes": 4483,
+      "peak": 0.49,
+      "source": "rpg/OGG/metalPot1.ogg"
+    },
+    "sfx_thud": {
+      "frames": 8379,
+      "encodedFrames": 10368,
+      "delay": 1105,
+      "bytes": 3285,
+      "peak": 0.32,
+      "source": "rpg/OGG/bookPlace1.ogg"
+    },
+    "sfx_thud_2": {
+      "frames": 8379,
+      "encodedFrames": 10368,
+      "delay": 1105,
+      "bytes": 3337,
+      "peak": 0.32,
+      "source": "rpg/OGG/bookPlace2.ogg"
+    },
+    "sfx_thud_3": {
+      "frames": 8379,
+      "encodedFrames": 10368,
+      "delay": 1105,
+      "bytes": 3311,
+      "peak": 0.32,
+      "source": "rpg/OGG/bookPlace3.ogg"
+    },
+    "sfx_bag": {
+      "frames": 9261,
+      "encodedFrames": 11520,
+      "delay": 1105,
+      "bytes": 3362,
+      "peak": 0.33,
+      "source": "rpg/OGG/footstep03.ogg"
+    },
+    "sfx_bag_2": {
+      "frames": 9261,
+      "encodedFrames": 11520,
+      "delay": 1105,
+      "bytes": 3260,
+      "peak": 0.33,
+      "source": "rpg/OGG/footstep06.ogg"
+    },
+    "sfx_bag_3": {
+      "frames": 9261,
+      "encodedFrames": 11520,
+      "delay": 1105,
+      "bytes": 2788,
+      "peak": 0.33,
+      "source": "rpg/OGG/footstep08.ogg"
+    },
+    "sfx_barrel": {
+      "frames": 12789,
+      "encodedFrames": 14976,
+      "delay": 1105,
+      "bytes": 4511,
+      "peak": 0.31562,
+      "source": "rpg/OGG/doorClose_1.ogg"
+    },
+    "sfx_barrel_2": {
+      "frames": 12789,
+      "encodedFrames": 14976,
+      "delay": 1105,
+      "bytes": 4406,
+      "peak": 0.42,
+      "source": "rpg/OGG/doorClose_2.ogg"
+    },
+    "sfx_barrel_3": {
+      "frames": 12789,
+      "encodedFrames": 14976,
+      "delay": 1105,
+      "bytes": 4616,
+      "peak": 0.42,
+      "source": "rpg/OGG/doorClose_3.ogg"
+    },
+    "sfx_grab": {
+      "frames": 10584,
+      "encodedFrames": 12672,
+      "delay": 1105,
+      "bytes": 3754,
+      "peak": 0.28,
+      "source": "rpg/OGG/metalLatch.ogg"
+    },
+    "sfx_deliver": {
+      "frames": 17199,
+      "encodedFrames": 18432,
+      "delay": 1105,
+      "bytes": 3542,
+      "peak": 0.32699,
+      "source": "interface-sounds/Audio/confirmation_002.ogg"
+    },
+    "sfx_cash": {
+      "frames": 11025,
+      "encodedFrames": 12672,
+      "delay": 1105,
+      "bytes": 5556,
+      "peak": 0.29,
+      "source": "rpg/OGG/handleCoins2.ogg"
+    },
+    "sfx_deploy": {
+      "frames": 6266,
+      "encodedFrames": 8064,
+      "delay": 1105,
+      "bytes": 2946,
+      "peak": 0.14583,
+      "source": "interface-sounds/Audio/open_001.ogg"
+    },
+    "sfx_recall": {
+      "frames": 3968,
+      "encodedFrames": 5760,
+      "delay": 1105,
+      "bytes": 2164,
+      "peak": 0.27,
+      "source": "interface-sounds/Audio/back_003.ogg"
+    },
+    "sfx_board": {
+      "frames": 8820,
+      "encodedFrames": 10368,
+      "delay": 1105,
+      "bytes": 3260,
+      "peak": 0.3,
+      "source": "rpg/OGG/metalClick.ogg"
+    },
+    "sfx_boost": {
+      "frames": 31752,
+      "encodedFrames": 33408,
+      "delay": 1105,
+      "bytes": 10252,
+      "peak": 0.47,
+      "source": "sci-fi-sounds/Audio/thrusterFire_003.ogg"
+    },
+    "sfx_click": {
+      "frames": 314,
+      "encodedFrames": 2304,
+      "delay": 1105,
+      "bytes": 912,
+      "peak": 0.05012,
+      "source": "interface-sounds/Audio/click_003.ogg"
+    },
+    "sfx_go": {
+      "frames": 18963,
+      "encodedFrames": 20736,
+      "delay": 1105,
+      "bytes": 3723,
+      "peak": 0.39,
+      "source": "interface-sounds/Audio/confirmation_004.ogg"
+    },
+    "sfx_beep": {
+      "frames": 9261,
+      "encodedFrames": 11520,
+      "delay": 1105,
+      "bytes": 3938,
+      "peak": 0.25,
+      "source": "interface-sounds/Audio/error_005.ogg"
+    },
+    "sfx_revive": {
+      "frames": 8579,
+      "encodedFrames": 10368,
+      "delay": 1105,
+      "bytes": 2058,
+      "peak": 0.41627,
+      "source": "interface-sounds/Audio/maximize_007.ogg"
+    },
+    "sfx_nanako": {
+      "frames": 9105,
+      "encodedFrames": 10368,
+      "delay": 1105,
+      "bytes": 3364,
+      "peak": 0.41201,
+      "source": "interface-sounds/Audio/error_007.ogg"
+    },
+    "sfx_win": {
+      "frames": 41137,
+      "encodedFrames": 42624,
+      "delay": 1105,
+      "bytes": 8387,
+      "peak": 0.49,
+      "source": "85-short-music-jingles/OGG/jingles_STEEL/jingles_STEEL00.ogg"
+    },
+    "sfx_lose": {
+      "frames": 65925,
+      "encodedFrames": 67968,
+      "delay": 1105,
+      "bytes": 13443,
+      "peak": 0.44,
+      "source": "85-short-music-jingles/OGG/jingles_STEEL/jingles_STEEL14.ogg"
+    },
+    "sfx_boom": {
+      "frames": 29106,
+      "encodedFrames": 31104,
+      "delay": 1105,
+      "bytes": 9104,
+      "peak": 0.67,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_001.ogg"
+    },
+    "sfx_boom_2": {
+      "frames": 29106,
+      "encodedFrames": 31104,
+      "delay": 1105,
+      "bytes": 11920,
+      "peak": 0.61514,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_002.ogg"
+    },
+    "sfx_boom_3": {
+      "frames": 29106,
+      "encodedFrames": 31104,
+      "delay": 1105,
+      "bytes": 8637,
+      "peak": 0.55951,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_003.ogg"
+    },
+    "sfx_blast": {
+      "frames": 38367,
+      "encodedFrames": 40320,
+      "delay": 1105,
+      "bytes": 20379,
+      "peak": 0.68,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_004.ogg"
+    },
+    "sfx_blast_2": {
+      "frames": 38367,
+      "encodedFrames": 40320,
+      "delay": 1105,
+      "bytes": 4240,
+      "peak": 0.68,
+      "source": "sci-fi-sounds/Audio/lowFrequency_explosion_000.ogg"
+    },
+    "sfx_blast_3": {
+      "frames": 38367,
+      "encodedFrames": 40320,
+      "delay": 1105,
+      "bytes": 4266,
+      "peak": 0.68,
+      "source": "sci-fi-sounds/Audio/lowFrequency_explosion_001.ogg"
+    },
+    "sfx_ignite": {
+      "frames": 21609,
+      "encodedFrames": 23040,
+      "delay": 1105,
+      "bytes": 10043,
+      "peak": 0.39,
+      "source": "sci-fi-sounds/Audio/thrusterFire_001.ogg"
+    },
+    "sfx_burn": {
+      "frames": 23814,
+      "encodedFrames": 25344,
+      "delay": 1105,
+      "bytes": 11035,
+      "peak": 0.33,
+      "source": "sci-fi-sounds/Audio/thrusterFire_002.ogg"
+    },
+    "sfx_tank": {
+      "frames": 29547,
+      "encodedFrames": 31104,
+      "delay": 1105,
+      "bytes": 6113,
+      "peak": 0.51,
+      "source": "sci-fi-sounds/Audio/spaceEngineLow_002.ogg"
+    },
+    "sfx_cannon": {
+      "frames": 21168,
+      "encodedFrames": 23040,
+      "delay": 1105,
+      "bytes": 7068,
+      "peak": 0.53802,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_000.ogg"
+    },
+    "sfx_cannon_2": {
+      "frames": 21168,
+      "encodedFrames": 23040,
+      "delay": 1105,
+      "bytes": 7434,
+      "peak": 0.53911,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_001.ogg"
+    },
+    "sfx_cannon_3": {
+      "frames": 21168,
+      "encodedFrames": 23040,
+      "delay": 1105,
+      "bytes": 7851,
+      "peak": 0.53399,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_002.ogg"
+    },
+    "sfx_build": {
+      "frames": 16758,
+      "encodedFrames": 18432,
+      "delay": 1105,
+      "bytes": 5816,
+      "peak": 0.43,
+      "source": "rpg/OGG/doorClose_4.ogg"
+    },
+    "sfx_mine": {
+      "frames": 10143,
+      "encodedFrames": 11520,
+      "delay": 1105,
+      "bytes": 4513,
+      "peak": 0.3,
+      "source": "rpg/OGG/beltHandle1.ogg"
+    },
+    "sfx_siren": {
+      "frames": 23373,
+      "encodedFrames": 25344,
+      "delay": 1105,
+      "bytes": 5967,
+      "peak": 0.47,
+      "source": "interface-sounds/Audio/error_003.ogg"
+    },
+    "sfx_wind": {
+      "frames": 36162,
+      "encodedFrames": 38016,
+      "delay": 1105,
+      "bytes": 7181,
+      "peak": 0.42,
+      "source": "wind%20woosh%20loop.ogg"
+    },
+    "sfx_roar": {
+      "frames": 36603,
+      "encodedFrames": 38016,
+      "delay": 1105,
+      "bytes": 11086,
+      "peak": 0.61,
+      "source": "sci-fi-sounds/Audio/spaceEngineLarge_002.ogg"
+    },
+    "sfx_club": {
+      "frames": 14776,
+      "encodedFrames": 16128,
+      "delay": 1105,
+      "bytes": 4249,
+      "peak": 0.57,
+      "source": "rpg/OGG/bookPlace3.ogg"
+    },
+    "sfx_club_2": {
+      "frames": 15434,
+      "encodedFrames": 17280,
+      "delay": 1105,
+      "bytes": 5555,
+      "peak": 0.57,
+      "source": "rpg/OGG/doorClose_3.ogg"
+    },
+    "sfx_club_3": {
+      "frames": 15434,
+      "encodedFrames": 17280,
+      "delay": 1105,
+      "bytes": 4981,
+      "peak": 0.57,
+      "source": "rpg/OGG/metalPot3.ogg"
+    },
+    "sfx_swish": {
+      "frames": 10584,
+      "encodedFrames": 12672,
+      "delay": 1105,
+      "bytes": 3833,
+      "peak": 0.38,
+      "source": "rpg/OGG/knifeSlice2.ogg"
+    },
+    "sfx_mortar": {
+      "frames": 22932,
+      "encodedFrames": 24192,
+      "delay": 1105,
+      "bytes": 7016,
+      "peak": 0.46042,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_000.ogg"
+    },
+    "sfx_mortar_2": {
+      "frames": 22932,
+      "encodedFrames": 24192,
+      "delay": 1105,
+      "bytes": 12500,
+      "peak": 0.49,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_004.ogg"
+    },
+    "sfx_mortar_3": {
+      "frames": 22932,
+      "encodedFrames": 24192,
+      "delay": 1105,
+      "bytes": 6496,
+      "peak": 0.39996,
+      "source": "sci-fi-sounds/Audio/explosionCrunch_003.ogg"
+    },
+    "sfx_heli": {
+      "frames": 37044,
+      "encodedFrames": 39168,
+      "delay": 1105,
+      "bytes": 18963,
+      "peak": 0.44,
+      "source": "sci-fi-sounds/Audio/engineCircular_001.ogg"
+    },
+    "sfx_jet": {
+      "frames": 46746,
+      "encodedFrames": 48384,
+      "delay": 1105,
+      "bytes": 14710,
+      "peak": 0.5,
+      "source": "sci-fi-sounds/Audio/spaceEngineLarge_001.ogg"
+    },
+    "sfx_whistle": {
+      "frames": 10386,
+      "encodedFrames": 12672,
+      "delay": 1105,
+      "bytes": 3963,
+      "peak": 0.30323,
+      "source": "sci-fi-sounds/Audio/laserRetro_001.ogg"
+    },
+    "sfx_dflame": {
+      "frames": 35721,
+      "encodedFrames": 38016,
+      "delay": 1105,
+      "bytes": 14526,
+      "peak": 0.56,
+      "source": "sci-fi-sounds/Audio/thrusterFire_004.ogg"
+    },
+    "sfx_dino": {
+      "frames": 42336,
+      "encodedFrames": 43776,
+      "delay": 1105,
+      "bytes": 12651,
+      "peak": 0.62,
+      "source": "sci-fi-sounds/Audio/spaceEngineLarge_003.ogg"
+    },
+    "sfx_pickup": {
+      "frames": 11620,
+      "encodedFrames": 13824,
+      "delay": 1105,
+      "bytes": 2498,
+      "peak": 0.35667,
+      "source": "interface-sounds/Audio/confirmation_001.ogg"
+    },
+    "sfx_clock": {
+      "frames": 16029,
+      "encodedFrames": 17280,
+      "delay": 1105,
+      "bytes": 6414,
+      "peak": 0.41,
+      "source": "interface-sounds/Audio/maximize_004.ogg"
+    },
+    "sfx_rumble": {
+      "frames": 50714,
+      "encodedFrames": 52992,
+      "delay": 1105,
+      "bytes": 5384,
+      "peak": 0.63,
+      "source": "sci-fi-sounds/Audio/lowFrequency_explosion_000.ogg"
+    },
+    "sfx_rumble_2": {
+      "frames": 50714,
+      "encodedFrames": 52992,
+      "delay": 1105,
+      "bytes": 5384,
+      "peak": 0.63,
+      "source": "sci-fi-sounds/Audio/lowFrequency_explosion_001.ogg"
+    },
+    "sfx_rumble_3": {
+      "frames": 50714,
+      "encodedFrames": 52992,
+      "delay": 1105,
+      "bytes": 10626,
+      "peak": 0.63,
+      "source": "sci-fi-sounds/Audio/spaceEngineLow_003.ogg"
+    },
+    "sfx_spawn": {
+      "frames": 4303,
+      "encodedFrames": 5760,
+      "delay": 1105,
+      "bytes": 1798,
+      "peak": 0.31629,
+      "source": "interface-sounds/Audio/pluck_001.ogg"
+    },
+    "sfx_tick_hi": {
+      "frames": 1984,
+      "encodedFrames": 3456,
+      "delay": 1105,
+      "bytes": 1277,
+      "peak": 0.12271,
+      "source": "interface-sounds/Audio/tick_001.ogg"
+    },
+    "sfx_tick_lo": {
+      "frames": 896,
+      "encodedFrames": 2304,
+      "delay": 1105,
+      "bytes": 1121,
+      "peak": 0.17702,
+      "source": "interface-sounds/Audio/tick_002.ogg"
+    },
+    "engine_idle": {
+      "frames": 172696,
+      "encodedFrames": 173952,
+      "delay": 1105,
+      "bytes": 21064,
+      "peak": 0.2689,
+      "source": "engine/engine-loop/engine-loop-1-normalized.wav",
+      "loopStart": 0
+    },
+    "engine_low": {
+      "frames": 172696,
+      "encodedFrames": 173952,
+      "delay": 1105,
+      "bytes": 28765,
+      "peak": 0.30372,
+      "source": "engine/engine-loop/engine-loop-1-normalized.wav",
+      "loopStart": 0
+    },
+    "engine_cruise": {
+      "frames": 172696,
+      "encodedFrames": 173952,
+      "delay": 1105,
+      "bytes": 28970,
+      "peak": 0.32732,
+      "source": "engine/engine-loop/engine-loop-1-normalized.wav",
+      "loopStart": 0
+    },
+    "engine_fast": {
+      "frames": 172696,
+      "encodedFrames": 173952,
+      "delay": 1105,
+      "bytes": 32561,
+      "peak": 0.35027,
+      "source": "engine/engine-loop/engine-loop-1-normalized.wav",
+      "loopStart": 0
+    },
+    "engine_top": {
+      "frames": 172696,
+      "encodedFrames": 173952,
+      "delay": 1105,
+      "bytes": 34442,
+      "peak": 0.36521,
+      "source": "engine/engine-loop/engine-loop-1-normalized.wav",
+      "loopStart": 0
+    },
+    "engine_boost": {
+      "frames": 172696,
+      "encodedFrames": 173952,
+      "delay": 1105,
+      "bytes": 35767,
+      "peak": 0.37678,
+      "source": "engine/engine-loop/engine-loop-1-normalized.wav",
+      "loopStart": 0
+    },
+    "tornado_breeze": {
+      "frames": 254016,
+      "encodedFrames": 255744,
+      "delay": 1105,
+      "bytes": 24132,
+      "peak": 0.52,
+      "source": "wind%20woosh%20loop.ogg",
+      "loopStart": 0
+    },
+    "tornado_near": {
+      "frames": 254016,
+      "encodedFrames": 255744,
+      "delay": 1105,
+      "bytes": 31152,
+      "peak": 0.52,
+      "source": "wind%20woosh%20loop.ogg",
+      "loopStart": 0
+    },
+    "tornado_strong": {
+      "frames": 254016,
+      "encodedFrames": 255744,
+      "delay": 1105,
+      "bytes": 35234,
+      "peak": 0.52,
+      "source": "wind%20woosh%20loop.ogg",
+      "loopStart": 0
+    },
+    "tornado_max": {
+      "frames": 254016,
+      "encodedFrames": 255744,
+      "delay": 1105,
+      "bytes": 35312,
+      "peak": 0.52,
+      "source": "wind%20woosh%20loop.ogg",
+      "loopStart": 0
+    },
+    "music_menu": {
+      "frames": 515632,
+      "encodedFrames": 517248,
+      "delay": 1105,
+      "bytes": 196201,
+      "peak": 0.58,
+      "source": "empacotatron_menu.flac",
+      "loopStart": 0
+    },
+    "music_mission": {
+      "frames": 3528000,
+      "encodedFrames": 3529728,
+      "delay": 1105,
+      "bytes": 1479298,
+      "peak": 0.58,
+      "source": "empacotatron_loop.flac",
+      "loopStart": 0
+    }
+  }
+}

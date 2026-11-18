@@ -8,9 +8,9 @@
   WZ.Debug = WZ.Debug || {}; // QA hooks (e.g. WZ.Debug.cam) - empty in production
 
   const Main = {
-    glLost: false, _glTimer: 0, _repaint: false,
+    glLost: false, _glTimer: 0, _repaint: false, _glPanel: null, _pauseAction: false,
     started: false, renderer: null, cur: null, scenes: {}, userPaused: false, platformPaused: false, w: 1, h: 1, acc: 0, last: 0, fps: 60, _fa: 0, _fn: 0,
-    startIndex: 1, lastResult: null, params: new URLSearchParams(typeof location !== 'undefined' ? location.search : ''),
+    startIndex: 1, lastResult: null, params: new URLSearchParams(WZ.Build && WZ.Build.qa && typeof location !== 'undefined' ? location.search : ''),
 
     get paused() { return Main.userPaused || Main.platformPaused; },
 
@@ -21,41 +21,49 @@
         WZ.Events.on('game:pause', () => {
           Main.platformPaused = true;
           WZ.Audio.suspend();
-          if (Main.cur && Main.cur.canPause && Main.cur.canPause()) Main.setUserPause(true, true);
+          WZ.Input.reset(); // do not carry a held throttle/touch through a tab switch
         });
         WZ.Events.on('game:resume', () => {
           Main.platformPaused = false;
           Main.last = performance.now() / 1000;
-          if (Main.userPaused) WZ.Audio.suspend();
-          else WZ.Audio.resume();
+          Main.acc = 0;
+          WZ.Input.reset();
+          if (!Main.userPaused) WZ.Audio.resume(); // restore the same run, not a new mission nor a manual unpause
         });
 
-        // 1. Initialize Playgama Bridge SDK first (Required Step 2)
+        // The publication entry already awaited the SDK before importing the engine.
         await WZ.Platform.init();
-        // 2. Load player progress from Bridge Storage (Required Step 4)
-        await WZ.Save.init();
-        // 3. Apply localization from platform.language (Required Step 3)
         WZ.I18n.init();
+        document.documentElement.lang = WZ.I18n.lang;
+        const startStatus = document.getElementById('wz-start-status'), startRetry = document.getElementById('wz-start-retry');
+        if (startStatus) startStatus.textContent = WZ.t('load.title');
+        if (startRetry) startRetry.textContent = WZ.t('load.retry');
+        let saveTimeout;
+        try {
+          await Promise.race([WZ.Save.init(), new Promise((_, reject) => {
+            saveTimeout = setTimeout(() => reject(new Error('Save restore timed out')), 12000);
+          })]);
+        } finally { clearTimeout(saveTimeout); }
+
+        // The host mute and the saved player preference are independent. Never write a host mute into the save.
+        WZ.Audio.setMuted(WZ.Platform.hasGameMute() && !WZ.Save.data.settings.sound);
+        WZ.Audio.setPlatformMuted(!WZ.Platform.audioEnabled);
 
         const els = WZ.UI.mount(host);
+        document.getElementById('wz-start')?.classList.add('hand-off');
         if (Main.params.get('unlock')) { WZ.Progress.allOpen = true; } // QA only: open every season and level (nothing is saved)
         const mParam = parseInt(Main.params.get('m') || '', 10);
         Main.startIndex = Math.max(1, (mParam > 0 ? mParam : WZ.Save.data.level) || 1);
         if (Main.params.get('debug')) WZ.UI.toggleDebug(true);
 
-        // 4. Apply platform audio state via Playgama Bridge SDK (no in-game mute button per YouTube Playables guideline)
-        WZ.Save.data.settings.sound = 1;
-        WZ.Audio.setMuted(false);
-        if (WZ.Platform) WZ.Audio.setPlatformMuted(!WZ.Platform.audioEnabled);
-
         Main.scenes = { menu: WZ.Scenes.menu, mission: WZ.Scenes.mission, shop: WZ.Scenes.shop };
 
-        const q0 = WZ.Save.data.settings.quality, lvlGuess = (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 1 : 2;
+        const q0 = WZ.Save.data.settings.quality, lvlGuess = (WZ.Build && WZ.Build.playgama) || (window.matchMedia && matchMedia('(pointer: coarse)').matches) ? 1 : 2;
         const lvl = q0 === 'low' ? 0 : q0 === 'med' ? 1 : q0 === 'high' ? 2 : lvlGuess;
         try {
           Main.renderer = new T.WebGLRenderer({ canvas: els.canvas, antialias: CFG.quality.aa[lvl], powerPreference: 'high-performance', alpha: false });
         } catch (e) {
-          const sub = document.querySelector('.load-sub'); if (sub) sub.textContent = 'WebGL is not available on this device.';
+          const sub = document.querySelector('.load-sub'); if (sub) sub.textContent = WZ.t('load.graphics');
           throw e;
         }
         const r = Main.renderer;
@@ -90,7 +98,6 @@
         const nearDone = (TEX.length + 1) / (TEX.length + 2);
         WZ.UI.loading(nearDone);
         WZ.Platform.setLoadingProgress(nearDone);
-        await new Promise((res) => setTimeout(res, 24));
         if (mParam > 0) {
           const theme = WZ.Save.data.settings.map || 'village';
           const lvlCap = Math.max(1, Math.min(CFG.progress.levels, mParam));
@@ -99,16 +106,22 @@
         } else {
           Main.go('menu');
         }
+        // Draw the real first frame before releasing the player's loading screen. Let the browser
+        // present the interactive menu in between RAFs, then notify the platform (once).
+        Main.cur.render(0, 0.001);
         WZ.UI.loading(1);
         WZ.Platform.setLoadingProgress(1);
-        await new Promise((res) => setTimeout(res, 140));
+        await new Promise((res) => requestAnimationFrame(res));
         WZ.UI.loading(false);
-        // 5. Send game_ready only after loading screen is hidden and first playable frame is interactive (Required Step 6)
+        await new Promise((res) => requestAnimationFrame(res));
         WZ.Platform.gameReady();
+        WZ.Audio.prepare();
         Main.last = performance.now() / 1000;
         requestAnimationFrame(Main.frame);
       } catch (e) {
         console.error('[WARZAR] boot failed', e);
+        if (window.warzarBootIssue) window.warzarBootIssue(WZ.t('load.failed'));
+        else WZ.UI.retryGraphics(host, WZ.t('load.failed'));
       }
     },
 
@@ -124,11 +137,12 @@
         console.warn('[WARZAR] WebGL context lost');
         try { WZ.Input.reset(); } catch (err) { /* ignore */ }
         try { if (Main.cur && Main.cur.canPause && Main.cur.canPause()) Main.setUserPause(true, true); } catch (err) { /* ignore */ }  // don't let a mission run blind
-        Main._armGlReload();
+        Main._armGlRecovery();
       }, false);
       canvas.addEventListener('webglcontextrestored', () => {
         console.warn('[WARZAR] WebGL context restored');
         Main.glLost = false; clearTimeout(Main._glTimer);
+        if (Main._glPanel) { Main._glPanel.remove(); Main._glPanel = null; }
         const r = Main.renderer;
         try {
           r.setClearColor(0xA9D3F2);                     // three re-creates its background state on restore (clear colour falls back to black)
@@ -138,21 +152,16 @@
         Main.last = performance.now() / 1000; Main.acc = 0;
         Main._repaint = true;                            // draw one frame even if the game is paused so the canvas is never left black
       }, false);
-      document.addEventListener('visibilitychange', () => { if (!document.hidden && Main.glLost) Main._armGlReload(); });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && Main.glLost) Main._armGlRecovery(); });
     },
 
-    /** last resort: if the browser still has not given the context back a few seconds after the app is visible again, reload (progress is saved) */
-    _armGlReload() {
+    /** Never auto-reload an embedded page or write storage outside Bridge. Offer a recovery action. */
+    _armGlRecovery() {
       clearTimeout(Main._glTimer);
       Main._glTimer = setTimeout(() => {
-        if (!Main.glLost) return;
-        if (document.hidden) return;                     // still in the background: wait, the visibilitychange handler re-arms this
-        let ok = true;
-        try { const k = 'wz_glreload', now = Date.now(), prev = +sessionStorage.getItem(k) || 0; if (now - prev < 20000) ok = false; else sessionStorage.setItem(k, String(now)); } catch (err) { /* no sessionStorage: allow */ }
-        if (!ok) return;                                 // loop guard: never reload more than once per 20 s
-        try { if (WZ.Save && WZ.Save.flush) WZ.Save.flush(); } catch (err) { /* ignore */ }
-        location.reload();
-      }, 4000);
+        if (!Main.glLost || document.hidden || Main._glPanel) return;
+        Main._glPanel = WZ.UI.retryGraphics(WZ.UI.root, WZ.t('load.graphics'));
+      }, 3800);
     },
 
     go(name, data) {
@@ -187,7 +196,8 @@
     },
 
     resize() {
-      const w = Math.max(1, window.innerWidth), h = Math.max(1, window.innerHeight);
+      const w = Math.max(1, WZ.UI.root ? WZ.UI.root.clientWidth : window.innerWidth);
+      const h = Math.max(1, WZ.UI.root ? WZ.UI.root.clientHeight : window.innerHeight);
       Main.w = w; Main.h = h;
       if (!Main.renderer) return;
       Main.renderer.setPixelRatio(WZ.Quality.pixelRatio());
@@ -196,7 +206,7 @@
     },
 
     setUserPause(on, silent) {
-      if (on === Main.userPaused) return;
+      if (Main._pauseAction || on === Main.userPaused) return;
       Main.userPaused = on;
       const d = (Main.cur && Main.cur.data) || {};
       const msgData = d.theme ? { world: String(d.theme), level: String(d.level || 1) } : undefined;
@@ -206,28 +216,24 @@
           if (!silent) WZ.Platform.sendMessage('level_paused', msgData);
           WZ.Platform.gameplayStop();
         }
+        const waitForAd = (placement, next) => {
+          if (Main._pauseAction) return;
+          Main._pauseAction = true;
+          const box = WZ.UI.root.querySelector('.pause-box');
+          if (box) box.inert = true;
+          Promise.resolve(WZ.Save.flush()).catch(() => {});
+          WZ.Platform.showInterstitial(placement).then(() => {
+            Main._pauseAction = false;
+            if (!Main.platformPaused) WZ.Audio.resume();
+            next();
+          });
+        };
         WZ.UI.showPause({
           resume: () => Main.setUserPause(false),
-          restart: () => {
-            Main.userPaused = false;
-            WZ.UI.removeScreen('pause');
-            const goRestart = () => {
-              if (!Main.platformPaused) WZ.Audio.resume();
-              Main.go('mission', { theme: d.theme, level: d.level, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
-            };
-            if (WZ.Platform && WZ.Platform.showInterstitial) WZ.Platform.showInterstitial('pause_restart').then(goRestart);
-            else goRestart();
-          },
-          menu: () => {
-            Main.userPaused = false;
-            WZ.UI.removeScreen('pause');
-            const goMenu = () => {
-              if (!Main.platformPaused) WZ.Audio.resume();
-              Main.go('menu');
-            };
-            if (WZ.Platform && WZ.Platform.showInterstitial) WZ.Platform.showInterstitial('pause_menu').then(goMenu);
-            else goMenu();
-          },
+          restart: () => waitForAd('pause_restart', () => {
+            Main.go('mission', { theme: d.theme, level: d.level, runSeed: WZ.Save.newRunSeed(), runCoins: 0 });
+          }),
+          menu: () => waitForAd('pause_menu', () => Main.go('menu')),
         });
       } else {
         WZ.UI.removeScreen('pause');

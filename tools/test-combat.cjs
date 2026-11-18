@@ -9,7 +9,7 @@ global.document = { createElement: () => ({ width: 0, height: 0, style: {}, getC
 global.localStorage = { getItem: () => null, setItem() {} }; global.location = { search: '' }; global.performance = { now: () => 0 };
 global.matchMedia = () => ({ matches: false }); global.navigator = { language: 'en' };
 const issues = [], ok = (c, m) => { if (!c) issues.push(m); };
-const files = ['config.js', 'rng.js', 'events.js', 'util.js', 'platform.js', 'save.js', 'progress.js', 'i18n.js'];
+const files = ['config.js', 'rng.js', 'events.js', 'util.js', 'platform.js', 'local-storage.js', 'save.js', 'progress.js', 'i18n.js'];
 for (const f of files) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
 const WZ = global.WZ; const sfx = {}, texts = [];
 WZ.Audio = new Proxy({ sfx: (n) => { sfx[n] = (sfx[n] || 0) + 1; } }, { get: (t, k) => t[k] || (() => {}) });

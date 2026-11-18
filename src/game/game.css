@@ -1,13 +1,14 @@
 /* WARZAR: CRATE RUSH — UI styles. Black + yellow, dashed panels, stencil/warning-label feel. System condensed stack only. */
 :root { --y: #FFB400; --k: #0E0E0E; --w: #ECE9E1; --red: #FF5A3A; --grn: #4CFF6A; }
 html, body, #root { margin: 0; padding: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; background: #0E0E0E; overscroll-behavior: none; }
-body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+#wz-root, #wz-root *, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 
 #wz-host { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; }
 #wz-root {
   position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; background: #A9D3F2; color: var(--w);
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", "Franklin Gothic Heavy", "Roboto Condensed", "Arial Black", sans-serif-condensed, sans-serif;
   font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em;
+  -webkit-text-size-adjust:100%; text-size-adjust:100%;
   --sat: env(safe-area-inset-top, 0px); --sar: env(safe-area-inset-right, 0px); --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px);
 }
 #wz-root * {
@@ -75,8 +76,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 
 /* Non-intrusive top status pills — never block center view */
 #hud-obj { position: absolute; top: calc(64px + var(--sat)); left: 50%; transform: translateX(-50%); font-size: 13px; color: var(--w); opacity: 0.85; text-shadow: 0 2px 0 #000, 0 0 4px #000; white-space: nowrap; pointer-events: none; }
-#hud-prompt { position: absolute; top: calc(82px + var(--sat)); left: 50%; transform: translateX(-50%); max-width: min(76vw, 420px); text-align: center; background: rgba(14,14,14,0.68); color: var(--y); border: 1.5px dashed rgba(255,180,0,0.7); font-size: 14px; line-height: 1.15; padding: 3px 12px; border-radius: 4px; pointer-events: none; }
-#hud-hint { position: absolute; top: calc(82px + var(--sat)); left: 50%; transform: translateX(-50%); max-width: min(76vw, 420px); text-align: center; background: rgba(20,20,22,0.72); color: #FFD84A; border: 1.5px solid rgba(255,90,58,0.75); font-size: 14px; line-height: 1.15; padding: 3px 12px; border-radius: 4px; pointer-events: none; }
+#hud-prompt { text-align: center; background: rgba(14,14,14,0.68); color: var(--y); border: 1.5px dashed rgba(255,180,0,0.7); font-size: 14px; line-height: 1.15; padding: 3px 12px; border-radius: 4px; pointer-events: none; }
+#hud-hint { text-align: center; background: rgba(20,20,22,0.72); color: #FFD84A; border: 1.5px solid rgba(255,90,58,0.75); font-size: 14px; line-height: 1.15; padding: 3px 12px; border-radius: 4px; pointer-events: none; }
 
 #hud-gun { position: absolute; left: calc(10px + var(--sal)); bottom: calc(14px + var(--sab)); display: flex; align-items: center; gap: 6px; background: rgba(14,14,14,0.78); border: 2px dashed var(--y); padding: 3px 10px; font-size: 15px; color: var(--y); border-radius: 4px; }
 #hud-gun .ico { width: 18px; height: 18px; }
@@ -151,8 +152,11 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .play-btn:hover { background: var(--y); }
 .play-btn:hover span { color: var(--k); text-shadow: none; }
 .play-btn:hover .play-lvl { background: var(--k); color: var(--y); }
-.mute-btn { position: absolute; top: calc(10px + var(--sat)); right: calc(10px + var(--sar)); width: 48px; height: 48px; background: rgba(14,14,14,0.78); border: 3px dashed rgba(236,233,225,0.85); border-radius: 6px; padding: 8px; cursor: pointer; pointer-events: auto !important; }
-.mute-btn svg { width: 100%; height: 100%; }
+.mute-btn { position: absolute; z-index: 1; color: var(--y); top: calc(10px + var(--sat)); right: calc(10px + var(--sar)); width: 48px; height: 48px; background: rgba(14,14,14,0.78); border: 3px dashed rgba(236,233,225,0.85); border-radius: 6px; padding: 8px; cursor: pointer; pointer-events: auto !important; }
+.mute-btn:hover:not(:disabled) { border-color: var(--y); }
+.mute-btn:focus-visible { outline: 2px solid var(--y); outline-offset: 3px; }
+.mute-btn:disabled { color: var(--w); cursor: default; }
+.mute-btn svg { width: 100%; height: 100%; display: block; }
 
 /* ---------- Briefing, Summary (Win/Fail), Pause ---------- */
 .briefing, .summary, .pause {
@@ -206,6 +210,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   overflow-y: auto; touch-action: pan-y;
 }
 .pause-box .btn { width: 100%; transform: none; text-align: center; }
+.pause-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pause-options .btn { padding: 6px; min-height: 44px; font-size: clamp(13px, 3.7vw, 17px); line-height: 1.12; }
 .pause-title { font-size: clamp(34px, 8vw, 46px); color: var(--y); text-shadow: 0 4px 0 #000; text-align: center; }
 
 #wz-load { position: absolute; inset: 0; z-index: 40; background: radial-gradient(ellipse at center, #252830 0%, #121418 55%, #090A0C 100%); display: flex; align-items: center; justify-content: center; transition: opacity 0.42s ease-out; }
@@ -250,10 +256,10 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
   padding: calc(8px + var(--sat)) calc(12px + var(--sar)) calc(10px + var(--sab)) calc(12px + var(--sal));
   background: linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0) 22%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.62));
-  pointer-events: auto;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%; pointer-events: auto;
 }
 .shop-stage-spacer { display: none; pointer-events: none; }
-.shop-top { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.shop-top { position:relative; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
 .shop-top .btn.dark { transform: none; padding: 8px 16px; min-height: 40px; font-size: clamp(16px, 4vw, 22px); }
 .shop-title { font-size: clamp(24px, 6vw, 56px); letter-spacing: 0.05em; line-height: 1; color: var(--w); text-shadow: 3px 3px 0 #000; text-align: center; }
 .shop-title::after { content: ''; display: block; height: 5px; margin-top: 3px; background: repeating-linear-gradient(-45deg, var(--y) 0 10px, #0E0E0E 10px 20px); }
@@ -287,12 +293,16 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .tg.price { background: var(--y); color: #0E0E0E; }
 .shop-detail {
   width: clamp(210px, 30vw, 390px); align-self: flex-end; padding: 12px 15px;
-  display: flex; flex-direction: column; gap: 7px; max-height: 100%;
-  overflow-y: auto; overflow-x: hidden; pointer-events: auto;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; max-height: 100%; pointer-events: auto;
+}
+/* Only the information scrolls; both actions stay in the panel's footer. */
+.shop-detail-body {
+  display: flex; flex-direction: column; gap: inherit; min-height: 0; padding-bottom: 2px;
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
   touch-action: pan-y; -webkit-overflow-scrolling: touch;
 }
 .dhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0; }
-.dname { font-size: clamp(20px, 4.6vw, 28px); letter-spacing: 0.04em; color: var(--y); line-height: 1.05; }
+.dname { min-width: 0; overflow-wrap: anywhere; font-size: clamp(20px, 4.6vw, 28px); letter-spacing: 0.04em; color: var(--y); line-height: 1.05; }
 .downed-pill {
   display: flex; align-items: baseline; gap: 5px; flex-shrink: 0;
   background: linear-gradient(180deg, rgba(32, 38, 46, 0.95), rgba(14, 16, 20, 0.98));
@@ -342,11 +352,11 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .dact-pinned .btn.tech-btn em { font-style: normal; color: var(--y); }
 
 /* ---------- Portrait & Small Screen Responsive Rules ---------- */
-/* Stacked layout (portrait): header / FREE 3D STAGE / vehicle strip / detail panel. The stage band has a guaranteed minimum height and the detail panel
-   gives way (it scrolls) so the 3D model is never covered. scenes/shop.js measures this band and frames the camera inside it. */
+/* Portrait: the free 3D band and the scrollable information can shrink, leaving room for the selector and both actions. */
 @media (orientation: portrait) {
-  .shop-stage-spacer { display: block; flex: 1 1 30vh; flex: 1 1 30dvh; min-height: 150px; min-height: clamp(150px, 30dvh, 340px); }
-  .shop-main { flex: 0 1 auto; min-height: 0; max-height: 70dvh; flex-direction: column; justify-content: flex-end; gap: 6px; }
+  .screen.shop { gap: 6px; }
+  .shop-stage-spacer { display: block; flex: 1 1 29vh; flex-basis: 29dvh; min-height: 96px; }
+  .shop-main { flex: 0 1 auto; flex-direction: column; justify-content: flex-end; gap: 6px; }
   .shop-list {
     flex: 0 0 auto; width: 100%; flex-direction: row;
     overflow-x: auto; overflow-y: hidden; padding: 2px 2px 6px; gap: 8px;
@@ -361,15 +371,44 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   .vcard .tg { font-size: 11px; padding: 1px 6px; }
   .shop-detail {
     flex: 0 1 auto; width: 100%; align-self: stretch; min-height: 0;
-    max-height: 48vh; max-height: 48dvh; padding: 9px 12px; gap: 5px;
-    touch-action: pan-y;
+    max-height: none; padding: 7px 9px 9px; gap: 5px;
   }
   .dname { font-size: clamp(18px, 4.6vw, 23px); }
   .dblurb { font-size: 12px; line-height: 1.22; }
   .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
   .st { grid-template-columns: minmax(54px, max-content) 1fr auto; font-size: 11.5px; gap: 4px; }
   .st i { height: 8px; }
-  .dact-pinned .btn { font-size: clamp(17px, 4.4vw, 21px); padding: 7px 12px; min-height: 40px; }
+  .dact-pinned { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; }
+  .dact-pinned .wlvl-row { display: contents; }
+  .dact-pinned .tech-info { grid-column: 1 / -1; grid-row: 1; gap: 3px; }
+  .tech-h { gap: 6px; font-size: clamp(11px, 3.15vw, 13px); line-height: 1.15; }
+  .tech-h span { font-size: clamp(10px, 2.8vw, 11px); }
+  .tech-pips i { height: 6px; }
+  .dact-pinned .btn, .dact-pinned .btn.tech-btn {
+    width: 100%; min-height: 44px; flex-direction: column; padding: 4px 6px; gap: 1px;
+    font-size: clamp(13px, 4vw, 18px); line-height: 1.08;
+  }
+  .dact-pinned .btn.buy-single { justify-content: center; }
+  .dact-pinned .btn.buy-single em { font-size: 0.95em; padding: 1px 5px; }
+  .dact-pinned .btn em { white-space: nowrap; }
+}
+@media (orientation: portrait) and (max-width: 520px) {
+  .shop-top { gap: 6px; }
+  .shop-top .btn.dark { padding: 6px 8px; font-size: clamp(14px, 3.7vw, 18px); }
+  .shop-coins { padding: 3px 6px; font-size: clamp(16px, 4.2vw, 22px); }
+}
+@media (orientation: portrait) and (max-height: 540px) {
+  .shop-stage-spacer { flex-basis: 24vh; flex-basis: 24dvh; min-height: 82px; }
+  /* Short embedded viewports: keep thumbnails and labels but spend less height on the strip. */
+  .vcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: clamp(116px, 34vw, 152px); gap: 1px 4px; padding: 4px; }
+  .vcard .vinfo { display: contents; }
+  .vcard .vname { grid-area: 1 / 1 / 2 / -1; }
+  .vcard .vthumb { grid-area: 2 / 1 / span 2 / 2; place-self: center; max-height: 36px; }
+  .vcard .tg { grid-column: 2; justify-self: start; margin-left: 0; }
+  .shop-drag { display: none; }
+}
+@media (orientation: portrait) and (max-height: 460px) {
+  .shop-stage-spacer { flex-basis: 20vh; flex-basis: 20dvh; min-height: 64px; }
 }
 
 /* Side-by-side layout on small LANDSCAPE screens (phones, small windows): slimmer columns so a wide free stage stays in the middle for the 3D model */
@@ -393,8 +432,11 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   .dhead { flex-wrap: wrap; gap: 4px 8px; }
   .downed-pill { padding: 2px 8px; margin-left: auto; }
   .st i { height: 8px; }
-  .tech-row { flex-wrap: wrap; padding: 5px 7px; }
+  .tech-row { flex-wrap: wrap; gap: 6px; padding: 5px 7px; }
   .tech-info { flex: 1 1 100%; }
+  .tech-h { font-size: 11px; line-height: 1.12; gap: 4px; }
+  .tech-h span { font-size: 10px; }
+  .dact-pinned { gap: 5px; padding-top: 4px; }
   .dact-pinned .btn { min-height: 36px; padding: 5px 10px; font-size: clamp(15px, 2.4vw, 19px); }
   .dact-pinned .btn.tech-btn { flex: 1 1 100%; justify-content: center; }
   .shop-drag { display: none; }
@@ -422,7 +464,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 @media (max-width: 520px) {
   #hud-left { top: calc(58px + var(--sat)); width: 114px; }
   #hud-obj { display: none; }
-  #hud-prompt, #hud-hint { top: calc(58px + var(--sat)); font-size: 12px; max-width: 62vw; }
+  #hud-prompt, #hud-hint { font-size: 12px; }
   #hud-top { gap: 6px; }
 }
 
@@ -537,12 +579,18 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .sum.win .sum-title { color: #FFD84A; text-shadow: 0 3px 0 #000, 0 0 20px rgba(255,200,40,0.65); animation: titleIn 0.6s 0.25s cubic-bezier(.2,1.7,.4,1) both, titleGlow 1.8s 1s ease-in-out infinite alternate; }
 @keyframes titleIn { from { transform: scale(0.3); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes titleGlow { from { text-shadow: 0 3px 0 #000, 0 0 10px rgba(255,200,40,0.4); } to { text-shadow: 0 3px 0 #000, 0 0 26px rgba(255,220,90,0.95); } }
-.lvl-badge { position: relative; width: clamp(96px, 24vw, 136px); aspect-ratio: 1; margin: -2px auto 4px; animation: badgeIn 0.8s 0.1s cubic-bezier(.2,1.6,.4,1) both; }
+.lvl-badge {
+  --lvl-size: clamp(96px, 24vw, 136px);
+  position: relative; width: var(--lvl-size); aspect-ratio: 1; margin: -2px auto 4px;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  animation: badgeIn 0.8s 0.1s cubic-bezier(.2,1.6,.4,1) both;
+}
 @keyframes badgeIn { from { transform: scale(0) rotate(-120deg); opacity: 0; } to { transform: none; opacity: 1; } }
-.lvl-core { position: absolute; inset: 7%; border-radius: 50%; background: radial-gradient(circle at 35% 28%, #FFF0A0, #FFB400 55%, #C27A00); border: 5px solid #0E0E0E; color: #0E0E0E; display: flex; flex-direction: column; align-items: center; justify-content: center;
+.lvl-core { position: absolute; inset: 7%; border-radius: 50%; background: radial-gradient(circle at 35% 28%, #FFF0A0, #FFB400 55%, #C27A00); border: clamp(3px, calc(var(--lvl-size) * 0.05), 5px) solid #0E0E0E; color: #0E0E0E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
   box-shadow: 0 0 0 3px #FFE9A8, 0 6px 0 #7a5200, 0 0 30px rgba(255,200,40,0.85); }
-.lvl-core small { margin-top: 7%; font-size: clamp(8px, 2.1vw, 11px); letter-spacing: 0.05em; line-height: 1; margin-bottom: 1px; white-space: nowrap; }
-.lvl-num { position: relative; width: 100%; height: 1.05em; font-size: clamp(36px, 9vw, 54px); line-height: 1.05; text-align: center; overflow: hidden; }
+.lvl-core small { flex: none; max-width: 84%; font-size: clamp(6.5px, calc(var(--lvl-size) * 0.09), 11px); letter-spacing: 0.04em; line-height: 1; }
+/* Size type with the circle, not the viewport width. The animation window must keep a full line. */
+.lvl-num { position: relative; flex: none; width: 100%; height: 1.2em; font-size: min(54px, calc(var(--lvl-size) * 0.45)); line-height: 1.2; text-align: center; overflow: hidden; }
 .lvl-num span { position: absolute; left: 0; right: 0; top: 0; transition: transform 0.5s cubic-bezier(.3,1.7,.5,1), opacity 0.3s; }
 .lvl-num .new { transform: translateY(125%) scale(0.5); opacity: 0; }
 .lvl-badge.up .lvl-num .old { transform: translateY(-125%) scale(0.5); opacity: 0; }
@@ -599,14 +647,12 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 /* landscape phones / short screens: head on the left, numbers on the right */
 @media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .sum.win, .sum.fail { width: min(94vw, 780px); display: grid; grid-template-columns: 1fr 1.05fr; grid-template-areas: "head body" "btns btns"; column-gap: 18px; align-items: center; padding: 10px 18px; }
-  .lvl-badge { width: clamp(78px, 24vh, 110px); }
   .sum.win .sum-title { font-size: clamp(22px, 7vh, 34px); }
   .sum-stars .star { width: clamp(28px, 9vh, 42px); height: clamp(28px, 9vh, 42px); }
   .sum .sum-btns { grid-template-columns: 1.6fr 1fr 1fr; margin-top: 6px; }
   .sum .sum-btns #btn-sum-main { grid-column: auto; }
   .fail-icon { width: clamp(40px, 13vh, 56px); }
   .fail-tip, .sum-note, .sum.fail .sum-sub2, .sum-next, .sum-perfect { display: none; }
-  .lvl-core small { margin-top: 14%; font-size: 8px; }
   .sum.fail .sum-title { font-size: clamp(20px, 6.2vh, 30px); }
   .sum.fail .sum-sub { font-size: clamp(13px, 4.6vh, 20px); }
   .fail-stamp { margin: 4px 0 2px; font-size: clamp(11px, 3.4vh, 15px); }
@@ -669,7 +715,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   #hud-left { top: calc(58px + var(--sat)); width: clamp(108px, 30vw, 128px); }
   #hud-obj { display: none; }
   /* prompts sit in the free space to the RIGHT of the status bars (never on top of them) */
-  #hud-prompt, #hud-hint { top: calc(58px + var(--sat)); font-size: 12px; left: calc(132px + var(--sal)); transform: none; width: fit-content; max-width: calc(100vw - 140px - var(--sal) - var(--sar)); }
+  #hud-prompt, #hud-hint { font-size: 12px; }
 }
 @media (max-width: 520px) { #hud-left { width: clamp(104px, 30vw, 118px); } }
 @media (max-width: 360px) {
@@ -685,7 +731,6 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   #hud-top { top: calc(4px + var(--sat)); }
   #hud-left { top: calc(4px + var(--sat)); gap: 4px; }
   #btn-pause { top: calc(4px + var(--sat)); width: 40px; height: 40px; }
-  #hud-prompt, #hud-hint { top: calc(60px + var(--sat)); }
   #hud-buttons { bottom: calc(8px + var(--sab)); gap: 6px; }
   #btn-deploy { width: 78px; height: 78px; font-size: 14px; }
   #btn-boost { width: 50px; height: 50px; margin-bottom: 2px; }
@@ -710,8 +755,9 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .sum .sum-head { flex: 0 1 auto; min-height: 0; }
 .sum .sum-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; }
 .sum .sum-btns { flex: 0 0 auto; margin-top: clamp(6px, 1.4vh, 12px); }
+@media (orientation: portrait) { .sum.win .sum-head { flex-shrink: 0; } }
 @media (max-height: 780px) {
-  .lvl-badge { width: clamp(72px, 15vh, 112px); margin-bottom: 0; }
+  .lvl-badge { --lvl-size: clamp(72px, 15vh, 112px); margin-bottom: 0; }
   .sum-stars { margin: 2px 0 0; }
   .sum-stars .star { width: clamp(28px, 5.8vh, 44px); height: clamp(28px, 5.8vh, 44px); }
   .fail-icon { width: clamp(38px, 8vh, 60px); }
@@ -730,7 +776,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   .sum-btns .btn.dark { min-height: 38px; padding: 6px 8px; }
 }
 @media (max-height: 640px) { .fail-tip, .sum-note, .sum.fail .sum-sub2, .sum-record { display: none; } .fail-cracks { display: none; } }
-@media (max-height: 520px) { .lvl-badge { width: clamp(56px, 17vh, 84px); } .fail-icon { display: none; } .sum-coins .sum-row:not(.total) { padding: 0 4px; } }
+@media (max-height: 520px) { .lvl-badge { --lvl-size: clamp(64px, 17vh, 84px); } .fail-icon { display: none; } .sum-coins .sum-row:not(.total) { padding: 0 4px; } }
 @media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .sum.win, .sum.fail { grid-template-rows: minmax(0, 1fr) auto; max-height: calc(100vh - 12px - var(--sat) - var(--sab)); max-height: calc(100dvh - 12px - var(--sat) - var(--sab)); overflow: hidden; }
   .sum.win .sum-head, .sum.fail .sum-head, .sum.win .sum-body, .sum.fail .sum-body { min-height: 0; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; }
@@ -739,7 +785,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 }
 /* briefing: the GO button stays pinned to the bottom of its card, never below the fold */
 .brief { display: flex; flex-direction: column; }
-.brief .btn.big { position: sticky; bottom: 0; flex: 0 0 auto; margin-top: auto; z-index: 2; }
+.brief-actions { display:flex; flex:0 0 auto; justify-content:center; align-items:stretch; gap:8px; margin-top:auto; position:sticky; bottom:0; z-index:2; }
+.brief-actions .btn { min-width:0; padding:8px clamp(8px,3vw,20px); line-height:1.05; }
 @media (max-height: 640px) { .brief-n { font-size: clamp(30px, 8vh, 48px); } .brief-row { margin: 6px 0 4px; } .brief-tip { margin: 4px 0 8px; font-size: 13px; } }
 
 /* =====================================================================================================================
@@ -951,8 +998,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 /* HUD level label is now "S1 · LVL 3/10": keep it on one line */
 #hud-lvl { white-space: nowrap; font-size: clamp(15px, 3.8vw, 22px); }
 
-/* Opt-in Rewarded Ad buttons (Summary + Shop) */
-.shop-wallet-row { display: flex; align-items: center; gap: 8px; }
+/* Opt-in rewarded ad button on the mission summary. */
 .btn.ad-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   background: linear-gradient(180deg, #4CFF6A 0%, #24B844 100%);
@@ -962,3 +1008,45 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 }
 .btn.ad-btn .ad-ico { width: 20px; height: 20px; flex: 0 0 20px; }
 .sum-btns .sum-ad-btn { grid-column: 1 / -1; width: 100%; margin-bottom: 2px; }
+
+/* Release: tutorial and hazard notices share a column instead of painting on top of each other. */
+#hud-notices { position:absolute; top:calc(82px + var(--sat)); left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:4px; width:max-content; max-width:min(76vw,420px); pointer-events:none; }
+#hud-notices > div { max-width:100%; overflow-wrap:anywhere; }
+@media (max-width:640px) { #hud-notices { top:calc(58px + var(--sat)); max-width:62vw; } }
+@media (max-height:480px) and (orientation:landscape) { #hud-notices { left:calc(132px + var(--sal)); transform:none; max-width:calc(100vw - 142px - var(--sal) - var(--sar)); align-items:flex-start; } }
+#btn-fullscreen { right:calc(65px + var(--sar)); color:#ECE9E1; }
+#btn-fullscreen svg { width:22px; height:22px; }
+.load-title { font-size:clamp(23px,7vw,56px); padding-inline:12px; }
+.ad-status { display:block; font:700 12px/1.25 system-ui,sans-serif; text-align:center; color:#ffe8a5; margin:2px 0; }
+.wz-recovery { position:absolute; inset:0; z-index:55; display:grid; place-content:center; justify-items:center; padding:22px; text-align:center; background:#13171e; color:#ffe8b6; font:700 16px/1.45 system-ui,sans-serif; }
+
+@media (max-width:640px) and (orientation:portrait) {
+  #hud-left { top:calc(58px + var(--sat)); }
+  #hud-notices { top:calc(58px + var(--sat)); left:calc(18px + clamp(108px, 30vw, 128px) + var(--sal)); right:calc(8px + var(--sar)); width:auto; max-width:none; transform:none; align-items:flex-start; }
+}
+@media (max-width:390px) { #btn-fullscreen { right:calc(62px + var(--sar)); width:44px; height:44px; } }
+@media (prefers-reduced-motion: reduce) {
+  #wz-root *, #wz-root *::before, #wz-root *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; scroll-behavior: auto !important; }
+}
+
+/* Bound both menu actions in short embeds. WebKit's min-content widths for long RU labels must not push them past opposite edges. */
+@media (orientation:landscape) and (max-height:480px) {
+  .menu-bottom { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); align-items:end !important; width:min(100%,740px); margin-inline:auto; gap:clamp(8px,2vw,14px); }
+  .menu-bottom > button { width:100%; min-width:0; max-width:none; margin:0; }
+  .menu-bottom .map-chip { padding:5px 8px; gap:6px; }
+  .menu-bottom .mc-thumb { width:clamp(54px,15vw,96px); }
+  .menu-bottom .mc-go { max-width:36%; padding:4px 5px; white-space:normal; }
+  .menu-bottom .mc-t b { overflow-wrap:anywhere; }
+  .menu-bottom .play-btn { padding-inline:8px; }
+  .menu-bottom .play-lvl { max-width:100%; padding-inline:6px; }
+}
+
+/* Give the shop explicit columns after a live rotation, with no min-content expansion from card text or thumbnails. */
+@media (orientation:landscape) {
+  .shop-main { display:grid; grid-template-columns:minmax(0,clamp(150px,24vw,330px)) minmax(0,1fr) minmax(0,clamp(210px,30vw,390px)); grid-template-rows:minmax(0,1fr); }
+  .shop-main .shop-list { grid-column:1; width:100%; min-width:0; min-height:0; }
+  .shop-main .shop-detail { grid-column:3; width:100%; min-width:0; min-height:0; }
+}
+@media (orientation:landscape) and (max-width:900px), (orientation:landscape) and (max-height:520px) {
+  .shop-main { grid-template-columns:minmax(0,clamp(128px,22vw,210px)) minmax(0,1fr) minmax(0,clamp(176px,30vw,290px)); }
+}

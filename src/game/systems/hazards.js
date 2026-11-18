@@ -264,7 +264,7 @@
       const direct = who === 'jeep';
       // big fireball, shock rings, debris, smoke, scorch mark and a burning crater (WZ.Fire)
       WZ.Fire.explode(b.x, b.gy + 0.8, b.z, { scale: direct ? 1.2 : 0.95, flash: direct, debris: direct ? BC.debris : Math.ceil(BC.debris * 0.6) });
-      WZ.Fx.text('BOOM!', b.x, y + 3.6, b.z, 'bonk');
+      WZ.Fx.text((WZ.t ? WZ.t('hud.boom') : 'BOOM!'), b.x, y + 3.6, b.z, 'bonk');
       E.hash.query(b.x, b.z, BC.blast, E.q);
       for (const e of E.q.slice()) { if (!e.active || e.state === 2) continue; E.ko(e, e.x - b.x, e.z - b.z, 13, 'barrel'); }
       if (WZ.Giants) WZ.Giants.splash(b.x, b.z, BC.blast * 0.6, BC.giantDamage, 'barrel');
@@ -324,7 +324,7 @@
       const c = Z.ctx, J = c.jeep, N = c.nana, P = c.particles, E = c.enemies, y = mn.gy + 0.6;
       mn.on = false; Z.place(mn, false);
       P.poof(mn.x, y, mn.z, 14, 2.4); P.sparks(mn.x, y + 0.5, mn.z, 26, 1, 0.7, 0.2); P.dust(mn.x, mn.gy, mn.z, 8);
-      WZ.Audio.sfx('boom'); WZ.Fx.shake(who === 'jeep' ? 0.75 : 0.4); WZ.Fx.text('BOOM!', mn.x, y + 3.5, mn.z, 'bonk');
+      WZ.Audio.sfx('boom'); WZ.Fx.shake(who === 'jeep' ? 0.75 : 0.4); WZ.Fx.text((WZ.t ? WZ.t('hud.boom') : 'BOOM!'), mn.x, y + 3.5, mn.z, 'bonk');
       E.hash.query(mn.x, mn.z, MC.blast, E.q);
       for (const e of E.q.slice()) { if (!e.active || e.state === 2) continue; E.ko(e, e.x - mn.x, e.z - mn.z, 12, 'mine'); }
       if (WZ.Giants) WZ.Giants.splash(mn.x, mn.z, MC.blast * 0.6, MC.giantDamage, 'mine');
@@ -334,7 +334,7 @@
         const dmg = J.mineHits >= 2 ? Math.ceil(J.hp) + 1 : Math.round(J.maxHp * MC.jeepFirstHit);
         if (dmg >= J.hp) J.deathCause = 'mine';
         J.hurt(dmg); J.vx *= MC.slow; J.vz *= MC.slow; J.hop = 0.6;
-        WZ.Fx.text(J.mineHits >= 2 ? 'MINE #2!' : '-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt');
+        WZ.Fx.text(J.mineHits >= 2 ? (WZ.t ? WZ.t('hud.mineTwo') : 'SECOND MINE!') : '-' + dmg, J.rx, J.ry + 5, J.rz, 'warn'); WZ.Fx.flash('hurt');
         WZ.Events.emit('jeep:mine', { hits: J.mineHits });
       } else { N.hurt(MC.nanaDamage); WZ.Fx.text('-' + MC.nanaDamage, N.rx, N.ry + 4, N.rz, 'warn'); }
     },
@@ -347,7 +347,7 @@
       }
       x = U.clamp(x, -lim, lim); z = U.clamp(z, -lim, lim);
       Z.torn = { phase: 'warn', t: 0, x, z, hd: Math.atan2(J.x - x, J.z - z), spin: rng.sign(), ph: rng.range(0, 6), scale: 0.15, start: tm };
-      Z.tg.visible = true; WZ.Audio.sfx('siren'); WZ.Fx.shake(0.2); WZ.Fx.text('TORNADO!', J.rx, J.ry + 6, J.rz, 'warn');
+      Z.tg.visible = true; WZ.Audio.sfx('siren'); WZ.Fx.shake(0.2); WZ.Fx.text((WZ.t ? WZ.t('hud.tornadoShort') : 'TORNADO!'), J.rx, J.ry + 6, J.rz, 'warn');
     },
 
     /** the vehicle is released: thrown outward, brief immunity so it can drive away */

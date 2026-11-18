@@ -5,14 +5,10 @@
   A mobile-first 3D arcade game about driving, daring rescues, and getting the cargo out alive.
 </p>
 
-<p align="center">
-  <img alt="WARZAR: Crate Rush" src="docs/warzar-banner.png" />
-</p>
-
 > **Project status:** Active development · Pre-release  
 > **Target platforms:** YouTube Playables · Playgama  
 > **Game type:** 3D arcade action · Procedural missions · Single-player  
-> **Build target:** Self-contained `dist/index.html`
+> **Build targets:** Standalone `dist/index.html` · Playgama upload in `dist-playgama/`
 
 ---
 
@@ -35,7 +31,7 @@ The core experience is built around short missions with escalating pressure:
 3. **Deploy Nana** to collect cargo, then protect her while she is exposed.
 4. **Use your equipment** — vehicle weapons, defensive turrets, and landmines — to control the battlefield.
 5. **Extract** before the timer expires.
-6. **Earn coins and progress** toward better vehicles and equipment.
+6. **Earn coins and progress** toward new regions and equipment upgrades.
 
 ### Current gameplay systems
 
@@ -51,9 +47,9 @@ The project is under active development. The repository currently includes syste
 - Player-planted landmines.
 - Environmental hazards, including tornado events.
 - Mission timer, extraction objectives, rewards, and a garage/shop.
-- Multiple vehicles with different handling and durability profiles.
-- Persistent local save data for supported progression and settings.
-- Synthesized sound effects and performance-aware rendering.
+- Scout Jeep gameplay, with selectable and upgradeable defense equipment.
+- Persistent level and equipment progress via Bridge in the Playgama profile, with an offline save adapter for standalone.
+- Background music, compressed action/interface sounds, and performance-aware rendering.
 
 Features evolve as development continues. See [Project status](#project-status) and [PROJECT_MEMORY.md](PROJECT_MEMORY.md) before assuming a planned feature is already implemented.
 
@@ -69,7 +65,7 @@ WARZAR is being designed for the realities of browser-based playable games:
 - **Distinct gameplay roles:** New enemies and equipment should add decisions, not just bigger health bars.
 - **Stylized and family-friendly:** Combat feedback stays playful and non-graphic.
 - **Performance-conscious:** The game should remain responsive on mid-range mobile devices.
-- **Lightweight delivery:** The production build is designed to bundle into one self-contained HTML file.
+- **Lightweight delivery:** The standalone build embeds all game assets. Playgama ships the same licensed MP3s as loose assets.
 
 This is an arcade game, not a realistic military simulator. The goal is readable action, strong game feel, and meaningful decisions without complicated controls.
 
@@ -81,7 +77,7 @@ YouTube Playables is a primary distribution target. The game is being built as a
 
 ### Playgama
 
-Playgama is another primary distribution target. The project is intended to be packaged for its web-game publishing workflow, with platform-specific integration handled separately from the core gameplay.
+The Playgama build packages the local Bridge SDK/config beside the game. It reads the host's sound and pause states on startup and listens for changes. The speaker button in the menu and the Sound control in the pause panel update a separate saved preference; the player cannot override host mute. Opening another tab or backgrounding the game suspends audio and simulation. Returning restores the same run unless the player had manually paused. The overall toggle is not shown when the Bridge identifies YouTube Playables, which has its own mute controls. The equipment Shop has no rewarded offer. The opt-in coin reward is still available in mission results when the host supports it.
 
 **Important:** Running the game locally in a browser does not mean platform integration or submission is complete. Platform SDK/Bridge, storage, ads, lifecycle events, monetization, and submission requirements must be checked against the latest official documentation and tested in the target platform environment before release. Do not assume these integrations are finished.
 
@@ -94,10 +90,10 @@ The game supports touch and keyboard input.
 | Drive | WASD / Arrow keys |
 | Deploy / recall Nana | Space |
 | Boost | Shift |
-| Pause / resume | P / Backspace |
+| Pause / resume | P |
 | Place a landmine | F / M |
 | Deploy defense | T |
-| Debug overlay | F3 / Backquote |
+| Debug overlay (dev / QA only) | F3 / Backquote |
 
 On touch devices, use the on-screen driving stick and action buttons. Button availability can depend on the current game state and equipment.
 
@@ -111,10 +107,10 @@ On touch devices, use the on-screen driving stick and action buttons. Button ava
 | Game implementation | JavaScript ES2020, modular IIFE modules |
 | Game namespace | `window.WZ` |
 | Rendering | WebGL |
-| Audio | Web Audio API synthesis |
+| Audio | 44.1 kHz VBR MP3 assets; Web Audio sample playback and mixing, no runtime synthesis |
 | World and art | Procedural geometry and generated textures |
-| Persistence | Versioned localStorage save system |
-| Production output | Vite + `vite-plugin-singlefile` |
+| Persistence | Versioned, batched Bridge storage (Playgama) or local adapter (standalone) |
+| Production output | Vite; `vite-plugin-singlefile` for standalone only |
 
 The game systems share the `window.WZ` namespace. Modules are loaded through an ordered manifest, so **module load order is significant**. Gameplay and balance values are centralized in `src/game/config.js`.
 
@@ -131,7 +127,7 @@ The game systems share the `window.WZ` namespace. Modules are loaded through an 
 ```bash
 git clone https://github.com/mohammadqeshm/warzar.git
 cd warzar
-npm install
+npm ci
 ```
 
 ### Run locally
@@ -154,9 +150,32 @@ The production output is generated in:
 dist/index.html
 ```
 
-The intended release artifact is a **self-contained HTML file**. For a platform upload, package the generated file according to the target platform's current instructions; do not upload the source project in place of the production build.
+The standalone `index.html` embeds the game code, styles, art and MP3 bank. It runs without loose audio files. The existing optional host Bridge loader is unchanged for this target.
 
-To preview the production build locally:
+### Package for Playgama
+
+```bash
+npm ci
+npm run build:playgama
+python3 tools/package-playgama.py /tmp/warzar-playgama.zip --extract /tmp/warzar-playgama-extracted
+```
+
+Upload the generated **game ZIP**, not the source or media ZIP. Its root has `index.html`, the unmodified local Bridge 2.4.3, the adjacent config, and the `assets/` and `audio/` folders. The SDK finishes initialization before any engine requests. Startup waits for one Bridge read before the first playable frame; there is no game-owned browser storage in this profile. `--extract` is optional and needs an empty directory. See the [numbered release audit](docs/PLAYGAMA-AUDIT.md), [QA evidence](docs/PLAYGAMA-QA.md) and [listing copy](docs/PLAYGAMA-LISTING.md). To test the extracted upload locally, serve its directory over HTTP (for example `python3 -m http.server 8000 --bind 127.0.0.1`), not by double-clicking `index.html`. Complete **Test Game** in the dashboard with the upload archive before submission.
+
+### Audio assets and verification
+
+`src/game/audio-playgama/` contains the 88 licensed MP3s used by `npm run dev` and both production builds. Menu music, mission music, engine, wind and effects are byte-identical across builds; only asset delivery differs. See [sources, changes and licenses](docs/PLAYGAMA-AUDIO.md). `src/game/audio/` preserves the original 87 offline-rendered MP3s in source only, not in either current build. The runtime only plays and mixes samples.
+
+```bash
+node tools/test-audio.cjs
+node tools/test-audio.cjs --legacy # optional archival bank check
+node tools/test-i18n.cjs
+npx tsc --noEmit
+```
+
+`tools/render-audio.cjs` is an offline renderer for the archival bank. It needs FFmpeg/FFprobe and Playwright Chromium; if working without Git history, pass a copy of the historical `audio.js` recorded in its manifest. It is never run by or included in either production build. Browser test commands, extracted-ZIP fixtures and limitations are in the QA report above.
+
+To preview the default production build locally:
 
 ```bash
 npm run preview

@@ -104,10 +104,10 @@
       const placement = res.win ? 'level_completed' : 'level_failed';
       const withAd = (fn) => {
         if (WZ.Platform && typeof WZ.Platform.showInterstitial === 'function') {
-          WZ.Platform.showInterstitial(placement).then(() => fn());
-        } else {
-          fn();
+          WZ.Save.flush();
+          return WZ.Platform.showInterstitial(placement).then(fn);
         }
+        return fn();
       };
       const go = (theme, level, seed, coins) => withAd(() => {
         const S = WZ.Save.data; S.settings.map = theme; P.setCurrent(theme, level); WZ.Save.save();
@@ -134,25 +134,23 @@
         },
         // SHOP opened from the results screen: BACK in the shop returns to the MAIN MENU (not to the results screen again).
         // A pending season unlock (first clear of level 10) is still celebrated: the menu scene opens the map screen for it by itself (flags.pendingUnlock).
-        garage: () => Main.go('shop', { ret: () => { Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu'); } }),
+        garage: () => withAd(() => Main.go('shop', { ret: () => { Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu'); } })),
         menu: () => {
           const unlockId = (res.win && (res.r.unlockedSeason || (WZ.Save.data.flags && WZ.Save.data.flags.pendingUnlock))) || null;
           if (unlockId) return goUnlock(unlockId);
-          withAd(() => {
+          return withAd(() => {
             Main.lastResult = null; WZ.Save.data.settings.map = res.theme; WZ.Save.save(); Main.go('menu');
           });
         },
         rewarded: (bonus) => {
           if (res.r.adClaimed || !WZ.Platform || typeof WZ.Platform.showRewarded !== 'function') return Promise.resolve(false);
-          return WZ.Platform.showRewarded('bonus_coins').then((granted) => {
-            if (!granted) return false;
+          return WZ.Platform.showRewarded('bonus_coins', () => {
             res.r.adClaimed = true;
             const add = Math.max(1, bonus | 0);
             WZ.Save.data.coins += add;
             res.runCoins = (res.runCoins || 0) + add;
             res.r.wallet = WZ.Save.data.coins;
             WZ.Save.save(); WZ.Save.flush();
-            return true;
           });
         },
       });

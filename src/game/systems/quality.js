@@ -28,7 +28,7 @@
       else if (pref === 'high') Q.level = 2;
       else {
         const coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
-        Q.level = (coarse && Math.min(innerWidth, innerHeight) < 520) ? 1 : 2;
+        Q.level = (WZ.Build && WZ.Build.playgama) || (coarse && Math.min(innerWidth, innerHeight) < 520) ? 1 : 2;
       }
       Q.maxLevel = Q.auto ? 2 : Q.level;
       Q.dprScale = 1;
@@ -73,8 +73,8 @@
     /** Call every rendered frame with the real frame time */
     update(dt) {
       if (!Q.auto) return;
-      // Ignore single-frame hitches (tab switch, shader compile, GC pause)
-      if (dt <= 0 || dt >= 0.08) return;
+      // Transitions are already guarded. Consistently long frames must still lower quality.
+      if (dt <= 0) return;
       if (Q.grace > 0) {
         Q.grace -= dt;
         return;

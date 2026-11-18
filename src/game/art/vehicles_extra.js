@@ -23,8 +23,9 @@
   }
 
   /** roof gun: same behaviour as the jeep's (yaw group + muzzle), painted in the vehicle colour */
-  function roofGun(parent, plainM, paint, x, y, z, scale) {
+  function roofGun(parent, plainM, paint, x, y, z, scale, mountHeight) {
     const gunYaw = new T.Group(); gunYaw.position.set(x, y, z); gunYaw.scale.setScalar(scale); parent.add(gunYaw);
+    gunYaw.userData.mountHeight = mountHeight;
     const gb = B();
     gb.add(rb(1.4, 0.95, 0.14, 0.05), { y: 0.62, z: 0.62, color: paint });
     gb.add(G.cyl(12), { y: 0.0, sx: 0.36, sy: 0.22, sz: 0.36, color: STEEL });
@@ -50,7 +51,7 @@
     fb.add(G.box1, { z: -0.55, y: -0.3, sx: 0.05, sy: 0.16, sz: 1.1, color: 0x0E0E0E });
     const flag = new T.Mesh(fb.build(), new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide }));
     flag.position.set(o.flag[0], o.flag[1], o.flag[2]); bodyG.add(flag);
-    const gun = roofGun(bodyG, plainM, o.paint, o.gun[0], o.gun[1], o.gun[2], o.gun[3]);
+    const gun = roofGun(bodyG, plainM, o.paint, ...o.gun);
     const wg = wheelGeo(o.wr, o.ww, o.rim, o.tread), wmat = new T.MeshLambertMaterial({ vertexColors: true });
     const wheels = [], front = [];
     for (const [x, z, fr] of o.wheelPos) {
@@ -64,8 +65,11 @@
       const c = WZ.Props.crateMeshShared(1.4); c.position.set(p[0], p[1], p[2]); c.rotation.y = i === 2 ? 0.2 : (i - 0.5) * 0.15;
       c.visible = false; bodyG.add(c); bedCrates.push(c);
     });
-    const seatCmdr = new T.Object3D(); seatCmdr.position.set(o.seat[0], o.seat[1], o.seat[2]); bodyG.add(seatCmdr);
-    const seatNana = new T.Object3D(); seatNana.position.set(-o.seat[0], o.seat[1], o.seat[2]); bodyG.add(seatNana);
+    const riderSeat = ([x, y, z, scale]) => {
+      const seat = new T.Object3D(); seat.position.set(x, y, z); seat.scale.setScalar(scale); bodyG.add(seat);
+      return seat;
+    };
+    const [seatCmdr, seatNana] = o.seats.map(riderSeat);
     return { root, bodyG, wheels, front, gunYaw: gun.gunYaw, muzzle: gun.muzzle, seatCmdr, seatNana, bedCrates, flag, lights, plainM, camoM: plainM, bed: o.bed };
   }
 
@@ -132,9 +136,9 @@
     gb.add(G.box1, { y: 2.1, z: 0.85, rx: -0.55, sx: 1.9, sy: 0.55, sz: 0.05, color: 0x9CC8F0 });
     db.add(G.plane1, { y: 1.615, z: 1.95, rx: -Math.PI / 2, sx: 0.8, sy: 0.8, color: WHITE });
     const plainM = new T.MeshLambertMaterial({ vertexColors: true });
-    return finish(root, bodyG, { pb, lb, gb, db, plainM, paint: P1, flag: [-1.25, 4.2, -2.55], gun: [0, 2.9, -0.55, 0.85], wr: 0.88, ww: 0.72, rim: P1, tread: 12,
+    return finish(root, bodyG, { pb, lb, gb, db, plainM, paint: P1, flag: [-1.25, 4.2, -2.55], gun: [0, 2.9, -0.55, 0.85, 4.2735], wr: 0.88, ww: 0.72, rim: P1, tread: 12,
       wheelPos: [[1.6, 1.7, true], [-1.6, 1.7, true], [1.6, -1.65, false], [-1.6, -1.65, false]],
-      bedPos: [[0.5, 2.85, -1.95], [-0.5, 2.85, -1.95], [0, 3.95, -1.95]], seat: [0.52, 1.24, -0.2], bed: { z: -1.95, y: 2.9 } });
+      bedPos: [[0.5, 2.85, -1.95], [-0.5, 2.85, -1.95], [0, 3.95, -1.95]], seats: [[0.625, 1.03, -0.16, 0.574], [-0.635, 1.065, -0.12, 0.538]], bed: { z: -1.95, y: 2.9 } });
   }
 
   // ------------------------------------------------------------------------------------------ ARMORED TRUCK
@@ -194,9 +198,9 @@
     gb.add(G.box1, { y: 3.3, z: 1.2, sx: 2.4, sy: 0.38, sz: 0.06, color: 0x9CC8F0 });
     db.add(G.plane1, { y: 2.78, z: 2.5, rx: -Math.PI / 2 + 0.05, sx: 1.2, sy: 1.2, color: WHITE });
     const plainM = new T.MeshLambertMaterial({ vertexColors: true });
-    return finish(root, bodyG, { pb, lb, gb, db, plainM, paint: P1, flag: [1.35, 5.2, -2.4], gun: [0, 3.32, -1.35, 1.1], wr: 0.98, ww: 0.95, rim: YEL, tread: 14,
+    return finish(root, bodyG, { pb, lb, gb, db, plainM, paint: P1, flag: [1.35, 5.2, -2.4], gun: [0, 3.32, -1.35, 1.1, 5.461], wr: 0.98, ww: 0.95, rim: YEL, tread: 14,
       wheelPos: [[1.85, 2.2, true], [-1.85, 2.2, true], [1.85, -2.1, false], [-1.85, -2.1, false]],
-      bedPos: [[0.7, 3.0, -1.65], [-0.7, 3.0, -1.65], [0, 4.15, -1.65]], seat: [0.75, 2.4, 0.05], bed: { z: -1.65, y: 3.4 } });
+      bedPos: [[0.7, 3.0, -1.65], [-0.7, 3.0, -1.65], [0, 4.15, -1.65]], seats: [[0.765, 2.05, 0.14, 0.70], [-0.775, 2.12, 0.145, 0.67]], bed: { z: -1.65, y: 3.4 } });
   }
 
   // ------------------------------------------------------------------------------------------ PLAYER LANDMINE
@@ -237,13 +241,14 @@
   }
 
   // ------------------------------------------------------------------------------------------ registry
-  /** The roof gun must never cut through the two riders: every rider's head is ~HERO_TOP above the seat, so the gun yaw ring is lifted on a pole until its lowest part
-   *  (pivot disc, grip, ammo box) is clear of the heads. The gun then sweeps over the commander and Nana at any angle (menu showcase, garage, mission, map cards). */
+  // Keep the established roof-gun and muzzle heights on the built-in vehicles, even if the seats move.
+  // For asset overrides without an explicit mount height, retain the original seat-relative clearance.
   const HERO_TOP = 2.82;
   function liftGun(m) {
     if (!m || !m.gunYaw || !m.seatCmdr || !m.bodyG || m._gunLifted) return m;
     m._gunLifted = true;
-    const g = m.gunYaw, sc = g.scale.x || 1, y0 = g.position.y, need = m.seatCmdr.position.y + HERO_TOP + 0.11 * sc + 0.12;
+    const g = m.gunYaw, sc = g.scale.x || 1, y0 = g.position.y;
+    const need = g.userData.mountHeight ?? (m.seatCmdr.position.y + HERO_TOP + 0.11 * sc + 0.12);
     if (need <= y0) return m;
     const x = g.position.x, z = g.position.z, base = y0 - 0.06, top = need;
     const pb = B();

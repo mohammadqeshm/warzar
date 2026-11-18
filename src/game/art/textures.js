@@ -58,11 +58,64 @@
     return tex(c, { nearest: true });
   }
 
+  // Warm, low-contrast digital cloth for the two protagonists; the soldier and vehicle palettes stay separate.
+  function heroCamo(pal, seed) {
+    const size = 256, cells = 16, cell = size / cells;
+    const c = cv(size, size), g = c.getContext('2d'), rng = R.mulberry32(seed);
+    const broad = R.noise2(seed), fine = R.noise2(seed + 37);
+    for (let y = 0; y < cells; y++) for (let x = 0; x < cells; x++) {
+      const value = broad(x * 0.43, y * 0.43) * 0.69 + fine(x * 0.89, y * 0.89) * 0.31 + (rng() - 0.5) * 0.13;
+      g.fillStyle = pal[value < 0.36 ? 0 : value < 0.49 ? 1 : value < 0.61 ? 2 : value < 0.72 ? 3 : 4];
+      g.fillRect(x * cell, y * cell, cell, cell);
+    }
+    speckle(g, size, size, 1600, rng, ['#161311', '#EFE1C7'], 1.1, 0.12);
+    return tex(c, { nearest: true });
+  }
+
+  function drawSmiley(g, x, y, r) {
+    g.save(); g.translate(x, y); g.scale(r / 30, r / 30);
+    const gold = g.createLinearGradient(0, -30, 0, 30);
+    gold.addColorStop(0, '#FFD751'); gold.addColorStop(1, '#F5AE16');
+    g.fillStyle = '#302218'; g.beginPath(); g.arc(0, 0, 30, 0, Math.PI * 2); g.fill();
+    g.fillStyle = gold; g.beginPath(); g.arc(0, 0, 27.5, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#252018';
+    for (const x of [-8.5, 8.5]) { g.beginPath(); g.ellipse(x, -6, 3.3, 6.4, 0.12, 0, Math.PI * 2); g.fill(); }
+    g.strokeStyle = '#252018'; g.lineWidth = 4.1; g.lineCap = 'round';
+    g.beginPath(); g.arc(0, 2, 14, Math.PI * 0.14, Math.PI * 0.86); g.stroke(); g.restore();
+  }
+
+  // The eyes are hand shaded in the face decal, so the rounded look does not cost another draw call.
+  function heroEye(g, x, y, w, h, angle, px, py, radius) {
+    const sclera = g.createRadialGradient(x - 12, y - 15, 7, x, y, w + 4);
+    sclera.addColorStop(0, '#FFFFFB'); sclera.addColorStop(0.62, '#FFF7E9'); sclera.addColorStop(1, '#C8AA90');
+    g.beginPath(); g.ellipse(x, y, w, h, angle, 0, Math.PI * 2);
+    g.fillStyle = sclera; g.fill(); g.lineWidth = 6; g.strokeStyle = '#513326'; g.stroke();
+    const iris = g.createLinearGradient(px, py - radius, px, py + radius);
+    iris.addColorStop(0, '#201511'); iris.addColorStop(1, '#67452F');
+    g.beginPath(); g.arc(px, py, radius, 0, Math.PI * 2); g.fillStyle = iris; g.fill();
+    g.beginPath(); g.arc(px, py, radius * 0.68, 0, Math.PI * 2); g.fillStyle = '#100D0D'; g.fill();
+    g.fillStyle = '#FFFEF9'; g.beginPath(); g.arc(px - radius * 0.31, py - radius * 0.36, radius * 0.28, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(px + radius * 0.33, py + radius * 0.27, radius * 0.12, 0, Math.PI * 2); g.fill();
+  }
+
+  function faceGrain(g, seed, y) {
+    const rng = R.mulberry32(seed);
+    for (const s of [-1, 1]) for (let i = 0; i < 13; i++) {
+      const x = 224 + s * (104 + rng() * 70);
+      g.fillStyle = i % 4 ? '#B88663' : '#946748';
+      g.beginPath(); g.arc(x, y + rng() * 45, 0.9 + rng() * 1.7, 0, Math.PI * 2); g.fill();
+    }
+  }
+
+  function polygon(g, points) {
+    g.beginPath(); points.forEach(([x, y]) => g.lineTo(x, y)); g.closePath();
+  }
+
   const paint = {
     camoGreen: () => camo(['#1B1D1A', '#2E3226', '#4A4F36', '#6B5B3A'], 3),
     camoDark: () => camo(['#0F100E', '#1B1D1A', '#2E3226', '#4A4F36'], 9),
-    camoCmdr: () => camoPix(['#0E0B08', '#231A10', '#3D2F1E', '#5C4A30'], 5, 20),   // Commander: black / brown / tan
-    camoNana: () => camoPix(['#070706', '#13110D', '#231C12', '#3E3220'], 12, 20),  // Nana: darker, mostly black
+    camoCmdr: () => heroCamo(['#292624', '#423932', '#5C5146', '#7B684F', '#9F8364'], 5),
+    camoNana: () => heroCamo(['#272627', '#3B3632', '#53483D', '#715F4E', '#978066'], 12),
     camoSoldier: () => camoPix(['#0A1C36', '#143C70', '#1F68B5', '#3CA0F0'], 29, 20), // Allied Soldier: vivid Spec-Ops Blue / Cyan camo
 
     wood() {
@@ -112,7 +165,7 @@
       // stencil marks
       g.fillStyle = 'rgba(236,233,225,.62)'; g.font = '34px ' + FONT; g.textAlign = 'center';
       g.fillText('WARZAR', 128, 112);
-      g.font = '18px ' + FONT; g.fillText('\u2191  THIS SIDE UP', 128, 150);
+      g.font = '18px ' + FONT; g.fillText('\u2191  ' + (WZ.t ? WZ.t('art.crate.up') : 'THIS SIDE UP'), 128, 150, 192);
       g.fillStyle = 'rgba(255,180,0,.8)'; for (let i = 0; i < 6; i++) g.fillRect(70 + i * 20, 168, 10, 8);
       speckle(g, 256, 256, 900, r, ['#1a0e06', '#b88a58', '#000'], 2, 0.18);
       return tex(c);
@@ -235,44 +288,38 @@
       [[0, 8, '#33383C', 14], [0, 8, '#C9CED2', 8], [1, 28, '#33383C', 14], [1, 28, '#C9CED2', 8]].forEach((s) => { v(s[1] + 8); g.strokeStyle = s[2]; g.lineWidth = s[3]; g.stroke(); });
       return tex(c, { clamp: true });
     },
-    smiley() { // tactical strike emblem (gold shield badge with black lightning bolt)
+    smiley() {
       const c = cv(64, 64), g = c.getContext('2d');
-      g.fillStyle = '#0E0E0E'; g.beginPath(); g.arc(32, 32, 31, 0, 7); g.fill();
-      g.fillStyle = '#FFB400'; g.beginPath(); g.arc(32, 32, 27, 0, 7); g.fill();
-      g.fillStyle = '#0E0E0E';
-      g.beginPath(); g.moveTo(36, 10); g.lineTo(18, 34); g.lineTo(30, 34); g.lineTo(26, 54); g.lineTo(46, 28); g.lineTo(34, 28); g.closePath(); g.fill();
+      drawSmiley(g, 32, 32, 31);
       return tex(c, { clamp: true });
     },
-    cmdrEmblem() { // three stacked white chevrons with a dark outline (cap front + vest back)
-      const c = cv(128, 80), g = c.getContext('2d');
-      g.lineCap = 'round'; g.lineJoin = 'round';
-      [[12, 0.8], [34, 1], [56, 1]].forEach((s) => {
-        const y = s[0], w = s[1] * 44;
-        g.beginPath(); g.moveTo(64 - w, y + 18); g.lineTo(64, y - 2); g.lineTo(64 + w, y + 18);
-        g.strokeStyle = '#15171A'; g.lineWidth = 16; g.stroke();
-        g.strokeStyle = '#F4F5F2'; g.lineWidth = 8; g.stroke();
-      });
+    cmdrEmblem() { // stamped rank: two small points over a pair of broad winged chevrons
+      const c = cv(128, 96), g = c.getContext('2d');
+      const bars = [
+        [[42, 22], [64, 7], [86, 22], [79, 29], [64, 19], [49, 29]],
+        [[36, 38], [64, 21], [92, 38], [84, 45], [64, 34], [44, 45]],
+        [[9, 44], [43, 48], [64, 60], [85, 48], [119, 44], [103, 58], [86, 58], [64, 73], [42, 58], [25, 58]],
+        [[24, 64], [43, 66], [64, 81], [85, 66], [104, 64], [91, 76], [64, 93], [37, 76]],
+      ];
+      g.lineJoin = 'round'; g.strokeStyle = '#2C2723'; g.lineWidth = 4;
+      const silver = g.createLinearGradient(0, 10, 0, 94);
+      silver.addColorStop(0, '#FFFCF6'); silver.addColorStop(1, '#CBC1B4'); g.fillStyle = silver;
+      bars.forEach((bar) => { polygon(g, bar); g.stroke(); g.fill(); });
       return tex(c, { clamp: true });
     },
-    faceCmdr() { // 448x400, drawn on a 1.1 x 0.98 plane in front of the head: furious eyes, thick brows, grim mouth
+    faceCmdr() {
       const c = cv(448, 400), g = c.getContext('2d');
-      g.lineJoin = 'round'; g.lineCap = 'round';
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      faceGrain(g, 27, 255);
       for (const s of [-1, 1]) {
-        const cx = 224 + s * 94, cy = 218;
-        g.beginPath(); g.ellipse(cx, cy, 72, 60, 0, 0, 7); g.fillStyle = '#F8F5EC'; g.fill();
-        g.lineWidth = 7; g.strokeStyle = '#120D0A'; g.stroke();
-        g.fillStyle = '#0A0A0A'; g.beginPath(); g.ellipse(cx - s * 11, cy + 10, 29, 32, 0, 0, 7); g.fill();
-        g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - s * 11 - 10, cy - 2, 9, 0, 7); g.fill();
-        g.beginPath(); g.arc(cx - s * 11 + 10, cy + 23, 4.5, 0, 7); g.fill();
-        g.strokeStyle = '#120D0A'; g.lineWidth = 46; // heavy slanted brow
-        g.beginPath(); g.moveTo(224 + s * 172, 104); g.lineTo(224 + s * 20, 178); g.stroke();
-        g.lineWidth = 14; g.beginPath(); g.moveTo(224 + s * 182, 92); g.lineTo(224 + s * 164, 126); g.stroke();
+        const x = 224 + s * 93;
+        heroEye(g, x, 176, 73, 57, s * 0.13, x - s * 19, 173, 26);
+        polygon(g, [[224 + s * 176, 88], [224 + s * 20, 139], [224 + s * 29, 170], [224 + s * 172, 136], [224 + s * 186, 119]]);
+        const brow = g.createLinearGradient(0, 93, 0, 176);
+        brow.addColorStop(0, '#36261F'); brow.addColorStop(1, '#140E0C'); g.fillStyle = brow; g.fill();
       }
-      g.strokeStyle = '#2A1510'; g.lineWidth = 7; g.beginPath(); g.moveTo(224, 120); g.lineTo(224, 156); g.stroke(); // furrow
-      g.lineWidth = 13; g.strokeStyle = '#2A1510'; g.beginPath(); g.arc(224, 398, 64, Math.PI * 1.17, Math.PI * 1.83); g.stroke();
-      g.globalAlpha = 0.18; g.fillStyle = '#B5682F'; // cheek shading
-      for (const s of [-1, 1]) { g.beginPath(); g.ellipse(224 + s * 150, 300, 32, 20, 0, 0, 7); g.fill(); }
-      g.globalAlpha = 1;
+      g.strokeStyle = '#4E2B21'; g.lineWidth = 8; g.beginPath();
+      g.moveTo(138, 326); g.bezierCurveTo(184, 303, 246, 305, 294, 327); g.stroke();
       return tex(c, { clamp: true });
     },
     faceSoldier() { // Allied Spec-Ops Commando: glowing cyan tactical visor goggles + confident smirk
@@ -304,55 +351,78 @@
       g.beginPath(); g.moveTo(156, 344); g.quadraticCurveTo(228, 362, 296, 330); g.stroke();
       return tex(c, { clamp: true });
     },
-    faceNana() { // fierce tactical operative: sharp focused eyes, angled combat brows, war-paint stripes, serious determined mouth
+    faceNana() { // big round eyes, gapped grin, tongue and a crossed cheek bandage
       const c = cv(448, 400), g = c.getContext('2d');
-      g.lineJoin = 'round'; g.lineCap = 'round';
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      faceGrain(g, 45, 238);
       for (const s of [-1, 1]) {
-        const cx = 224 + s * 90, cy = 208;
-        // sharp almond-shaped tactical eyes
-        g.beginPath(); g.ellipse(cx, cy, 68, 52, -s * 0.06, 0, 7); g.fillStyle = '#F8F6EE'; g.fill();
-        g.lineWidth = 8; g.strokeStyle = '#120D0A'; g.stroke();
-        // dark iris + fierce pupil
-        g.fillStyle = '#14110E'; g.beginPath(); g.ellipse(cx - s * 9, cy + 4, 28, 32, 0, 0, 7); g.fill();
-        g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - s * 9 - 9, cy - 7, 9, 0, 7); g.fill();
-        g.beginPath(); g.arc(cx - s * 9 + 10, cy + 16, 4.5, 0, 7); g.fill();
-        // sharp angled combat brow
-        g.strokeStyle = '#16100C'; g.lineWidth = 34;
-        g.beginPath(); g.moveTo(224 + s * 166, 112); g.lineTo(224 + s * 24, 166); g.stroke();
-        // tactical dark war-paint stripes on cheeks
-        g.fillStyle = 'rgba(22,18,15,0.72)';
-        g.save(); g.translate(224 + s * 136, 286); g.rotate(-s * 0.14);
-        g.fillRect(-34, -8, 68, 10);
-        g.fillRect(-28, 8, 56, 8);
-        g.restore();
+        const x = 224 + s * 91, lift = s > 0 ? 7 : 0;
+        heroEye(g, x, 188 - lift, 72, 70, -s * 0.08, x + 11, 195 - lift, 29);
+        g.beginPath(); g.moveTo(224 + s * 30, 101 - lift);
+        g.quadraticCurveTo(224 + s * 102, 56 - lift, 224 + s * 165, 89 - lift);
+        g.lineTo(224 + s * 161, 112 - lift);
+        g.quadraticCurveTo(224 + s * 100, 89 - lift, 224 + s * 38, 122 - lift); g.closePath();
+        g.fillStyle = '#281912'; g.fill();
       }
-      // serious, determined tactical mouth (no goofy smile or tongue)
-      g.lineWidth = 12; g.strokeStyle = '#2A1510';
-      g.beginPath(); g.moveTo(170, 344); g.quadraticCurveTo(224, 332, 280, 344); g.stroke();
+      g.beginPath(); g.moveTo(100, 259); g.quadraticCurveTo(198, 290, 329, 266);
+      g.bezierCurveTo(329, 326, 312, 350, 238, 354); g.quadraticCurveTo(115, 356, 100, 259); g.closePath();
+      const mouth = g.createLinearGradient(0, 260, 0, 357);
+      mouth.addColorStop(0, '#21100D'); mouth.addColorStop(1, '#542820');
+      g.fillStyle = mouth; g.fill(); g.strokeStyle = '#573023'; g.lineWidth = 6; g.stroke();
+      g.save(); g.clip();
+      g.fillStyle = '#FFF5DF';
+      for (const [x, y, w] of [[134, 260, 36], [202, 265, 48]]) {
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + w, y); g.lineTo(x + w, y + 41);
+        g.quadraticCurveTo(x + w - 1, y + 49, x + w - 9, y + 49);
+        g.lineTo(x + 8, y + 49); g.quadraticCurveTo(x, y + 49, x, y + 40); g.closePath(); g.fill();
+      }
+      g.restore();
+      g.save(); g.translate(291, 332); g.rotate(-0.48);
+      const tongue = g.createLinearGradient(0, -28, 0, 45);
+      tongue.addColorStop(0, '#D87759'); tongue.addColorStop(1, '#EFAC87');
+      g.beginPath(); g.moveTo(-32, -9); g.bezierCurveTo(-29, -33, -5, -34, 1, -23);
+      g.bezierCurveTo(24, -43, 35, -13, 33, 9); g.bezierCurveTo(30, 51, -26, 49, -32, -9); g.closePath();
+      g.fillStyle = tongue; g.fill(); g.strokeStyle = '#813F2C'; g.lineWidth = 4; g.stroke();
+      g.beginPath(); g.moveTo(1, -21); g.quadraticCurveTo(-4, -9, 2, 16); g.stroke(); g.restore();
+      // Two crossed adhesive strips on Nana's left cheek (the right of the face texture).
+      g.save(); g.translate(372, 282);
+      for (const a of [0.81, -0.63]) {
+        g.rotate(a); g.beginPath(); g.moveTo(-30, -12); g.lineTo(30, -12); g.quadraticCurveTo(44, 0, 30, 12);
+        g.lineTo(-30, 12); g.quadraticCurveTo(-44, 0, -30, -12); g.closePath();
+        g.fillStyle = '#EEC398'; g.fill(); g.strokeStyle = '#AB7953'; g.lineWidth = 2; g.stroke(); g.rotate(-a);
+      }
+      g.fillStyle = '#AE805A'; for (const y of [-4, 4]) for (const x of [-6, 0, 6]) g.fillRect(x - 1, y - 1, 2, 2);
+      g.restore();
       return tex(c, { clamp: true });
     },
-    nanaDecals() { // top: NANA stencil (256x64) · bottom-left: tactical lightning badge · next: ace-of-spades card patch
-      const c = cv(256, 128), g = c.getContext('2d'), r = R.mulberry32(31);
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.font = '62px ' + FONT;
-      const tw = g.measureText('NANA').width || 120, sx = Math.min(2.2, 232 / tw);
-      g.save(); g.translate(128, 33); g.scale(sx, 1);
-      g.fillStyle = '#F2EFE6'; g.strokeStyle = '#F2EFE6'; g.lineWidth = 3; g.fillText('NANA', 0, 0); g.strokeText('NANA', 0, 0);
+    nanaDecals() { // one continuous helmet print: white stencil, angled ace patch and smiley sticker
+      const c = cv(512, 144), g = c.getContext('2d'), rng = R.mulberry32(31);
+      g.save(); g.transform(1, 0, -0.20, 1, 33, 0);
+      g.fillStyle = '#F6F2E9';
+      for (const [i, letter] of [...'NANA'].entries()) {
+        g.save(); g.translate(11 + i * 70, 30);
+        if (letter === 'N') {
+          polygon(g, [[0, 83], [0, 0], [16, 0], [47, 51], [47, 0], [63, 0], [63, 83], [47, 83], [16, 32], [16, 83]]); g.fill();
+        } else {
+          polygon(g, [[0, 83], [22, 0], [43, 0], [65, 83], [47, 83], [43, 66], [22, 66], [17, 83]]);
+          g.moveTo(26, 50); g.lineTo(39, 50); g.lineTo(32, 19); g.closePath(); g.fill('evenodd');
+        }
+        g.restore();
+      }
       g.restore();
-      g.globalCompositeOperation = 'destination-out'; // worn-paint chips
-      for (let i = 0; i < 60; i++) g.fillRect(r() * 256, r() * 64, 1 + r() * 2, 1 + r() * 2);
+      g.globalCompositeOperation = 'destination-out';
+      for (let i = 0; i < 60; i++) g.fillRect(16 + rng() * 288, 28 + rng() * 87, 1 + rng() * 1.5, 1 + rng() * 2);
       g.globalCompositeOperation = 'source-over';
-      // tactical strike badge
-      g.fillStyle = '#15130C'; g.beginPath(); g.arc(32, 96, 30, 0, 7); g.fill();
-      g.fillStyle = '#FFC400'; g.beginPath(); g.arc(32, 96, 26, 0, 7); g.fill();
-      g.fillStyle = '#111';
-      g.beginPath(); g.moveTo(35, 76); g.lineTo(20, 97); g.lineTo(30, 97); g.lineTo(27, 116); g.lineTo(44, 93); g.lineTo(34, 93); g.closePath(); g.fill();
-      // card
-      g.fillStyle = '#E9E3CE'; g.fillRect(74, 68, 44, 54); g.strokeStyle = '#111'; g.lineWidth = 3; g.strokeRect(74, 68, 44, 54);
-      g.fillStyle = '#111'; g.font = '16px ' + FONT; g.fillText('A', 83, 79);
-      g.beginPath(); g.arc(90, 101, 8, 0, 7); g.arc(104, 101, 8, 0, 7); g.fill();
-      g.beginPath(); g.moveTo(96, 80); g.lineTo(113, 99); g.lineTo(81, 99); g.closePath(); g.fill();
-      g.beginPath(); g.moveTo(96, 100); g.lineTo(102, 115); g.lineTo(90, 115); g.closePath(); g.fill();
+      g.save(); g.translate(420, 57); g.rotate(0.20);
+      g.fillStyle = '#E5D9C3'; g.fillRect(-37, -48, 74, 96);
+      g.strokeStyle = '#A39682'; g.lineWidth = 3; g.strokeRect(-35.5, -46.5, 71, 93);
+      g.strokeStyle = '#F2E9D8'; g.lineWidth = 1.5; g.strokeRect(-31, -42, 62, 84);
+      g.fillStyle = '#2B2523'; g.textAlign = 'center'; g.font = 'bold 20px sans-serif'; g.fillText('A', -23, -25);
+      g.beginPath(); g.moveTo(1, -19); g.bezierCurveTo(-1, -10, -22, -3, -20, 8);
+      g.quadraticCurveTo(-18, 23, -3, 13); g.lineTo(-9, 24); g.lineTo(11, 24); g.lineTo(5, 13);
+      g.quadraticCurveTo(20, 23, 22, 8); g.bezierCurveTo(24, -3, 3, -10, 1, -19); g.closePath(); g.fill();
+      g.fillStyle = '#A9583C'; g.fillRect(20, -34, 6, 6); g.fillRect(-25, 31, 6, 6); g.restore();
+      drawSmiley(g, 404, 109, 30);
       return tex(c, { clamp: true });
     },
   };

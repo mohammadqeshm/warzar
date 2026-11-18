@@ -1,4 +1,4 @@
-/* WZ.Input — virtual stick (appears where you touch, fixed origin, left half), keyboard (WASD/arrows, Space, Shift, Esc/P), device detection.
+/* WZ.Input — virtual stick (appears where you touch, fixed origin, left half), keyboard (WASD/arrows, Space, Shift, P), device detection.
  * Output: Input.stick {x,y,mag} (y up), Input.consume('deploy'|'boost'|'pause'|'debug'|'skip'|'weapon'|'wnext'|'wprev'|'wsel'|...), Input.boostHeld. */
 (function (WZ) {
   'use strict';
@@ -39,6 +39,8 @@
       window.addEventListener('resize', () => { if (IN._idleHint && IN._touchId === -1) IN._placeIdleStick(); });
 
       window.addEventListener('keydown', (e) => {
+        if (e.code === 'Escape' || e.altKey || e.ctrlKey || e.metaKey) return;
+        if (e.code === 'Space' && e.target && e.target.closest && e.target.closest('button') && !(WZ.Main && WZ.Main.cur === WZ.Scenes.mission && WZ.Scenes.mission.phase === 'play' && !WZ.Main.paused)) return;
         if (e.repeat) { if (e.code.indexOf('Arrow') === 0 || e.code === 'Space') e.preventDefault(); return; }
         WZ.Audio.unlock(); setDev('keys');
         IN.keys.add(e.code);
@@ -49,9 +51,9 @@
         switch (e.code) {
           case 'Space': IN.pressed.deploy = true; e.preventDefault(); break;
           case 'ShiftLeft': case 'ShiftRight': IN.pressed.boost = true; IN.boostHeld = true; break;
-          case 'KeyP': case 'Backspace': IN.pressed.pause = true; break;
-          case 'Backquote': case 'F3': IN.pressed.debug = true; e.preventDefault(); break;
-          case 'KeyN': IN.pressed.skip = true; break;
+          case 'KeyP': IN.pressed.pause = true; break;
+          case 'Backquote': case 'F3': if (WZ.Build && WZ.Build.qa) { IN.pressed.debug = true; e.preventDefault(); } break;
+          case 'KeyN': if (WZ.Build && WZ.Build.qa) IN.pressed.skip = true; break;
           case 'KeyF': IN.pressed.weapon = true; break;                      // USE the selected weapon
           case 'KeyE': IN.pressed.wnext = true; break; case 'KeyQ': IN.pressed.wprev = true; break;
           case 'Digit1': case 'Numpad1': IN.pressed.wsel = 'mine'; break; case 'Digit2': case 'Numpad2': IN.pressed.wsel = 'gun'; break;
@@ -76,6 +78,8 @@
       const pr = (e) => e.preventDefault();
       document.addEventListener('contextmenu', pr);
       document.addEventListener('gesturestart', pr);
+      document.addEventListener('selectstart', pr);
+      document.addEventListener('dragstart', pr);
       document.addEventListener('dblclick', pr);
       document.addEventListener('touchmove', (e) => {
         if (e.target && e.target.closest && e.target.closest('.shop-list, .shop-detail, .sum, .pause-box, .brief, .ms-track')) return;

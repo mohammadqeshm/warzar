@@ -1,8 +1,12 @@
 # PROJECT_MEMORY.md — WARZAR: CRATE RUSH
 
+> **Current release handoff (2026-11-18):** Playgama candidate 1.0.0, Bridge 2.4.3, alongside the independent standalone build. See `docs/PLAYGAMA-AUDIT.md`, `docs/PLAYGAMA-QA.md`, `docs/PLAYGAMA-LISTING.md` and `docs/PLAYGAMA-AUDIO.md` for the current profile and QA. The M1–M4 notes and older MP3 handoffs below are historical. Nothing has been uploaded, submitted, published, committed or pushed in this release pass.
+
 > Living handoff file for AI coding agents. **Paste this file at the start of every new chat/session, together with GDD.md and the milestone prompt.** Update it at the end of every milestone and before you run out of quota. If something here conflicts with code that exists, the **code wins**; fix this file.
 
-Last updated: 2026-11-05 · Current milestone: **M1 DONE (vertical slice) — awaiting the 5-person fun test / "MILESTONE 2" prompt**
+Last updated: 2026-11-18 · **Current handoff: Playgama release candidate; dashboard/device validation outstanding.**
+
+**Exact upload:** `warzar-crate-rush-1.0.0-playgama.zip` — 2,935,413 ZIP bytes, 98 files, SHA-256 `f5e76890a12f01e56622b14b8cbfb410858c284c3b45f559ad3466322865762a`. Latest follow-up: dev, standalone, and Playgama share the same 88 licensed MP3s. `vite.config.ts` resolves one audio bank; the original bank remains archival under `src/game/audio/`. The Shop's coin-for-ad offer and `shop_coins` placement are removed only; result `bonus_coins`, interstitials, gear sales/upgrades, save and gameplay are unchanged. See the QA record for tests and host/device checks still needed. Source/listing/media are separate and not upload builds.
 
 ---
 
@@ -13,7 +17,7 @@ A 3D web game for Playgama / YouTube Playables. Commander drives a military jeep
 1. Build **only** the milestone named in the prompt. Never start the next one.
 2. Output complete files. No placeholders, "TODO", or "rest of code".
 3. No external network calls, CDNs, web fonts, analytics, social links. Libraries are bundled locally.
-4. Game code = plain JS classic IIFE modules on one namespace `window.WZ` (no imports/exports inside game files). **See D-006: the host project forces a Vite single-file build; the ordered manifest is `src/game/index.js`.**
+4. Game code = plain JS classic IIFE modules on one namespace `window.WZ` (no imports/exports inside game files). **Keep `src/game/index.js` ordered. D-006 describes the historical single-file constraint; it is now the standalone profile. Playgama uses a separate SDK-first entry and loose local assets.**
 5. Never invent Playgama Bridge method names. Put every uncertain call in `src/game/platform.js` with `// VERIFY AGAINST OFFICIAL DOCS` and list it in section 9.
 6. Family-friendly: no blood/gore, no real weapon brands. KO = stars, helmet pop, smoke poof.
 7. All balance values live in `src/game/config.js` (`WZ.CFG`, formulas in `WZ.CFG.calc`).
@@ -27,11 +31,11 @@ A 3D web game for Playgama / YouTube Playables. Commander drives a military jeep
 |---|---|
 | Language | Plain JavaScript ES2020 game modules (`src/game/**`), tiny React/TS shell (`src/App.tsx`) only mounts the game |
 | 3D | Three.js **r150.1** (npm, pinned exact) → `src/game/three-global.js` sets `window.THREE` |
-| Build | `npm run build` (Vite 7 + vite-plugin-singlefile) → **one self-contained `dist/index.html`** (~980 KB, 281 KB gzip) |
+| Build | `npm run build` → standalone `dist/index.html`; `npm run build:playgama` → upload directory with loose MP3s (see latest audio update) |
 | Physics | None. Custom arcade driving + circle/AABB collisions + spatial hash |
-| Audio | WebAudio synthesis, no audio files |
+| Audio | Shared 88 licensed MP3s (development, standalone and Playgama); Web Audio for playback, mixing and looping only |
 | Art | Procedural low-poly models + canvas-baked textures behind `WZ.Assets` swap layer |
-| Save | `WZ.Save` → `localStorage` (try/catch, throttled), versioned JSON (Bridge storage in M4) |
+| Save | `WZ.Save` → Bridge storage in Playgama (one startup read, serialized batched writes); optional local adapter in standalone only |
 | Units | 1 u ≈ 1 m; Y-up; gameplay on XZ plane; heading θ → forward = (sinθ, cosθ); local +X of a model = its LEFT |
 | RNG | mulberry32, `missionSeed = hash(runSeed, missionIndex, attempt)` |
 | Sim | Fixed 60 Hz step, render interpolation for jeep/Nana/enemies, hit-stop, DPR cap 2 + auto scaling |
@@ -154,7 +158,7 @@ Still to confirm in M4: storage API, interstitial/rewarded APIs + callbacks, IAP
 - Gun fires automatically; stand still → "GUN BOOST" tag and faster fire; Heat flames fill while stationary; more enemies.
 - Ram grunts at > 10 u/s → stars, helmet pop, poof. Drive through sandbags/barrels → they fly.
 - Timer 0 or jeep HP 0 → MISSION FAILED → NEW RUN. Complete → summary → NEXT MISSION (4 crates at mission 3 etc.).
-- Hide tab / Esc: simulation, rendering and audio stop; resume shows pause card.
+- Hide tab / use the pause button: simulation, rendering and audio stop. Returning to a visible tab restores the same run unless it was manually paused (see latest audio update).
 - Search project for `http`, `https`, `//`: see section 8 (only XML namespaces + React error string in the bundle).
 - Size: `dist/index.html` ≈ 980 KB (1 file). Repeated menu↔mission cycles do not grow geometry/texture counts.
 
@@ -358,3 +362,22 @@ Visual-only change; the rig API (`rig.root/bodyG/torso/head/legL/legR/armL/armR`
 - **Guardian vanishing bug (root cause)**: `art/dino.js pose()` stored the dinosaur's head pitch in `g.hx` - the same field `entities/giant.js` uses as the guardian's HOME x. After the first rendered frame every dinosaur's home was x~0, so as soon as it lost its target (or just idled / wandered) it walked away from its crate towards the map's centre line, and `_homeWatch` even teleported it there while unseen -> crates looked unguarded in Dino Valley. Fixes: dino pose state renamed `g.hdX/g.hdY`; the guard post is now stored in dedicated `g.homeX/g.homeZ` (read by giant.js and systems/harbor.js); new `Giants._toPost()` (return to post, resets interpolation) and `Giants._sanity()` watchdog (NaN / outside-arena positions go back to the post); spawn fallback rings widened to 23 u. Regression test: `node tools/test-guardian-home.cjs`.
 - **Extraction arrow (`scenes/mission.js` `M.arrow`)**: the green-zone ('exit') pointer is hidden as soon as the zone is on screen (with hysteresis against edge flicker) instead of flipping to a downward arrow. Crate / pickup / storm arrows unchanged.
 - **Upgrade prices (`config.js`)**: first weapon upgrade is now mines 150, turrets 220, soldiers 260, heavy 400, heli 400, bombs 550, tank 650, jet 1050 (was 20..140) and every further level costs x1.5 (`CFG.economy.weaponUpgradeGrowth`, was x2), rounded to 5. Total to max one weapon ~74.8 x base (mines ~11k ... jet ~79k); every weapon at Lv 3 costs ~9.2k (was 1.5k). Unit prices unchanged. Run `node tools/economy-sim.cjs` for the table; `tools/test-garage.cjs` was updated.
+
+---
+
+## Update — reference Commander/Nana and vehicle seating · 2026-11-18
+- `art/heroes.js` and `art/textures.js`: Commander gets a square patrol cap with a winged rank badge, stern eyes and heavier kit; Nana gets a rounded helmet with a continuous NANA stencil and ace/smiley patches, an animated swept ponytail, crossed cheek bandage and a gap-toothed grin. Both use warm digital camouflage and shaped gear. Existing rig joints, animation keys/code, standing scale, rifle/pan mounts, and the allied soldier model are preserved. No downloaded art or new dependencies.
+- `art/vehicles.js` / `art/vehicles_extra.js`: jeep, buggy and truck have independently fitted seat anchors. Only mounted riders inherit the seat transform; the gun and muzzle keep their existing heights. `entities/nana.js` lands on the vehicle's own passenger anchor and blends only the rendered landing transform; deploy/carry/board rules and timing are unchanged. The pan is stowed while mounted (mission and shop preview).
+- Regression: `node tools/test-hero-seats.cjs` exercises simultaneous hit-squash and head motion, sitting/celebrating, rotating gun clearance, and deploy/carry/re-board/recall on all three chassis. Real-phone testing is still pending.
+
+## Update — portrait shop actions and victory badge · 2026-11-18
+- `scenes/shop.js` and `game.css`: mines and all seven other equipment entries share a detail panel with an independent description/stat scroller and a non-scrolling purchase/upgrade footer. In portrait the two actions are side by side (minimum 44 px high); the horizontal selector, stock/cap labels and prices remain. A same-item update retains the description's reading position, while a different selection starts at the top. Short portrait viewports use a compact selector and a smaller measured preview band; the fog follows the camera distance so it cannot hide the selected model. The advertised reward stays optional and the wallet stays on-screen. No change to transactions, progression, or save data.
+- The victory circle, label, and digits now share a responsive badge size. Its old/new number window cannot flex-shrink and has a full line of glyph clearance. The original flip, pop, rings, and sounds are unchanged; on short portrait screens only the result stats/coins need to scroll, not the badge or result actions.
+- QA: Playwright Chromium and WebKit with touch at 320×568, 360×640, 393×740, 390×475, 320×440 and 500×525, plus 568×320 and 740×393 landscape and 1160×800 desktop. Tapped Buy and Upgrade on all eight entries without scrolling details; checked independent swipes and unchanged actions after a detail scroll, disabled/full/max states, save/wallet updates, safe-area overrides and mocked rewarded availability. Verified 1→2, 9→10 and 10→★ after animation and the real level-9 completion path through the debug-only finish key. Real phones and live ads were not used.
+
+## Update — offline-mastered MP3 audio and Playgama sound gates · 2026-11-18
+- `src/game/audio/`: 87 VBR MP3s (44.1 kHz mono, 523,988 bytes total), 50 original cue names including `cash` / `buy` and the alternating high/low `tick`. The single active Desert Village score keeps its opening and gapless repeat, with scene gain 0.62 / 0.62 / 0.13. Original cue gaps, gain and compressor settings are preserved. Six phase-matched engine layers and four tornado layers replace the live synthesis while retaining input/distance-driven pitch, level, timbre and pan. The source revision and sample/encoder-delay metadata live in the manifest. Safari's untrimmed MP3 frames are handled separately from the gapless Chromium decode. Older assets from `049bed6` are not used.
+- `audio-bank.js` supplies the Vite MP3 URLs; `audio.js` decodes on demand, plays, and mixes only those samples. No synthesized fallback. `tools/render-audio.cjs` is an offline build tool only, using the original committed source, Playwright and FFmpeg. Removing the stale `public/audio/manifest.json` avoids publishing an obsolete OGG/MP3 catalog.
+- `platform.js`, `main.js`, `ui.js` and `i18n.js`: independent host mute, saved player mute (`settings.sound`), manual pause, Bridge pause, page/DOM visibility, and ad gates. Bridge is checked before any initial playback, including after reload. The menu speaker and pause toggle are localized, keyboard/touch accessible, and cannot override host mute. YouTube retains host-only overall mute. A platform/visibility pause freezes the existing mission, resets held input, and resumes the same run after all gates clear; a manual pause is never canceled by returning to the page.
+- Two targets from the same assets: default `npm run build` retains the standalone `dist/index.html` with embedded MP3s; `npm run build:playgama` writes `dist-playgama/index.html`, `audio/*.mp3`, and the existing local Bridge files. The separate target is required to have real MP3 files in the root-index upload ZIP without changing default delivery. No new runtime dependencies.
+- Verification: both production builds and TypeScript check passed; asset tests confirm full coverage and no runtime synthesis. All 87 MP3s decoded in Playwright Chromium and WebKit under a nested upload URL; the UI was tested on desktop and at 320×440 simulated touch (RU). Tested the purchase, change to mission mix, speed/boost audio, wind pan/expiry, user and Bridge mute on successive reloads, overlapping mocked ad and pause gates, and simulated visibility/pagehide/pageshow during the same run. The unmodified bundled Bridge 2.4.2 also initialized in local/mock mode from the extracted archive in both browsers. A lone `dist/index.html` played MP3s via `file://` with the external SDK unavailable. No real phone, host-side Playgama test, or moderation decision.

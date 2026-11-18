@@ -82,6 +82,7 @@
 
     // roof gun
     const gunYaw = new T.Group(); gunYaw.position.set(0, 2.98, -0.95); bodyG.add(gunYaw);
+    gunYaw.userData.mountHeight = 4.18; // existing raised gun/muzzle height, independent of rider fit
     {
       const gc = B(), gp = B();
       gc.add(rb(1.4, 0.95, 0.14, 0.05), { y: 0.62, z: 0.62 });
@@ -113,8 +114,9 @@
       c.visible = false; bodyG.add(c); bedCrates.push(c);
     });
 
-    const seatCmdr = new T.Object3D(); seatCmdr.position.set(0.65, 1.13, -0.15); bodyG.add(seatCmdr);
-    const seatNana = new T.Object3D(); seatNana.position.set(-0.65, 1.13, -0.15); bodyG.add(seatNana);
+    // Scale the seat anchors, not the hero rigs: the change only applies while a rider is attached.
+    const seatCmdr = new T.Object3D(); seatCmdr.position.set(0.696, 1.49, -0.058); seatCmdr.scale.setScalar(0.644); bodyG.add(seatCmdr);
+    const seatNana = new T.Object3D(); seatNana.position.set(-0.706, 1.51, -0.04); seatNana.scale.setScalar(0.611); bodyG.add(seatNana);
 
     return { root, bodyG, wheels, front, gunYaw, muzzle, seatCmdr, seatNana, bedCrates, flag, lights, plainM, camoM };
   }

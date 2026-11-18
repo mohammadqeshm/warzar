@@ -1,5 +1,5 @@
 /* WZ.Save — versioned save (schema v1). Routes through Playgama Bridge storage (WZ.Platform.storageGet / storageSet)
- * with coalesced writes (< 100 KB) and a synchronous local fallback for headless Node unit tests. */
+ * with batched, deduplicated writes. The standalone/test adapter is absent from the upload. */
 (function (WZ) {
   'use strict';
   const KEY = 'warzar_crate_rush_save_v1';
@@ -30,18 +30,16 @@
       if (!(k in src)) continue;
       const b = base[k], s = src[k];
       if (b && typeof b === 'object' && !Array.isArray(b)) merge(b, s);
-      else if (typeof s === typeof b || Array.isArray(b) && Array.isArray(s)) base[k] = s;
+      else if ((Array.isArray(b) ? Array.isArray(s) : typeof s === typeof b)) base[k] = s;
     }
     return base;
   }
 
   function applyLoaded(raw) {
-    let hadData = false;
     if (raw != null && raw !== '') {
       try {
         const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
         if (parsed && typeof parsed === 'object') {
-          hadData = true;
           S.data = merge(defaults(), parsed);
           if (!(parsed.progV >= 2)) {
             const legacy = Math.max(1, (parsed.level | 0), ((parsed.best && parsed.best.mission) | 0));
@@ -89,7 +87,6 @@
     if (WZ.Progress) WZ.Progress.sanitize();
     if (!S.data.runSeed) {
       S.data.runSeed = ((Date.now() ^ (Math.random() * 4294967296)) >>> 0) || 1;
-      if (!hadData && (!WZ.Platform || !WZ.Platform.bridge)) S.save();
     }
     return S.data;
   }
@@ -99,48 +96,54 @@
     _dirty: false,
     _timer: 0,
 
-    /** Async initialization via Playgama Bridge storage (called at startup after WZ.Platform.init). */
+    _last: '',
+    _write: null,
+
+    /** Single Bridge read, before any UI can interact. A failed read never overwrites the player's save. */
     async init() {
-      if (WZ.Platform && typeof WZ.Platform.storageGet === 'function') {
-        const res = await WZ.Platform.storageGet([KEY]);
-        const raw = Array.isArray(res) ? res[0] : res;
-        return applyLoaded(raw);
-      }
-      return S.load();
+      if (!WZ.Platform || typeof WZ.Platform.storageGet !== 'function') return S.load();
+      const res = await WZ.Platform.storageGet([KEY]);
+      const data = applyLoaded(res[0]);
+      S._last = JSON.stringify(data);
+      return data;
     },
 
-    /** Synchronous load fallback (used by headless Node unit tests). */
+    /** Synchronous load for standalone headless tests. There is no adapter in the Playgama bundle. */
     load() {
-      let raw = null;
-      if (!WZ.Platform || !WZ.Platform.bridge) {
-        try { raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null; } catch (e) { raw = null; }
-      }
-      return applyLoaded(raw);
+      const data = applyLoaded(WZ.LocalStorage ? WZ.LocalStorage.get(KEY) : null);
+      S._last = JSON.stringify(data);
+      return data;
     },
 
     save() {
       S._dirty = true;
-      // In browser with Bridge active, coalesce rapid writes within 120ms into a single Bridge storage.set call.
-      if (WZ.Platform && WZ.Platform.bridge && typeof setTimeout === 'function') {
-        if (S._timer) return;
-        S._timer = setTimeout(() => { S._timer = 0; S.flush(); }, 120);
-        return;
-      }
-      S.flush();
+      if (WZ.Platform && WZ.Platform.bridge) {
+        if (!S._timer) S._timer = setTimeout(S.flush, 160);
+      } else { S.flush(); }
     },
 
     flush() {
       if (S._timer) { clearTimeout(S._timer); S._timer = 0; }
-      if (!S._dirty) return;
+      if (!S._dirty || S._write) return S._write;
       S._dirty = false;
       const payload = JSON.stringify(S.data);
-      if (WZ.Platform && WZ.Platform.bridge && typeof WZ.Platform.storageSet === 'function') {
-        WZ.Platform.storageSet([KEY], [payload]);
+      if (payload === S._last) return;
+      if (!WZ.Platform || !WZ.Platform.bridge) {
+        if (WZ.LocalStorage) WZ.LocalStorage.set(KEY, payload);
+        S._last = payload;
         return;
       }
-      try {
-        if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, payload);
-      } catch (e) { /* storage unavailable: play on */ }
+      // Serialize writes: a slow cloud write must not win over a newer purchase or unlocked level.
+      S._write = WZ.Platform.storageSet([KEY], [payload]).then(() => {
+        S._last = payload;
+        S._write = null;
+        if (S._dirty) S.flush();
+      }, () => {
+        S._dirty = true;
+        S._write = null;
+        // Retry at the next meaningful update or when the page is hidden, not in a busy loop.
+      });
+      return S._write;
     },
 
     newRunSeed() {

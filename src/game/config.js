@@ -3,7 +3,7 @@
   'use strict';
 
   const CFG = {
-    version: 'M1-0.1.0',
+    version: '1.0.0',
 
     // SEASONS & LEVELS: every season (= one map, see CFG.maps.order) has `levels` levels. Level N has exactly N supply crates.
     // Beating level `levels` of a season unlocks the next season (which starts again at level 1).

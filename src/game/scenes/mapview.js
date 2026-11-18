@@ -39,7 +39,7 @@
     _tick() {
       const Main = WZ.Main, k = MP.tasks.shift();
       if (!k || !Main || !Main.renderer || Main.cur !== WZ.Scenes.menu) { MP.running = false; MP.tasks.length = 0; return; }
-      if (MP._glDown()) { MP.tasks.unshift(k); MP.timer = setTimeout(MP._scheduleNext, 500); return; }   // WebGL context lost: never cache a black render, retry later
+      if (Main.paused || MP._glDown()) { MP.tasks.unshift(k); MP.timer = setTimeout(MP._scheduleNext, 500); return; }   // WebGL context lost: never cache a black render, retry later
       MP.busyFrame = true;
       try {
         const url = k.kind === 'shot' ? MP._renderShot(k.th) : MP._renderPortrait(k.th);

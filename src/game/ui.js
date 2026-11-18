@@ -4,6 +4,8 @@
   'use strict';
   const t = (k, v) => WZ.I18n.t(k, v), FONT = () => WZ.Tex.FONT;
   const $ = (id) => document.getElementById(id);
+  const SPEAKER = (muted) => '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor"/>' +
+    (muted ? '<path d="m16 9 5 6m0-6-5 6" stroke="#FF754B"' : '<path d="M15 9a4.3 4.3 0 0 1 0 6m2-8a7.1 7.1 0 0 1 0 10" stroke="currentColor"') + ' stroke-width="2" stroke-linecap="round"/></svg>';
   const CRATE_ICO = '<svg viewBox="0 0 24 24" class="ico"><rect x="2" y="5" width="20" height="16" rx="2" fill="#7A5230" stroke="#0E0E0E" stroke-width="1.5"/><path d="M2 9h20M2 17h20M5 5v16M19 5v16" stroke="#3A3C3E" stroke-width="2"/><path d="M6 20L18 6" stroke="#5E4126" stroke-width="2"/></svg>';
   const BOLT_ICO = '<svg viewBox="0 0 24 24" class="ico"><path d="M13 1L4 14h6l-2 9 10-14h-6z" fill="#FFB400" stroke="#0E0E0E" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 
@@ -54,24 +56,24 @@
         '    <div id="hud-coins" class="panel" title="' + t('hud.loot.tip') + '">' + COIN_ICO + '<span id="hud-coins-n">0</span></div>' +
         '    <div id="hud-pk" class="panel"><div id="pk-heal" class="pk heal" title="' + t('hud.pk.tipHeal') + '">' + HEART_ICO + '<b id="pk-heal-n">0/0</b></div><div id="pk-time" class="pk time" title="' + t('hud.pk.tipTime') + '">' + CLOCK_ICO + '<b id="pk-time-n">0/0</b></div></div></div>' +
         '  <div id="hud-left"><div id="hud-lvl" class="panel">LVL 1</div><div id="hud-crates" class="panel">' + CRATE_ICO + '<span id="hud-crates-n">0/0</span></div>' +
-        '    <div id="hud-hp" class="bar"><i style="width:100%"></i><span>' + t('hud.jeep') + '</span><em class="strikes" title="mines"><u></u><u></u></em></div>' +
+        '    <div id="hud-hp" class="bar"><i style="width:100%"></i><span>' + t('hud.jeep') + '</span><em class="strikes" title="' + t('hud.mineStrikes') + '"><u></u><u></u></em></div>' +
         '    <div id="hud-nana" class="bar nana"><i style="width:100%"></i><span>' + t('hud.nana') + '</span><b id="hud-nana-pct" class="bar-pct">100%</b></div></div>' +
-        '  <button id="btn-pause" aria-label="pause"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1" fill="#ECE9E1"/><rect x="14" y="4" width="5" height="16" rx="1" fill="#ECE9E1"/></svg></button>' +
+        '  <button id="btn-pause" aria-label="' + t('hud.pause') + '"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1" fill="#ECE9E1"/><rect x="14" y="4" width="5" height="16" rx="1" fill="#ECE9E1"/></svg></button>' +
         '  <div id="hud-obj"></div><div id="hud-prompt" class="hidden"></div><div id="hud-hint" class="hidden"></div>' +
-        '  <div id="hud-gun" class="hidden">' + BOLT_ICO + 'GUN BOOST</div>' +
+        '  <div id="hud-gun" class="hidden">' + BOLT_ICO + t('hud.gunBoost') + '</div>' +
         '  <div id="hud-arrows"></div>' +
         '  <div id="hud-giants"></div>' +
         '  <div id="hud-soldiers"></div>' +
         '  <div id="hud-buttons"><div id="hud-defs">' +
         '<div id="w-wheel" class="hidden"><div id="w-label"></div><div class="w-strip">' + W_ORDER.map((id) => '<button class="wchip" data-w="' + id + '"><i class="cd"></i>' + W_ICO[id] + '<b>0</b><small class="k-keys">' + (W_ORDER.indexOf(id) + 1) + '</small></button>').join('') + '</div></div>' +
-        '<button id="btn-wswap" aria-label="swap weapon">' + SWAP_ICO + '<small class="k-keys">' + t('hud.key.wswap') + '</small></button>' +
+        '<button id="btn-wswap" aria-label="' + t('hud.ariaSwap') + '">' + SWAP_ICO + '<small class="k-keys">' + t('hud.key.wswap') + '</small></button>' +
         '<button id="btn-weapon" class="ready" data-w="gun"><span class="w-cd-clip"><i class="cd"></i></span><span id="w-ico"></span><span id="w-name">' + t('w.gun') + '</span><b id="w-n">0</b><small class="k-keys">' + t('hud.key.weapon') + '</small></button></div>' +
         '<div id="hud-main"><button id="btn-boost"><i class="cd"></i><span>' + t('hud.boost') + '</span><small class="k-keys">' + t('hud.key.boost') + '</small></button>' +
         '    <button id="btn-deploy" class="off"><span id="deploy-lbl">' + t('hud.deploy') + '</span><small class="k-keys">' + t('hud.key.deploy') + '</small></button></div></div>' +
         '</div>' +
         '<div id="wz-float"></div><div id="wz-screens"></div><div id="wz-flash" class="flash"></div><div id="wz-grain"></div><div id="wz-debug" class="hidden"></div>' +
         '<div id="wz-load"><div class="load-in">' +
-        '  <div class="load-title">WARZAR</div>' +
+        '  <div class="load-title">WARZAR: Crate Rush</div>' +
         '  <div class="load-car-wrap">' +
         '    <svg class="load-car-svg" viewBox="0 0 240 110" aria-hidden="true">' +
         '      <defs>' +
@@ -141,13 +143,15 @@
       } catch (e) { /* grain is optional */ }
       UI.setDevice(WZ.Input.device);
       WZ.Events.on('input:device', UI.setDevice);
+      document.addEventListener('fullscreenchange', () => { const b = $('btn-fullscreen'); if (b && b.paintFullscreen) b.paintFullscreen(); });
+      WZ.Events.on('audio:state', () => { UI.paintMute($('btn-mute')); UI.paintMute($('btn-pause-mute')); });
       return { canvas: $('wz-canvas'), touch: $('wz-touch'), stickBase: $('stick-base'), stickKnob: $('stick-knob') };
     },
 
     setDevice(d) { UI.root.classList.toggle('dev-touch', d === 'touch'); UI.root.classList.toggle('dev-keys', d !== 'touch'); },
 
     loading(p) {
-      if (p === false) { UI.h['wz-load'].classList.add('done'); setTimeout(() => UI.h['wz-load'].classList.add('hidden'), 450); return; }
+      if (p === false) { UI.h['wz-load'].classList.add('hidden'); return; }
       const pct = Math.max(0, Math.min(100, Math.round(p * 100)));
       if (UI.h['load-fill']) UI.h['load-fill'].style.width = pct + '%';
       if (UI.h['load-car-rect']) UI.h['load-car-rect'].setAttribute('width', (240 * pct / 100).toFixed(1));
@@ -272,6 +276,62 @@
     clearScreens() { UI.h['wz-screens'].innerHTML = ''; },
     _screen(cls, html) { const d = document.createElement('div'); d.className = 'screen ' + cls; d.innerHTML = html; UI.h['wz-screens'].appendChild(d); return d; },
 
+    paintMute(btn) {
+      if (!btn) return;
+      const audio = WZ.Audio, label = t(audio.muted ? 'menu.sound.off' : 'menu.sound.on');
+      btn.disabled = audio.platformMuted;
+      btn.title = label;
+      btn.setAttribute('aria-label', t('menu.sound.mute'));
+      btn.setAttribute('aria-pressed', String(audio.muted));
+      if (btn.id === 'btn-mute') btn.innerHTML = SPEAKER(audio.muted);
+      else btn.textContent = label;
+    },
+    bindMute(btn) {
+      if (!btn) return;
+      UI.paintMute(btn);
+      btn.onclick = () => {
+        const audio = WZ.Audio;
+        if (audio.platformMuted) return;
+        const muted = !audio.userMuted;
+        WZ.Save.data.settings.sound = muted ? 0 : 1;
+        WZ.Save.save(); WZ.Save.flush();
+        audio.setMuted(muted);
+        if (!muted) { audio.unlock(); audio.sfx('click'); }
+      };
+    },
+
+    retryGraphics(host, message) {
+      const notice = document.createElement('div');
+      notice.className = 'wz-recovery';
+      notice.setAttribute('role', 'alert');
+      const text = document.createElement('p'), button = document.createElement('button');
+      text.textContent = message;
+      button.type = 'button'; button.className = 'btn'; button.textContent = t('load.retry');
+      button.onclick = () => { WZ.Save.flush(); location.reload(); };
+      notice.append(text, button); host.appendChild(notice);
+      return notice;
+    },
+
+    fullscreenHtml() {
+      if (!document.fullscreenEnabled || !document.documentElement.requestFullscreen) return '';
+      return '<button type="button" class="mute-btn full-btn" id="btn-fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+    },
+    bindFullscreen(button) {
+      if (!button) return;
+      const paint = () => {
+        const isFull = !!document.fullscreenElement;
+        button.setAttribute('aria-label', t(isFull ? 'ui.exitFullscreen' : 'ui.fullscreen'));
+        button.title = t(isFull ? 'ui.exitFullscreen' : 'ui.fullscreen');
+        button.setAttribute('aria-pressed', String(isFull));
+      };
+      button.paintFullscreen = paint; paint();
+      button.onclick = async () => {
+        WZ.Audio.unlock();
+        try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch (_) { /* hosted iframe may not grant fullscreen; viewport remains filled */ }
+        paint();
+      };
+    },
+
     showMenu(data, h) {
       UI.clearScreens();
       const PG = WZ.Progress, LV = WZ.CFG.progress.levels;
@@ -279,10 +339,13 @@
       const sNum = Math.max(1, CFG_MAPS().indexOf(curMap) + 1);
       const lvl = PG.current(curMap), done = PG.cleared(curMap);
       const el = UI._screen('menu',
-        '<div class="menu-logo"><canvas id="logo-canvas"></canvas></div>' +
+        '<div class="menu-logo"><canvas id="logo-canvas" role="img" aria-label="WARZAR: Crate Rush"></canvas></div>' +
         '<div class="menu-bottom"><button class="map-chip" id="btn-maps" aria-label="' + t('maps.change') + '"><span class="mc-thumb" id="mc-thumb">' + UI._mapThumb(curMap) + '</span><span class="mc-t"><small id="mc-season">' + t('maps.current', { s: sNum }) + '</small><b id="mc-name">' + t('maps.' + curMap) + '</b><span class="mc-prog"><span class="mc-bar"><i id="mc-fill" style="width:' + (done / LV * 100) + '%"></i></span><em id="mc-n">' + t('maps.cleared', { n: done, m: LV }) + '</em></span></span><span class="mc-go">' + t('maps.change') + '</span></button>' +
         '<button class="play-btn" id="btn-play"><small class="play-lvl" id="play-lvl">' + t('menu.seasonLevel', { s: sNum, n: lvl, m: LV }) + '</small><span>' + t('menu.play') + '</span></button></div>' +
-        '<button class="garage-btn" id="btn-garage" aria-label="' + t('shop.title') + '"><span class="gi">' + SHOP_ICO + '</span><span class="gt"><b>' + t('shop.title') + '</b><small>' + COIN_ICO.replace('class="ico"', 'class="coin"') + '<em id="garage-coins">' + ((WZ.Save && WZ.Save.data.coins) || 0) + '</em></small></span></button>');
+        '<button class="garage-btn" id="btn-garage" aria-label="' + t('shop.title') + '"><span class="gi">' + SHOP_ICO + '</span><span class="gt"><b>' + t('shop.title') + '</b><small>' + COIN_ICO.replace('class="ico"', 'class="coin"') + '<em id="garage-coins">' + ((WZ.Save && WZ.Save.data.coins) || 0) + '</em></small></span></button>' +
+        (WZ.Platform.hasGameMute() ? '<button type="button" class="mute-btn" id="btn-mute"></button>' : '') + UI.fullscreenHtml());
+      UI.bindFullscreen($('btn-fullscreen'));
+      UI.bindMute($('btn-mute'));
       UI.drawLogo($('logo-canvas'));
       $('btn-maps').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); if (h.maps) h.maps(); };
       $('btn-play').onclick = () => { WZ.Audio.unlock(); WZ.Audio.sfx('click'); h.play(); };
@@ -541,23 +604,24 @@
         (info.mapName ? '<div class="brief-map">' + info.mapName + '</div>' : '') +
         '<div class="brief-row"><span>' + CRATE_ICO + t('brief.find', { n: info.crates }) + '</span><span>' + t('brief.time', { t: WZ.U.fmtTime(info.time) }) + '</span></div>' +
         '<div class="brief-tip">' + info.tip + '</div>' +
-        '<button class="btn big" id="btn-go">' + t('brief.go') + '</button></div>');
+        '<div class="brief-actions"><button class="btn dark" id="btn-brief-back">' + t('pause.menu') + '</button><button class="btn big" id="btn-go">' + t('brief.go') + '</button></div></div>');
       let done = false;
       const go = () => { if (done) return; done = true; WZ.Audio.unlock(); WZ.Audio.sfx('go'); onGo(); };
       $('btn-go').onclick = go; el._go = go;
+      $('btn-brief-back').onclick = () => { if (!done) { done = true; WZ.Audio.sfx('click'); WZ.Main.go('menu'); } };
       return el;
     },
 
-    /** count-up animation for every [data-count] inside `root` (stops by itself when the element leaves the DOM) */
+    /** Count up until the element is removed or an authoritative update clears data-count. */
     _countUp(root) {
       root.querySelectorAll('[data-count]').forEach((el) => {
         const to = +el.dataset.count, from = +(el.dataset.from || 0), pre = el.dataset.pre || '', delay = +el.dataset.delay || 0, dur = 750;
         el.textContent = pre + from;
         setTimeout(() => {
-          if (!el.isConnected) return;
+          if (!el.isConnected || !el.hasAttribute('data-count')) return;
           const t0 = performance.now();
           const tick = (now) => {
-            if (!el.isConnected) return;
+            if (!el.isConnected || !el.hasAttribute('data-count')) return;
             const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
             el.textContent = pre + Math.round(from + (to - from) * e);
             if (k < 1) requestAnimationFrame(tick);
@@ -601,7 +665,7 @@
           '<div class="sum-body"><div class="sum-stats"><div><small>' + t('sum.crates') + '</small><b>' + r.crates + '/' + r.total + '</b></div><div><small>' + t('sum.kos') + '</small><b>' + r.kos + '</b></div>' +
           '<div><small>' + t('sum.timeleft') + '</small><b>' + WZ.U.fmtTime(r.timeLeft) + '</b></div></div>' +
           '<div class="sum-coins">' + rows + totalRow(r.coinsSeason ? 2250 : 2100) + '</div></div>' +
-          '<div class="sum-btns">' + adRowBtn + '<button class="btn big" id="btn-sum-main">' + (r.unlockedSeason ? t('sum.unlockSeasonBtn', { n: WZ.Progress.seasonIndex(r.unlockedSeason) + 1 }) : t(r.allClear ? 'sum.replay' : lastLvl ? 'sum.nextSeason' : 'sum.next')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+          '<div class="sum-btns">' + adRowBtn + '<span class="ad-status hidden" role="status"></span><button class="btn big" id="btn-sum-main">' + (r.unlockedSeason ? t('sum.unlockSeasonBtn', { n: WZ.Progress.seasonIndex(r.unlockedSeason) + 1 }) : t(r.allClear ? 'sum.replay' : lastLvl ? 'sum.nextSeason' : 'sum.next')) + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
         // choreography: badge flips old level -> new level (with a sound), stars pop one after another
         setTimeout(() => { if (!el.isConnected) return; el.querySelector('.lvl-badge').classList.add('up'); WZ.Audio.sfx('pickup'); }, 650);
         el.querySelectorAll('.star').forEach((s, i) => setTimeout(() => { if (!el.isConnected) return; s.classList.add('on'); if (s.classList.contains('got')) WZ.Audio.sfx('deliver'); }, 1000 + i * 260));
@@ -637,41 +701,50 @@
           '<div class="sum-coins">' + row(t('sum.coins.crates'), r.coinsCrates, 700) + row(t('sum.coins.kills'), r.coinsKills || 0, 850) + totalRow(1000) + '</div>' +
           '<div class="fail-tip"><b>' + t('sum.tip') + '</b><span>' + hint + '</span></div>' +
           '<div class="sum-note">' + t('sum.keptcoins') + '</div></div>' +
-          '<div class="sum-btns">' + adRowBtn + '<button class="btn big retry" id="btn-sum-main">' + t('sum.tryagain') + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
+          '<div class="sum-btns">' + adRowBtn + '<span class="ad-status hidden" role="status"></span><button class="btn big retry" id="btn-sum-main">' + t('sum.tryagain') + '</button><button class="btn dark" id="btn-sum-shop">' + t('shop.title') + '</button><button class="btn dark" id="btn-sum-menu">' + t('sum.menu') + '</button></div></div>');
       }
       UI._countUp(el);
-      const adBtnEl = $('btn-sum-ad');
-      if (adBtnEl && h.rewarded) {
-        adBtnEl.onclick = () => {
-          if (adBtnEl.disabled) return;
-          WZ.Audio.sfx('click');
-          adBtnEl.disabled = true;
-          h.rewarded(adBonus).then((ok) => {
-            if (!el.isConnected) return;
+      const adBtnEl = $('btn-sum-ad'), status = el.querySelector('.ad-status');
+      const buttons = ['btn-sum-main', 'btn-sum-shop', 'btn-sum-menu', 'btn-sum-ad'].map($).filter(Boolean);
+      let pending = false;
+      const take = async (fn, reward = false) => {
+        if (pending) return;
+        pending = true;
+        WZ.Audio.sfx('click');
+        buttons.forEach((b) => { b.disabled = true; });
+        if (reward && status) { status.textContent = t('ad.wait'); status.classList.remove('hidden'); }
+        try {
+          const ok = await fn();
+          if (reward && el.isConnected) {
             if (ok) {
               WZ.Audio.sfx('win');
               adBtnEl.remove();
               const wEl = $('sum-wallet-val');
-              if (wEl) wEl.textContent = String(WZ.Save.data.coins);
-            } else {
-              adBtnEl.disabled = false;
-            }
-          });
-        };
-      }
-      $('btn-sum-main').onclick = () => { WZ.Audio.sfx('click'); h.main(); };
-      $('btn-sum-menu').onclick = () => { WZ.Audio.sfx('click'); h.menu(); };
-      $('btn-sum-shop').onclick = () => { WZ.Audio.sfx('click'); h.garage(); };
+              if (wEl) { wEl.removeAttribute('data-count'); wEl.textContent = String(WZ.Save.data.coins); }
+              if (status) status.classList.add('hidden');
+            } else if (status) { status.textContent = t('ad.unavailable'); }
+          }
+        } finally {
+          buttons.forEach((b) => { b.disabled = false; });
+          pending = false;
+        }
+      };
+      if (adBtnEl && h.rewarded) adBtnEl.onclick = () => take(() => h.rewarded(adBonus), true);
+      $('btn-sum-main').onclick = () => take(h.main);
+      $('btn-sum-menu').onclick = () => take(h.menu);
+      $('btn-sum-shop').onclick = () => take(h.garage);
       return el;
     },
 
     showPause(h) {
+      const hasMute = WZ.Platform.hasGameMute(), shake = '<button class="btn dark" id="btn-shake"></button>';
       const el = UI._screen('pause',
         '<div class="panel pause-box"><div class="pause-title">' + t('pause.title') + '</div>' +
         '<button class="btn big" id="btn-resume">' + t('pause.resume') + '</button>' +
-        '<button class="btn dark" id="btn-shake"></button>' +
+        (hasMute ? '<div class="pause-options"><button type="button" class="btn dark" id="btn-pause-mute"></button>' + shake + '</div>' : shake) +
         '<button class="btn dark" id="btn-restart">' + t('pause.restart') + '</button><button class="btn dark" id="btn-tomenu">' + t('pause.menu') + '</button></div>');
       const sh = $('btn-shake');
+      UI.bindMute($('btn-pause-mute'));
       const paint = () => { sh.textContent = t(WZ.Save.data.settings.shake ? 'pause.shake.on' : 'pause.shake.off'); };
       paint();
       $('btn-resume').onclick = h.resume; $('btn-restart').onclick = h.restart; $('btn-tomenu').onclick = h.menu;
@@ -709,7 +782,7 @@
       // WARZAR letters (chipped off-white) on an offscreen layer
       const lay = document.createElement('canvas'); lay.width = W; lay.height = H; const l = lay.getContext('2d');
       l.font = '900 200px ' + F; l.textBaseline = 'alphabetic';
-      const word = 'WARZAR', ws = [...word].map((ch) => l.measureText(ch).width), gap = 4, total = ws.reduce((a, b) => a + b, 0) + gap * 5;
+      const word = 'WARZAR:', ws = [...word].map((ch) => l.measureText(ch).width), gap = 4, total = ws.reduce((a, b) => a + b, 0) + gap * (word.length - 1);
       const sx = Math.min(0.92, 760 / total);
       l.save(); l.translate(W / 2 - total * sx / 2, 300); l.scale(sx, 1);
       let px = 0; const xs = [];
@@ -726,13 +799,8 @@
       for (let i = 0; i < 9; i++) { const a = i / 9 * 6.28 + rng(), r = 24 + rng() * 34; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax + Math.cos(a) * r, ay + Math.sin(a) * r); g.stroke(); }
       g.fillStyle = '#0A0A0A'; g.beginPath(); g.arc(ax, ay, 15, 0, 7); g.fill();
       g.strokeStyle = 'rgba(236,233,225,.9)'; g.lineWidth = 2.5; g.beginPath(); g.arc(ax, ay, 17, 0.2, 5.2); g.stroke();
-      // yellow label: displays current Season number + map name
-      const curMap = (WZ.Save && WZ.Save.data && WZ.Save.data.settings && WZ.Save.data.settings.map) || 'village';
-      const sNum = Math.max(1, CFG_MAPS().indexOf(curMap) + 1);
-      const seasonLabel = t('maps.season', { n: sNum }) + '  ·  ' + t('maps.' + curMap);
-      g.save(); g.translate(W / 2, 372); g.rotate(-0.012);
-      g.fillStyle = '#FFB400'; g.fillRect(-250, -26, 500, 52);
-      g.fillStyle = '#0E0E0E'; g.font = '700 31px ' + F; g.fillText(seasonLabel, 0, 11, 466); g.restore();
+      g.fillStyle = '#FFB400'; g.font = '900 44px ' + F; g.fillText('CRATE RUSH', W / 2, 373, 680);
+      // The brand stays constant; season details are shown on the map chip.
     },
 
     drawBrandGlobal() { /* reserved */ },

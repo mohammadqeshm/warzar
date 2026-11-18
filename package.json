@@ -1,15 +1,16 @@
 {
   "name": "react-vite-tailwind",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:playgama": "vite build --mode playgama",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@playgama/bridge": "^2.4.3",
+    "@playgama/bridge": "2.4.3",
     "clsx": "2.1.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",

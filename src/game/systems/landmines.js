@@ -66,7 +66,7 @@
       const c = L.ctx, m = L.list[k], E = c.enemies, P = c.particles, y = m.gy + 0.6;
       L.list.splice(k, 1); L.place(m, false); L.free.push(m.i);
       P.poof(m.x, y, m.z, 16, 2.6); P.sparks(m.x, y + 0.5, m.z, 30, 1, 0.8, 0.3); P.dust(m.x, m.gy, m.z, 10);
-      WZ.Audio.sfx('boom'); WZ.Fx.shake(0.45); WZ.Fx.hitstop(0.05); WZ.Fx.text('BOOM!', m.x, y + 3.5, m.z, 'bonk');
+      WZ.Audio.sfx('boom'); WZ.Fx.shake(0.45); WZ.Fx.hitstop(0.05); WZ.Fx.text((WZ.t ? WZ.t('hud.boom') : 'BOOM!'), m.x, y + 3.5, m.z, 'bonk');
       E.hash.query(m.x, m.z, C.blast, E.q);
       let n = 0;
       for (const e of E.q.slice()) { if (!e.active || e.state === 2 || Math.hypot(e.x - m.x, e.z - m.z) > C.blast) continue; E.ko(e, e.x - m.x, e.z - m.z, C.power, 'mine'); n++; }

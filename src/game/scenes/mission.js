@@ -50,6 +50,7 @@
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
       M._exitHidden = false; M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
       M.nanaOutT = 0; M.rushK = 0; M.rampStep = 0; M.failReason = '';
+      M.prog = null; M.resultCoins = null; M.stars = 0;
       M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.lastTickSec = -1; M.resultShown = false;
       M.camBlend = 0; M.fromPos = new T.Vector3(); M.fromLook = new T.Vector3();
       WZ.Save.data.settings.map = M.theme; if (PG) PG.setCurrent(M.theme, data.level); WZ.Save.save();      // remember which season / level is being played
@@ -63,6 +64,7 @@
       WZ.UI.hudShow(false); WZ.UI.resetHudCache();
       WZ.UI.bindHud({ deploy: () => WZ.Input.press('deploy'), weapon: () => WZ.Input.press('weapon'), wswap: () => WZ.Input.press('wnext'), wsel: (id) => { WZ.Input.pressed.wsel = id; }, pause: () => WZ.Main.togglePause() });
       WZ.Input.reset();
+      if (data.quickStart && tutorial) { M.startPlay(); return; }
       const mapTips = { jurassic: ['brief.tipJ1', 'brief.tipJ2', 'brief.tipJ3'], volcanic: ['brief.tipV1', 'brief.tipV2', 'brief.tipV3', 'brief.tipV4'], frozen: ['brief.tipF1', 'brief.tipF2', 'brief.tipF3', 'brief.tipF4'], harbor: ['brief.tipH1', 'brief.tipH2', 'brief.tipH3', 'brief.tipH4'] }, mt = mapTips[M.theme];
       M.briefEl = WZ.UI.showBriefing({ index: data.index, level: data.level, levels: LV, crates: M.mission.crateCount, time: M.mission.timeLimit, tutorial, mapName: t('maps.season', { n: M.season }) + ' · ' + t('maps.' + M.theme), tip: t(mt && data.level % 3 !== 0 ? mt[(data.level - 1) % mt.length] : TIPS[(data.level - 1) % TIPS.length]) }, M.startPlay);
       void Main;
@@ -74,7 +76,7 @@
       M.fromPos.copy(Cam.cam.position); M.fromLook.set(M.jeep.rx, M.jeep.ry + 1.5, M.jeep.rz); M.camBlend = 1;
       WZ.UI.clearScreens(); WZ.UI.hudShow(true); WZ.UI.resetHudCache(); M.updateHud();
       WZ.Audio.unlock(); WZ.Audio.engineStart(); WZ.Input.reset();
-      if (WZ.Input.showInitialStick) WZ.Input.showInitialStick();
+      if (M.mission.tutorial && WZ.Input.showInitialStick) WZ.Input.showInitialStick();
       if (WZ.Platform && WZ.Platform.gameplayStart) WZ.Platform.gameplayStart(M.theme, M.data && M.data.level);
     },
 
@@ -367,7 +369,7 @@
       M.prog = WZ.Progress ? WZ.Progress.complete(M.theme, M.data.level, M.stars) : { firstClear: false, seasonDone: false, unlockedSeason: null, stars: M.stars };
       if (WZ.Main) WZ.Main.startIndex = S.level;
       M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;   // KO loot is paid out on a win
-      WZ.Save.save(); WZ.Save.flush();
+      M.bankOutcome();
       if (WZ.Platform) {
         WZ.Platform.gameplayStop();
         WZ.Platform.sendMessage('level_completed', { world: String(M.theme), level: String(M.data.level || 1) });
@@ -384,7 +386,7 @@
       const S = WZ.Save.data;
       // a lost run must never cost the player coins: the KO loot is banked right now (crate coins were saved the moment each crate landed)
       M.coinsKills = M.killCoins; S.coins += M.coinsKills; M.data.runCoins = (M.data.runCoins || 0) + M.coinsKills;
-      WZ.Save.save(); WZ.Save.flush();
+      M.bankOutcome();
       if (WZ.Platform) {
         WZ.Platform.gameplayStop();
         WZ.Platform.sendMessage('level_failed', { world: String(M.theme), level: String(M.data.level || 1) });
@@ -393,21 +395,26 @@
       M.stopCombatAudio(); WZ.Audio.sfx('lose'); WZ.UI.hudShow(false);
     },
 
-    showResult() {
-      M.resultShown = true;
-      const S = WZ.Save.data, idx = M.data.index, win = M.endKind === 'complete', Main = WZ.Main, PG = WZ.Progress, LV = CFG.progress.levels;
-      const kos = WZ.Enemies.kos, level = M.data.level;
-      let coinsDone = 0, coinsTime = 0, coinsSeason = 0;
-      if (win) {
-        coinsDone = CFG.calc.completion(idx); coinsTime = CFG.calc.timeBonus(M.timeLeft);
-        if (M.prog && M.prog.seasonDone) coinsSeason = CFG.progress.seasonBonus * M.season;      // one-time bonus for finishing a whole season
-        S.coins += coinsDone + coinsTime + coinsSeason; M.data.runCoins = (M.data.runCoins || 0) + coinsDone + coinsTime + coinsSeason;
-        if (!S.best.fastestMission || M.time < S.best.fastestMission) S.best.fastestMission = Math.round(M.time);
-      }
-      const record = !!(win && M.prog && M.prog.firstClear && !(level === 1 && M.season === 1));
+    // Bank completion, time bonus, stars and wallet in the same save before the result animation.
+    bankOutcome() {
+      const S = WZ.Save.data, win = M.endKind === 'complete', idx = M.data.index, kos = WZ.Enemies.kos;
+      const coinsDone = win ? CFG.calc.completion(idx) : 0, coinsTime = win ? CFG.calc.timeBonus(M.timeLeft) : 0;
+      const coinsSeason = win && M.prog && M.prog.seasonDone ? CFG.progress.seasonBonus * M.season : 0;
+      M.resultCoins = { coinsDone, coinsTime, coinsSeason };
+      S.coins += coinsDone + coinsTime + coinsSeason;
+      M.data.runCoins = (M.data.runCoins || 0) + coinsDone + coinsTime + coinsSeason;
+      if (win && (!S.best.fastestMission || M.time < S.best.fastestMission)) S.best.fastestMission = Math.round(M.time);
       if (kos > S.best.kos) S.best.kos = kos;
       if ((M.data.runCoins || 0) > S.best.runCoins) S.best.runCoins = M.data.runCoins;
       WZ.Save.save(); WZ.Save.flush();
+    },
+
+    showResult() {
+      M.resultShown = true;
+      const S = WZ.Save.data, idx = M.data.index, win = M.endKind === 'complete', PG = WZ.Progress, LV = CFG.progress.levels;
+      const kos = WZ.Enemies.kos, level = M.data.level;
+      const { coinsDone, coinsTime, coinsSeason } = M.resultCoins;
+      const record = !!(win && M.prog && M.prog.firstClear && !(level === 1 && M.season === 1));
       // what comes next (shown on the results screen)
       const nx = win ? PG.nextAfterWin(M.theme, level) : null;
       const r = {
@@ -417,7 +424,6 @@
       };
       // the results screen can be re-opened later (e.g. after the shop), so it only needs plain data
       PG.presentResult({ r, win, theme: M.theme, level, runSeed: M.data.runSeed, runCoins: M.data.runCoins || 0 });
-      void Main;
     },
 
     // ------------------------------------------------------------------ prompts / hints

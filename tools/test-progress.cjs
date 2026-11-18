@@ -5,7 +5,7 @@ global.window = global;
 const store = {}; global.localStorage = { getItem: (k) => store[k] || null, setItem: (k, v) => { store[k] = v; } };
 global.document = { addEventListener() {} };
 global.WZ = {};
-for (const f of ['config.js', 'rng.js', 'events.js', 'save.js', 'progress.js']) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
+for (const f of ['config.js', 'rng.js', 'events.js', 'local-storage.js', 'save.js', 'progress.js']) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
 const issues = []; const ok = (c, m) => { if (!c) issues.push(m); };
 const P = WZ.Progress, CFG = WZ.CFG, S = () => WZ.Save.data, order = CFG.maps.order;
 

@@ -5,7 +5,7 @@ global.window = global; global.THREE = require(path.join(__dirname, '../node_mod
 const store = {}; global.localStorage = { getItem: (k) => store[k] || null, setItem: (k, v) => { store[k] = v; } };
 global.document = { createElement: () => ({ width: 0, height: 0, getContext: () => new Proxy({}, { get: () => () => {}, set: () => true }) }), addEventListener() {} };
 global.WZ = { Assets: { tex: () => null, modelOverride: () => null }, Props: { crateMeshShared: () => new THREE.Group() }, I18n: { t: (k, v) => k + (v ? JSON.stringify(v) : '') } };
-for (const f of ['config.js', 'rng.js', 'events.js', 'util.js', 'save.js', 'art/geo.js', 'art/vehicles.js', 'art/vehicles_extra.js', 'systems/landmines.js', 'scenes/shop.js']) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
+for (const f of ['config.js', 'rng.js', 'events.js', 'util.js', 'local-storage.js', 'save.js', 'art/geo.js', 'art/vehicles.js', 'art/vehicles_extra.js', 'systems/landmines.js', 'scenes/shop.js']) vm.runInThisContext(fs.readFileSync(base + f, 'utf8'), { filename: f });
 const issues = []; const ok = (c, m) => { if (!c) issues.push(m); };
 const Shop = WZ.Scenes.shop, CFG = WZ.CFG;
 

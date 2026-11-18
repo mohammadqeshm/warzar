@@ -6,13 +6,13 @@
   const T = THREE, CFG = WZ.CFG, U = WZ.U, N = CFG.nana;
   const S = { IN_JEEP: 'IN_JEEP', RUNNING_OUT: 'RUNNING_OUT', GRABBING: 'GRABBING', RETURNING: 'RETURNING', BOARDING: 'BOARDING', KO: 'KO', RECALLING: 'RECALLING' };
   const SWING = 0.28;
-  const seat = { x: 0, z: 0 };
+  const seat = { x: 0, z: 0 }, seatWorld = new T.Vector3();
 
   class Nana {
     constructor(ctx) {
       this.ctx = ctx; const jeep = ctx.jeep;
-      this.rig = WZ.Heroes.nana();
-      jeep.model.seatNana.add(this.rig.root); this.rig.setMode('sit');
+      this.rig = WZ.Heroes.nana(); this.standScale = this.rig.root.scale.x;
+      jeep.model.seatNana.add(this.rig.root); this.rig.setMode('sit'); this.rig.pan.visible = false;
       this.state = S.IN_JEEP;
       this.hp = N.hp; this.maxHp = N.hp;
       this.x = jeep.x; this.z = jeep.z; this.px = this.x; this.pz = this.z; this.h = jeep.h; this.ph = this.h;
@@ -105,10 +105,11 @@
 
     step(dt) {
       const ctx = this.ctx, jeep = ctx.jeep;
+      const mount = jeep.model.seatNana.position;
       this.px = this.x; this.pz = this.z; this.ph = this.h; this.tt += dt;
       if (this.iframes > 0) this.iframes -= dt;
       if (this.jumpT > 0) this.jumpT -= dt;
-      if (this.state === S.IN_JEEP) { jeep.localToWorld(-0.65, -0.15, seat); this.x = seat.x; this.z = seat.z; this.h = jeep.h; this.px = this.x; this.pz = this.z; return; }
+      if (this.state === S.IN_JEEP) { jeep.localToWorld(mount.x, mount.z, seat); this.x = seat.x; this.z = seat.z; this.h = jeep.h; this.px = this.x; this.pz = this.z; return; }
       let moving = false;
 
       switch (this.state) {
@@ -143,7 +144,7 @@
         }
         case S.BOARDING: {
           this.boardT += dt / 0.32;
-          jeep.localToWorld(-0.65, -0.15, seat);
+          jeep.localToWorld(mount.x, mount.z, seat);
           const k = Math.min(1, this.boardT);
           this.x = this.boardFromX + (seat.x - this.boardFromX) * k; this.z = this.boardFromZ + (seat.z - this.boardFromZ) * k;
           if (k >= 1) this._boarded();
@@ -218,8 +219,8 @@
     _boarded() {
       const ctx = this.ctx, jeep = ctx.jeep;
       this.state = S.IN_JEEP;
-      jeep.model.seatNana.add(this.rig.root); this.rig.root.position.set(0, 0, 0); this.rig.root.rotation.set(0, 0, 0);
-      this.rig.setMode('sit'); this.rig.punch(-0.7); this.rig.pan.visible = true;
+      jeep.model.seatNana.add(this.rig.root); this.rig.root.position.set(0, 0, 0); this.rig.root.rotation.set(0, 0, 0); this.rig.root.scale.setScalar(this.standScale);
+      this.rig.setMode('sit'); this.rig.punch(-0.7); this.rig.pan.visible = false;
       if (this.carry) { const c = this.carry; this.carry = null; ctx.crates.deliver(c, jeep); WZ.Events.emit('crate:delivered', { crate: c }); }
       this.target = null; this.swingT = -1;
       WZ.Audio.sfx('board'); WZ.Events.emit('nana:board');
@@ -232,9 +233,19 @@
         rig.setMode(this.cheer ? 'cheer' : 'sit');
         rig.update(dt); return;
       }
-      const x = U.lerp(this.px, this.x, alpha), z = U.lerp(this.pz, this.z, alpha), h = this.ph + U.angDiff(this.ph, this.h) * alpha;
+      let x = U.lerp(this.px, this.x, alpha), z = U.lerp(this.pz, this.z, alpha), h = this.ph + U.angDiff(this.ph, this.h) * alpha;
       let y = hm(x, z);
-      if (this.state === S.BOARDING) y += Math.sin(Math.min(1, this.boardT) * Math.PI) * 2.2 + Math.min(1, this.boardT) * 1.2;
+      if (this.state === S.BOARDING) {
+        // Only blend the visual landing into the seat's transform. Keep the jump pose, arc and timing.
+        const k = Math.min(1, this.boardT), settle = U.smooth(0.42, 1, k);
+        const j = ctx.jeep, mount = j.model.seatNana;
+        mount.getWorldPosition(seatWorld);
+        j.localToWorld(mount.position.x, mount.position.z, seat);
+        x += (seatWorld.x - seat.x) * settle; z += (seatWorld.z - seat.z) * settle;
+        h += U.angDiff(h, j.mesh.rotation.y) * settle;
+        y = U.lerp(y, seatWorld.y, k) + Math.sin(k * Math.PI) * 2.2;
+        rig.root.scale.setScalar(this.standScale * U.lerp(1, mount.scale.x * j.mesh.scale.x, settle));
+      }
       if (this.jumpT > 0) y += Math.sin((1 - this.jumpT / 0.4) * Math.PI) * 2.4;
       this.rx = x; this.ry = y; this.rz = z;
       rig.root.position.set(x, y, z); rig.root.rotation.y = h;
