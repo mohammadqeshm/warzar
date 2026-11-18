@@ -44,25 +44,28 @@
     //
     // ONE upgrade per weapon ("WEAPON LVL", 1..maxLevel = 10) and it does exactly ONE thing: it raises the MAXIMUM NUMBER THE PLAYER MAY OWN / BUY.
     //     maxStock(level) = step * level          (level 1 = `step`, every level adds another `step`)
-    //     upgrade price   = upgradePrice * 2^(level-1)   (every upgrade costs exactly TWICE the previous one)
+    //     upgrade price   = upgradePrice * growth^(level-1), growth = CFG.economy.weaponUpgradeGrowth = 1.5 (every upgrade costs 1.5x the previous one), rounded to 5
     //   `step` follows the power of the item (strong items = small step): mines +3, turrets/soldiers/cannons/mortars +2, helicopters/tanks/jets +1.
     //   Level 1 can never be lower than the free `starter` stock.  No other stat is touched by the upgrade (no second "tech" upgrade exists any more).
     //
     // UNIT PRICE (packs[0].price) ~ power: expected damage / control delivered in one deployment (life x dps x splash/utility), rounded to 5:
     //   mine 25 (one-shot blast) < gun turret 80 < soldier 95 < heavy cannon 150 < mortar 210 < heli 300 < tank 460 < jet 800 (3 carpet-bombing runs).
-    // Bulk packs: -8 % (2nd pack) / -15 % (3rd pack).  First upgrade price ~ 18 % of the value of the capacity it unlocks (step * unit price).
-    // Cost to max one weapon = 511 * upgradePrice (e.g. mines 10.2k, jets 71.5k): maxing EVERYTHING is out of reach on purpose - the player has to choose.
+    // Bulk packs: -8 % (2nd pack) / -15 % (3rd pack).
+    // UPGRADE PRICES were raised (the old ones - 20..140 coins for the first upgrade - let a player buy several levels of several weapons after ONE level, which removed all choice):
+    //   the FIRST upgrade now costs roughly the same as 1-2 units of the weapon / ~50-90 % of one early level's income (mines 150, turrets 220, soldiers 260, heavy 400, heli 400, bombs 550, tank 650, jet 1050),
+    //   and every further level costs x1.5 (instead of x2: the early game is much dearer, the very late levels keep roughly the old total).
+    //   Cost to max one weapon = ~74.8 * upgradePrice (mines ~11k, turrets ~16k, jets ~79k): maxing EVERYTHING is out of reach on purpose - the player has to choose.
     // Reference table: `node tools/economy-sim.cjs`.
     // ===================================================================================================================================
     shop: {
-      mines:    { packs: [{ n: 1, price: 25 },  { n: 5, price: 115 },  { n: 15, price: 320 }],  starter: 3, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 20 },
-      turrets:  { packs: [{ n: 1, price: 80 },  { n: 3, price: 220 },  { n: 6, price: 410 }],   starter: 2, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 30 },
-      soldiers: { packs: [{ n: 1, price: 95 },  { n: 3, price: 265 },  { n: 6, price: 485 }],   starter: 2, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 35 },
-      heavy:    { packs: [{ n: 1, price: 150 }, { n: 3, price: 415 },  { n: 6, price: 765 }],   starter: 0, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 55 },
-      bombs:    { packs: [{ n: 1, price: 210 }, { n: 3, price: 580 },  { n: 6, price: 1070 }],  starter: 1, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 75 },
-      heli:     { packs: [{ n: 1, price: 300 }, { n: 2, price: 555 },  { n: 4, price: 1020 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 55 },
-      tank:     { packs: [{ n: 1, price: 460 }, { n: 2, price: 850 },  { n: 4, price: 1560 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 85 },
-      jet:      { packs: [{ n: 1, price: 800 }, { n: 2, price: 1475 }, { n: 4, price: 2720 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 140 },
+      mines:    { packs: [{ n: 1, price: 25 },  { n: 5, price: 115 },  { n: 15, price: 320 }],  starter: 3, maxLevel: 10, baseLimit: 3, perLevel: 3, upgradePrice: 150 },
+      turrets:  { packs: [{ n: 1, price: 80 },  { n: 3, price: 220 },  { n: 6, price: 410 }],   starter: 2, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 220 },
+      soldiers: { packs: [{ n: 1, price: 95 },  { n: 3, price: 265 },  { n: 6, price: 485 }],   starter: 2, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 260 },
+      heavy:    { packs: [{ n: 1, price: 150 }, { n: 3, price: 415 },  { n: 6, price: 765 }],   starter: 0, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 400 },
+      bombs:    { packs: [{ n: 1, price: 210 }, { n: 3, price: 580 },  { n: 6, price: 1070 }],  starter: 1, maxLevel: 10, baseLimit: 2, perLevel: 2, upgradePrice: 550 },
+      heli:     { packs: [{ n: 1, price: 300 }, { n: 2, price: 555 },  { n: 4, price: 1020 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 400 },
+      tank:     { packs: [{ n: 1, price: 460 }, { n: 2, price: 850 },  { n: 4, price: 1560 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 650 },
+      jet:      { packs: [{ n: 1, price: 800 }, { n: 2, price: 1475 }, { n: 4, price: 2720 }],  starter: 1, maxLevel: 10, baseLimit: 1, perLevel: 1, upgradePrice: 1050 },
     },
     mine: { maxActive: 50, armDelay: 0.9, trigger: 2.3, blast: 8, power: 16, behind: 3.6, cooldown: 0.45, giantDamage: 45 },
 
@@ -333,6 +336,8 @@
       coinBase: 25, coinPerMission: 3, goldBase: 90, goldPerMission: 8,
       completionBase: 20, completionPerMission: 5, timeBonusPerSec: 2,
       upgradeGrowth: 1.32, maxLevel: 8,
+      weaponUpgradeGrowth: 1.5,     // every WEAPON-level upgrade costs x1.5 the previous one (CFG.calc.weaponUpgradePrice); base prices = CFG.shop.*.upgradePrice
+      weaponUpgradeGrowth: 1.5,   // every WEAPON-level upgrade costs x1.5 the previous one (see CFG.calc.weaponUpgradePrice)
       // Coins for knock-outs pile up during the mission ("loot") and are ALWAYS paid out when the mission ends (win or fail), so a lost run
       // never leaves the player unable to afford the upgrades needed to beat the level.
       // Regular enemies always pay 1 coin (including vehicle ram); crate guardians pay 100 coins in season 1 and +100 per season.
@@ -372,7 +377,8 @@
       const sh = CFG.shop[key]; if (!sh) return 0;
       const L = Math.max(1, (lvl | 0) || 1);
       if (L >= (sh.maxLevel || 10)) return 0;
-      return Math.round((sh.upgradePrice || 50) * Math.pow(2, L - 1));
+      const g = CFG.economy.weaponUpgradeGrowth || 2;
+      return Math.round((sh.upgradePrice || 50) * Math.pow(g, L - 1) / 5) * 5;       // rounded to a multiple of 5
     },
     weaponStockCap: (key, lvl) => {
       const sh = CFG.shop[key]; if (!sh) return 40;

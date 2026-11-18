@@ -48,18 +48,27 @@ const order = ['mines', 'turrets', 'soldiers', 'heavy', 'bombs', 'heli', 'tank',
 ok(order.every((v, i) => i === 0 || v > order[i - 1]), 'unit prices follow the power ladder: ' + order.join('<'));
 ok(CFG.defenseTech.max === 0 && !Shop.buyTech, 'the second upgrade (Defense Tech) is gone');
 
-// --- 10-level weapon upgrades (price doubles every level)
+// --- 10-level weapon upgrades (price grows x CFG.economy.weaponUpgradeGrowth every level, rounded to 5)
 ok(Shop.weaponLevel('turrets') === 1 && Shop.weaponMapLimit('turrets') === 2, 'turrets start at Lv 1 with max stock 2');
 ok(Shop.weaponMapLimit('jet') === 1 && Shop.weaponMapLimit('tank') === 1 && Shop.weaponMapLimit('heli') === 1, 'jet=1, tank=1, heli=1 at Lv 1');
 const p1 = Shop.weaponUpgradePrice('turrets'), p2 = CFG.calc.weaponUpgradePrice('turrets', 2);
-ok(p2 === p1 * 2, 'weapon upgrade price doubles each level');
+const GR = CFG.economy.weaponUpgradeGrowth;
+ok(Math.abs(p2 / p1 - GR) < 0.06 && p2 > p1, 'weapon upgrade price grows by x' + GR + ' each level (' + p1 + ' -> ' + p2 + ')');
+ok(CFG.calc.weaponUpgradePrice('mines', 1) >= 100 && CFG.calc.weaponUpgradePrice('turrets', 1) >= 150, 'first upgrades are no longer trivially cheap');
 S.coins = 1000000;
 for (let lv = 1; lv < 10; lv++) {
   const curP = Shop.weaponUpgradePrice('turrets'), before = S.coins;
   ok(Shop.upgradeWeapon('turrets') === 'ok' && before - S.coins === curP, 'upgrade turrets to level ' + (lv + 1) + ' costs exactly ' + curP);
-  if (lv < 9) ok(Shop.weaponUpgradePrice('turrets') === curP * 2, 'next upgrade price doubled');
+  if (lv < 9) ok(Shop.weaponUpgradePrice('turrets') > curP, 'next upgrade price is higher');
 }
 ok(Shop.weaponLevel('turrets') === 10 && Shop.weaponMapLimit('turrets') === 20 && Shop.weaponStockCap('turrets') === 20 && Shop.upgradeWeapon('turrets') === 'max', 'turrets reach max Lv 10 with max stock 20');
+
+// --- vehicles are no longer sold: an old save that owns / equips a bought vehicle is refunded and put back in the jeep
+store['warzar_crate_rush_save_v1'] = JSON.stringify({ coins: 10, owned: { vehicles: ['jeep', 'buggy', 'truck'] }, equipped: { vehicle: 'truck' } }); WZ.Save.load();
+ok(WZ.Save.data.owned.vehicles.length === 1 && WZ.Save.data.equipped.vehicle === 'jeep' && WZ.Save.data.coins === 10 + CFG.vehicles.buggy.price + CFG.vehicles.truck.price, 'old save: bought vehicles refunded, jeep re-equipped, got ' + WZ.Save.data.coins);
+WZ.Save.load(); ok(WZ.Save.data.coins === 10 + CFG.vehicles.buggy.price + CFG.vehicles.truck.price, 'refund is not paid twice') ;
+store['warzar_crate_rush_save_v1'] = JSON.stringify(S);
+WZ.Save.data = S;
 
 // --- save migration: old saves keep what they paid for
 store['warzar_crate_rush_save_v1'] = JSON.stringify({ coins: 100, inv: { mines: 40, jet: 1 }, upgrades: { defense: 2 }, weaponLevels: { mines: 2 } }); WZ.Save.load();

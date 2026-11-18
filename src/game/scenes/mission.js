@@ -48,7 +48,7 @@
       M.hud = { level: data.level, levelText: t('hud.lvl', { s: M.season, n: data.level, m: LV }), timerText: '', timerLow: false, pk: WZ.Pickups ? WZ.Pickups.hud() : null, cratesText: '', hp: M.jeep.hp, hpMax: M.jeep.maxHp, nanaOut: true, nanaHp: M.nana.hp, nanaMax: M.nana.maxHp, deploy: 'off', boostPct: 1, prompt: '', hint: '', objective: '', gunBoost: false, loot: 0, weapons: WZ.Weapons ? WZ.Weapons.snap() : [], wsel: WZ.Weapons ? WZ.Weapons.selId : 'gun', strikes: 0, rush: 0 };
 
       M.phase = 'briefing'; M.t = 0; M.time = 0; M.timeLeft = M.mission.timeLimit; M.heat = 0;
-      M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
+      M._exitHidden = false; M.coinsCrates = 0; M.killCoins = 0; M.coinsKills = 0; M.landed = 0; M.allLoaded = false; M.deployedOnce = false; M.spawnAt = 1e9;
       M.nanaOutT = 0; M.rushK = 0; M.rampStep = 0; M.failReason = '';
       M.hintT = 0; M.hintKey = ''; M.failT = -1; M.endT = 0; M.flashCd = 0; M.dustT = 0; M.beepT = 0; M.lastTickSec = -1; M.resultShown = false;
       M.camBlend = 0; M.fromPos = new T.Vector3(); M.fromLook = new T.Vector3();
@@ -507,7 +507,7 @@
     updateArrows(w, h) {
       const J = M.jeep, cam = Cam.cam, list = M.crates.list;
       let n = 0;
-      if (M.allLoaded && M.map.extract) { M.arrow(n++, M.map.extract.x, M.view.map.height(M.map.extract.x, M.map.extract.z) + 3, M.map.extract.z, 'exit', w, h); }
+      if (M.allLoaded && M.map.extract) { if (M.arrow(n, M.map.extract.x, M.view.map.height(M.map.extract.x, M.map.extract.z) + 3, M.map.extract.z, 'exit', w, h)) n++; }
       else {
         let last = -1, lastD = -1;
         for (let k = 0; k < 3; k++) {
@@ -534,11 +534,19 @@
       if (behind) { sx = -sx; sy = -sy; }
       const dist = Math.round(Math.hypot(x - J.x, z - J.z)) + 'm';
       const on = !behind && Math.abs(sx) < 0.9 && Math.abs(sy) < 0.84;
-      if (on) { WZ.UI.setArrow(i, (sx * 0.5 + 0.5) * w, Math.max(M.arrowTop(w), (-sy * 0.5 + 0.5) * h - 34), 180, dist, kind, true); return; }
+      if (kind === 'exit') {
+        // The extraction (green) zone is big and clearly visible once it is on screen: the pointer simply goes away instead of flipping to a "down here" arrow.
+        // Hysteresis: hidden as soon as the zone is on screen, shown again only when it is clearly off screen (no flicker at the screen edge).
+        const clearlyOff = behind || Math.abs(sx) > 0.97 || Math.abs(sy) > 0.9;
+        if (on) M._exitHidden = true; else if (clearlyOff) M._exitHidden = false;
+        if (M._exitHidden) { return false; }
+      }
+      if (on) { WZ.UI.setArrow(i, (sx * 0.5 + 0.5) * w, Math.max(M.arrowTop(w), (-sy * 0.5 + 0.5) * h - 34), 180, dist, kind, true); return true; }
       const m = Math.max(Math.abs(sx) / 0.92, Math.abs(sy) / 0.85, 1e-4);
       const ex = sx / m, ey = sy / m;
       const px = U.clamp((ex * 0.5 + 0.5) * w, 40, w - 40), py = U.clamp((-ey * 0.5 + 0.5) * h, M.arrowTop(w), h - 56);
       WZ.UI.setArrow(i, px, py, Math.atan2(sx, sy) * 180 / Math.PI, dist, kind, false);
+      return true;
     },
 
     debugText() {

@@ -99,7 +99,7 @@
       if (J.alive && !J.captive && Hb.imm <= 0 && J.x > Qx - 2) { const h = map.inHole(J.x, J.z, FC.margin); if (h) Hb._fallJeep(h); }
       if (N.out && !N.isKO && N.state !== 'BOARDING' && Hb.nImm <= 0 && N.x > Qx - 2) { const h = map.inHole(N.x, N.z, 0.3); if (h) Hb._fallNana(h); }
       if (E && E.list) for (let i = 0; i < E.list.length; i++) { const e = E.list[i]; if (!e.active || e.state === 2 || e.x < Qx - 2) continue; if (map.inHole(e.x, e.z, 0.2)) { E.ko(e, 0, 0, 0, 'sea'); Hb._splash(e.x, e.z, false); } }
-      for (const g of WZ.Giants.list) { if (!g.active || !g.mech || g.x < Qx - 2) continue; if (map.inHole(g.x, g.z, 0.5)) { const f = c.map.nav.jeep.nearestFree(g.hx, g.hz, 8); g.x = f ? f.x : g.hx; g.z = f ? f.z : g.hz; g.px = g.x; g.pz = g.z; g.path = null; g.navT = 0; } }
+      for (const g of WZ.Giants.list) { if (!g.active || !g.mech || g.x < Qx - 2) continue; if (map.inHole(g.x, g.z, 0.5)) { const f = c.map.nav.jeep.nearestFree(g.homeX, g.homeZ, 8); g.x = f ? f.x : g.homeX; g.z = f ? f.z : g.homeZ; g.px = g.x; g.pz = g.z; g.path = null; g.navT = 0; } }
       // hint: a broken deck close ahead
       if (J.alive && J.x > Qx - 6 && J.speed > 2) { const hh = map.waterDist ? map.waterDist(J.x, J.z) : 99; if (hh < FC.hint) Hb.nearHole = 0.4; }
       if (Hb.nearHole > 0) Hb.nearHole -= dt;

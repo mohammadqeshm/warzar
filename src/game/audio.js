@@ -572,7 +572,7 @@
         gun: 0.06, tshot: 0.055, bonk: 0.07, hit: 0.08, hurt: 0.10, ko: 0.06,
         ram: 0.09, crash: 0.11, thud: 0.08, bag: 0.08, grab: 0.08, deliver: 0.10,
         deploy: 0.08, recall: 0.08, board: 0.08, boost: 0.25, click: 0.04,
-        go: 0.15, beep: 0.08, tick: 0.18, cash: 0.08, buy: 0.08,
+        go: 0.15, beep: 0.08, tick: 0.18, cash: 0.12, buy: 0.12,
         revive: 0.18, nanako: 0.25, win: 0.4, lose: 0.4,
         boom: 0.09, blast: 0.10, ignite: 0.38, burn: 0.35, tank: 0.24, cannon: 0.11,
         build: 0.12, mine: 0.09, siren: 0.50, wind: 0.36, roar: 0.42, club: 0.20,
@@ -656,16 +656,10 @@
           break;
         case 'cash':
         case 'buy':
-          // Classic game Shop Cash-Register "Cha-Ching!" (mechanical drawer latch + silver coins + ringing brass bell)
-          A.noise(0.042, 'bandpass', 3000, 2100, 0.15 * v, 0, 1.8, false);
-          A.tone('triangle', 392, 587.33, 0.055, 0.20 * v, 0, 1600);
-          A.tone('sine', 1567.98, 1567.98, 0.085, 0.24 * v, 0.015);
-          A.tone('triangle', 2093.0, 2093.0, 0.08, 0.18 * v, 0.04, 2800);
-          // "-Ching!" ringing register bell + harmonic coin shimmer
-          A.tone('sine', 1318.51, 1318.51, 0.34, 0.24 * v, 0.085);
-          A.tone('sine', 2637.02, 2637.02, 0.36, 0.28 * v, 0.085);
-          A.tone('triangle', 3135.96, 3135.96, 0.28, 0.18 * v, 0.11, 3400);
-          A.tone('sine', 3520.0, 3520.0, 0.22, 0.14 * v, 0.145);
+          // Soft, short purchase "tik-ting": two gentle sine notes in the warm mid range (no bell ring, no shimmer, no noise, quiet and brief)
+          A.tone('sine', 523.25, 523.25, 0.07, 0.075 * v);
+          A.tone('sine', 783.99, 783.99, 0.13, 0.065 * v, 0.055);
+          A.tone('triangle', 1046.5, 1046.5, 0.07, 0.014 * v, 0.055, 1500);
           break;
         case 'tick': {
           // Countdown clock tick-tock for the final 15 seconds: alternating crisp mechanical escapement + urgent woody chime

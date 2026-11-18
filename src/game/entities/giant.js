@@ -105,7 +105,7 @@
           if (spotOk(cr, tx, tz, true)) { sx = tx; sz = tz; ok = true; }
         }
         if (!ok) {
-          for (const r of [4.2, 5.4, 6.6, 8.0, 9.6, 11.2]) {
+          for (const r of [4.2, 5.4, 6.6, 8.0, 9.6, 11.2, 13.5, 16, 19, 23]) {
             for (let m = 0; m < 16 && !ok; m++) {
               const a = (m / 16) * Math.PI * 2;
               const tx = cr.x + Math.cos(a) * r, tz = cr.z + Math.sin(a) * r;
@@ -121,7 +121,7 @@
         const mat = new T.MeshLambertMaterial({ vertexColors: true }), rig = mch ? WZ.MechArt.rig(mat, i) : ice ? WZ.FrostArt.rig(mat, i) : vol ? WZ.MagmaArt.rig(mat, i) : jur ? WZ.DinoArt.rig(mat, i) : makeRig(mat);
         ctx.scene.add(rig.root);
         const g = {
-          giant: true, active: true, state: 0, dying: false, dead: false, id: i, crateIdx: i, x: sx, z: sz, px: sx, pz: sz, h: Math.atan2(cr.x - sx, cr.z - sz), ph: 0, hx: sx, hz: sz,
+          giant: true, active: true, state: 0, dying: false, dead: false, id: i, crateIdx: i, x: sx, z: sz, px: sx, pz: sz, h: Math.atan2(cr.x - sx, cr.z - sz), ph: 0, hx: sx, hz: sz, homeX: sx, homeZ: sz,   // homeX / homeZ = the guard post (read-only after spawn; no art/pose code may touch them)
           radius: Cg.radius, hp: Cg.hp * hpMul, maxHp: Cg.hp * hpMul, spd, C: Cg, dino: jur, fire: 0, fireT: 0, fireCd: jur ? (tut ? 6 : 2.5) + rng.range(0, 2) : 0, fireTick: 0, fireSfx: 0, tutMul: tut && jur ? Cg.fire.tutorialMul : tut && vol ? Cg.rock.tutorialMul : tut && ice ? Cg.charge.tutorialMul : tut && mch ? CFG.mech.cannon.tutorialMul : 1,
           titan: vol, beast: ice, mech: mch, ch: 0, chT: 0, chKind: 0, chCd: ice ? (tut ? 7 : 3.5) + rng.range(0, 2) : 0, chHit: false, homeT: 0, tk: 0, tkT: 0, rockCd: vol ? (tut ? 7 : 3.2) + rng.range(0, 2) : 0, trailT: 0, step: 0, emT: 0, flash: 0, walk: rng.range(0, 6), mv: 0, rx: sx, ry: hm(sx, sz), rz: sz,
           mat, rig, swing: 0, hit: true, cd: 1, agro: 0, mode: 0, ramCd: 0, koT: 0, navT: 0, direct: true, path: null, pi: 0, wanderT: rng.range(1, 4), wx: sx, wz: sz,
@@ -237,6 +237,7 @@
         if (g.dying) { g.koT += dt; continue; }
         if (!g.active) continue;
         g.cd -= dt; g.ramCd -= dt; if (g.agro > 0) g.agro -= dt; if (g.fireCd > 0) g.fireCd -= dt; if (g.rockCd > 0) g.rockCd -= dt; if (g.chCd > 0) g.chCd -= dt;
+        Gi._sanity(g);
         const x0 = g.x, z0 = g.z;
         const dj = Math.hypot(g.x - J.x, g.z - J.z), dn = nanaOut ? Math.hypot(g.x - N.x, g.z - N.z) : 1e9;
         const sol = WZ.Soldiers ? WZ.Soldiers.nearest(g.x, g.z, C.aggro) : null, ds = sol ? Math.hypot(g.x - sol.x, g.z - sol.z) : 1e9;
@@ -281,14 +282,14 @@
           else g.h += U.clamp(U.angDiff(g.h, Math.atan2(tx - g.x, tz - g.z)), -4 * dt, 4 * dt);
         } else {
           // idle: wander a little near home; return home (and heal) after losing the target
-          const dh = Math.hypot(g.hx - g.x, g.hz - g.z);
+          const dh = Math.hypot(g.homeX - g.x, g.homeZ - g.z);
           if (g.mode === 2 && dh > 2.5) {
             g.homeT += dt;
-            Gi._goTo(g, g.hx, g.hz, dt, C.speed * g.spd * (dh > 30 ? 1.15 : 0.9));
+            Gi._goTo(g, g.homeX, g.homeZ, dt, C.speed * g.spd * (dh > 30 ? 1.15 : 0.9));
             Gi._homeWatch(g, C, dh, J, N, nanaOut);
           } else {
             g.mode = 0; g.homeT = 0; g.wanderT -= dt;
-            if (g.wanderT <= 0) { g.wanderT = 2.5 + Math.random() * 3.5; const a = Math.random() * 6.283, r = Math.random() * 2.6; g.wx = g.hx + Math.cos(a) * r; g.wz = g.hz + Math.sin(a) * r; }
+            if (g.wanderT <= 0) { g.wanderT = 2.5 + Math.random() * 3.5; const a = Math.random() * 6.283, r = Math.random() * 2.6; g.wx = g.homeX + Math.cos(a) * r; g.wz = g.homeZ + Math.sin(a) * r; }
             if (Math.hypot(g.wx - g.x, g.wz - g.z) > 0.6) Gi._goTo(g, g.wx, g.wz, dt, C.speed * g.spd * 0.28);
           }
           if (g.hp < g.maxHp) g.hp = Math.min(g.maxHp, g.hp + C.regen * dt);
@@ -427,8 +428,24 @@
       if (g.homeT < eta) return;
       const far = (x, z) => Math.hypot(g.x - x, g.z - z) > 72;
       if (!far(J.x, J.z) || (nanaOut && !far(N.x, N.z))) { g.homeT = Math.max(0, g.homeT - 1.5); return; }      // someone could see it: keep trying
-      const c = Gi.ctx, f = c.map.nav.jeep.nearestFree(g.hx, g.hz, 6);
-      g.x = f ? f.x : g.hx; g.z = f ? f.z : g.hz; g.homeT = 0; g.path = null; g.navT = 0; g.direct = true; g.stuckT = 0;
+      Gi._toPost(g);
+    },
+
+    /** put a guardian back on its guard post (next to its crate). Also resets the interpolation state so there is no visible glide. */
+    _toPost(g) {
+      const c = Gi.ctx, nav = c.map.nav && c.map.nav.jeep, f = nav ? nav.nearestFree(g.homeX, g.homeZ, 8) : null;
+      g.x = f ? f.x : g.homeX; g.z = f ? f.z : g.homeZ; g.px = g.x; g.pz = g.z; g.lx = g.x; g.lz = g.z; g.wx = g.x; g.wz = g.z;
+      g.homeT = 0; g.path = null; g.pi = 0; g.navT = 0; g.direct = true; g.stuckT = 0; g.mode = 0;
+    },
+
+    /** Guardian watchdog (runs every step for every living guardian): a guardian must ALWAYS exist at a valid place. If its position ever becomes invalid
+     *  (NaN, outside the arena, far beyond its leash while it has no target) it is returned to its post. */
+    _sanity(g) {
+      const half = CFG.world.half - 2;
+      if (isFinite(g.x) && isFinite(g.z) && Math.abs(g.x) <= half && Math.abs(g.z) <= half) return;
+      if (!isFinite(g.homeX) || !isFinite(g.homeZ)) { g.homeX = g.hx; g.homeZ = g.hz; }
+      g.homeX = U.clamp(g.homeX, -half, half); g.homeZ = U.clamp(g.homeZ, -half, half);
+      Gi._toPost(g); g.swing = 0; g.fire = 0; g.tk = 0; g.ch = 0;
     },
 
     /** ICE BEAST charge. ch 1 = wind-up (rears back, a cyan lane is painted toward the victim = the telegraph), ch 2 = DASH (fast, can barely turn),

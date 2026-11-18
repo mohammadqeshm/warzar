@@ -87,7 +87,7 @@
     };
   }
 
-  /** animate one dinosaur. g = giant record (mv, walk, swing, fire, fireT, flash, id, mode, dying, koT), C = its stats (windup, swing, fire.*) */
+  /** animate one dinosaur. NOTE: the pose state lives in g.hdX / g.hdY / g.jw / g.tl / g.gl - NEVER use g.hx / g.hz here: those are the guardian's HOME (see entities/giant.js; clobbering them sent dinosaurs walking away from their crate). g = giant record (mv, walk, swing, fire, fireT, flash, id, mode, dying, koT), C = its stats (windup, swing, fire.*) */
   function pose(g, C, t, dt) {
     const R = g.rig, F = C.fire, id = g.id, w = g.walk, am = Math.min(1, g.mv / C.speed);
     R.legL.rotation.x = Math.sin(w) * 0.72 * am; R.legR.rotation.x = -Math.sin(w) * 0.72 * am;
@@ -102,8 +102,8 @@
       else { hx = 0.7; jw = 0.95; tl = 0.2; k = 40; }
       hy = 0;
     }
-    g.hx = U.damp(g.hx || 0, hx, k, dt); g.hy = U.damp(g.hy || 0, hy, 4, dt); g.jw = U.damp(g.jw || 0, jw, k, dt); g.tl = U.damp(g.tl || 0, tl, k, dt); g.gl = U.damp(g.gl || 0, gl, 10, dt);
-    R.head.rotation.set(g.hx, g.hy, 0); R.jaw.rotation.x = g.jw; R.torso.rotation.x = g.tl + Math.sin(w * 2) * 0.02 * am;
+    g.hdX = U.damp(g.hdX || 0, hx, k, dt); g.hdY = U.damp(g.hdY || 0, hy, 4, dt); g.jw = U.damp(g.jw || 0, jw, k, dt); g.tl = U.damp(g.tl || 0, tl, k, dt); g.gl = U.damp(g.gl || 0, gl, 10, dt);
+    R.head.rotation.set(g.hdX, g.hdY, 0); R.jaw.rotation.x = g.jw; R.torso.rotation.x = g.tl + Math.sin(w * 2) * 0.02 * am;
     R.torso.rotation.y = g.fire === 2 ? 0 : (g.swing > 0 && g.swing < C.windup ? Math.sin(g.swing / C.windup * 1.6) * 0.2 : 0);
     // tail sway (chain with phase lag)
     const sw = Math.sin(w * 0.5 + id) * 0.2 * am, idle = Math.sin(t * 0.9 + id) * 0.07, th = g.fire ? 0.12 * Math.sin(t * 3) : 0;

@@ -1,13 +1,10 @@
-/* Shop scene (vehicles + DEFENSE: turrets, heavy cannons, bomb turrets, escort helicopters, escort tanks) — real-time 3D showroom (turntable, studio lights) + DOM panels. Every vehicle card shows a 3D render of the
+/* Shop scene (EQUIPMENT ONLY - no vehicles are sold or swapped: mines + DEFENSE: turrets, heavy cannons, bomb turrets, escort helicopters, escort tanks) — real-time 3D showroom (turntable, studio lights) + DOM panels. Every vehicle card shows a 3D render of the
  * vehicle (rendered once with the game's own renderer into a texture); the big model on the turntable is live and draggable.
- * Purchases: vehicles (price in CFG.vehicles), single units of every deployable (CFG.shop.*) and ONE upgrade per weapon: the weapon level (1..10) = how many of it the player may own at most. No emoji, only real renders and vector icons. */
+ * Purchases: single units of every deployable (CFG.shop.*) and ONE upgrade per weapon: the weapon level (1..10) = how many of it the player may own at most. No emoji, only real renders and vector icons. */
 (function (WZ) {
   'use strict';
   const T = THREE, CFG = WZ.CFG, G = WZ.Geo, t = (k, v) => WZ.I18n.t(k, v);
   const COIN = '<svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#FFB400" stroke="#0E0E0E" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5f00" stroke-width="2"/><path d="M12 7.2l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z" fill="#8a5f00"/></svg>';
-  const STATS = [['shop.speed', 'topSpeed', 32, (v) => Math.round(v * 3.6) + ' KM/H'], ['shop.armor', 'hp', 260, (v) => String(v)], ['shop.handling', 'handling', 1.2, (v) => String(Math.round(v * 100))], ['shop.ram', 'ram', 2, (v) => 'x' + v.toFixed(1)]];
-  const pips = (n) => '<span class="tier">' + [1, 2, 3, 4, 5].map((i) => '<i class="' + (i <= n ? 'on' : '') + '"></i>').join('') + '</span>';
-
   // deployable catalogue (shop id -> weapon data). `kind` = WZ.Turrets kind / 'soldier' / 'heli'; inv = key in Save.data.inv
   const DEFS = {
     turret: { kind: 'gun', C: CFG.turret, SH: CFG.shop.turrets, inv: 'turrets', name: 'shop.turret', how: 'shop.turret.how', maxDmg: 12, maxRate: 10 },
@@ -21,7 +18,7 @@
   const DEF_BY_KIND = { gun: 'turret', soldier: 'soldier', heavy: 'heavy', bomb: 'bomb', heli: 'heli', tank: 'tank', jet: 'jet' };
 
   const Shop = {
-    name: 'shop', t: 0, sel: 'jeep', rot: 0.6, spinV: 0, pop: 0, thumbs: {}, thumbsDone: false, scene: null, holder: null, obj: null, model: null, heroes: null, r: 5, lookY: 2.0, szY: 3.0, rh: 4, hv: 1.5, stage: null, _stT: 0, cam3: null,
+    name: 'shop', t: 0, sel: 'mine', rot: 0.6, spinV: 0, pop: 0, thumbs: {}, thumbsDone: false, scene: null, holder: null, obj: null, model: null, heroes: null, r: 5, lookY: 2.0, szY: 3.0, rh: 4, hv: 1.5, stage: null, _stT: 0, cam3: null,
 
     // ------------------------------------------------------------------ weapon levels (1..10) & purchases (pure logic, unit-tested)
     weaponLevel(key) {
@@ -79,7 +76,7 @@
     // ------------------------------------------------------------------ lifecycle
     enter(data) {
       const S = WZ.Save.data; Shop.data = data || {}; Shop.t = 0; Shop.rot = 0.6; Shop.pop = 0; Shop.stage = null; Shop.cam3 = null; Shop._camSnap = true; Shop._stT = 0;
-      Shop.sel = S.owned.vehicles.indexOf(S.equipped.vehicle) >= 0 ? S.equipped.vehicle : 'jeep';
+      Shop.sel = 'mine';   // the shop sells EQUIPMENT only (no vehicles: the game is always played with the Scout Jeep)
       Shop.scene = new T.Scene(); Shop.scene.background = new T.Color(0x101318); Shop.scene.fog = new T.Fog(0x101318, 70, 150);
       Shop.buildStage();
       Shop.cam = WZ.Cam.cam; Shop.cam.fov = 32; Shop.cam.updateProjectionMatrix();
@@ -278,7 +275,7 @@
     // ------------------------------------------------------------------ 3D thumbnails for the cards
     makeThumbs() {
       if (Shop.thumbsDone || (WZ.Main && WZ.Main.glLost)) return; Shop.thumbsDone = true;   // (context lost -> try again on the next visit instead of caching blanks)
-      for (const id of CFG.vehicleOrder.concat(['mine', 'turret', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet'])) { try { Shop.thumbs[id] = Shop.thumb(id); } catch (e) { Shop.thumbs[id] = ''; if (WZ.Main.glLost) Shop.thumbsDone = false; } }
+      for (const id of ['mine', 'turret', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet']) { try { Shop.thumbs[id] = Shop.thumb(id); } catch (e) { Shop.thumbs[id] = ''; if (WZ.Main.glLost) Shop.thumbsDone = false; } }
     },
 
     thumb(id) {
@@ -325,18 +322,13 @@
     },
 
     paint() {
-      const S = WZ.Save.data, el = Shop.ui, eq = S.equipped.vehicle, own = S.owned.vehicles;
+      const S = WZ.Save.data, el = Shop.ui;
       el.querySelector('#sh-coins').textContent = S.coins;
       const img = (id) => Shop.thumbs[id] ? '<img class="vthumb" alt="" src="' + Shop.thumbs[id] + '">' : '<div class="vthumb noimg"></div>';
-      let list = CFG.vehicleOrder.map((id) => {
-        const v = CFG.vehicles[id], o = own.indexOf(id) >= 0;
-        const tag = eq === id ? '<span class="tg eq">' + t('shop.equipped') + '</span>' : o ? '<span class="tg own">' + t('shop.owned') + '</span>' : '<span class="tg price">' + COIN + v.price + '</span>';
-        return '<button class="vcard' + (Shop.sel === id ? ' sel' : '') + (o ? '' : ' locked') + '" data-act="sel" data-id="' + id + '">' + img(id) + '<div class="vinfo"><div class="vname">' + v.name + '</div>' + pips(v.tier) + tag + '</div></button>';
-      }).join('');
+      const sect = (txt) => '<div class="sh-sect">' + txt + '</div>';
+      let list = sect(t('shop.defense'));
       const mLvl = Shop.weaponLevel('mines');
       list += '<button class="vcard' + (Shop.sel === 'mine' ? ' sel' : '') + '" data-act="sel" data-id="mine">' + img('mine') + '<div class="vinfo"><div class="vname">' + t('shop.mines') + '</div><span class="tg wlvl">' + t('hud.level', { n: mLvl }) + '</span><span class="tg own">' + t('shop.ownedCount', { n: S.inv.mines | 0 }) + '</span></div></button>';
-      const sect = (txt) => '<div class="sh-sect">' + txt + '</div>';
-      list += sect(t('shop.defense'));
       for (const id of ['turret', 'soldier', 'heavy', 'bomb', 'heli', 'tank', 'jet']) {
         const D = DEFS[id], cnt = S.inv[D.inv] | 0, wl = Shop.weaponLevel(D.inv);
         list += '<button class="vcard' + (Shop.sel === id ? ' sel' : '') + '" data-act="sel" data-id="' + id + '">' + img(id) + '<div class="vinfo"><div class="vname">' + t(D.name) + '</div><span class="tg wlvl">' + t('hud.level', { n: wl }) + '</span><span class="tg own">' + t('shop.ownedCount', { n: cnt }) + '</span></div></button>';
@@ -364,20 +356,7 @@
         return;
       }
       if (DEFS[Shop.sel]) { d.innerHTML = Shop.defenseHtml(Shop.sel); return; }
-      const v = CFG.vehicles[Shop.sel], o = own.indexOf(Shop.sel) >= 0, equipped = eq === Shop.sel, need = v.price - S.coins;
-      let act;
-      if (equipped) act = '<button class="btn big" disabled>' + t('shop.equipped') + '</button>';
-      else if (o) act = '<button class="btn big" data-act="equip" data-id="' + Shop.sel + '">' + t('shop.equip') + '</button>';
-      else if (need > 0) act = '<button class="btn big" disabled>' + t('shop.need', { n: need }) + '</button>';
-      else act = '<button class="btn big" data-act="buy" data-id="' + Shop.sel + '">' + t('shop.buy') + ' ' + COIN + v.price + '</button>';
-      d.innerHTML =
-        '<div class="dhead"><div><div class="dname">' + v.name + '</div>' + pips(v.tier) + '</div>' +
-        '<div class="downed-pill"><span>' + (equipped ? t('shop.equipped') : o ? t('shop.owned') : t('shop.buy')) + '</span><b>' + (o ? '1' : '0') + '</b><small>/1</small></div></div>' +
-        '<div class="dblurb">' + v.blurb + '</div>' +
-        '<div class="st-grid">' +
-          STATS.map((s) => { const val = v[s[1]], pct = Math.max(6, Math.min(100, val / s[2] * 100)); return '<div class="st"><span>' + t(s[0]) + '</span><i><b style="width:' + pct.toFixed(0) + '%"></b></i><em>' + s[3](val) + '</em></div>'; }).join('') +
-        '</div>' +
-        '<div class="dact-pinned">' + act + '</div>';
+      Shop.sel = 'mine'; Shop.show('mine'); Shop.paint();   // safety net: an unknown selection falls back to the mines card
     },
 
     defenseHtml(id) {
@@ -428,8 +407,6 @@
         return;
       }
       if (a === 'sel') { WZ.Audio.sfx('click'); if (Shop.sel !== id) { Shop.sel = id; Shop.show(id); } }
-      else if (a === 'buy') { const r = Shop.buyVehicle(id); WZ.Audio.sfx(r === 'ok' ? 'cash' : 'beep'); if (r === 'ok') { Shop.show(id); } }
-      else if (a === 'equip') { WZ.Audio.sfx(Shop.equip(id) === 'ok' ? 'go' : 'beep'); }
       else if (a === 'tpack') { WZ.Audio.sfx(Shop.buyTurrets(b.dataset.kind, +b.dataset.i) === 'ok' ? 'cash' : 'beep'); }
       else if (a === 'wupgrade') { WZ.Audio.sfx(Shop.upgradeWeapon(b.dataset.key) === 'ok' ? 'cash' : 'beep'); }
       else if (a === 'pack') { WZ.Audio.sfx(Shop.buyMines(+b.dataset.i) === 'ok' ? 'cash' : 'beep'); }

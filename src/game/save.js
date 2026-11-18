@@ -77,6 +77,15 @@
         if (have > cap) { S.data.coins = (S.data.coins | 0) + (have - cap) * WZ.CFG.shop[wk].packs[0].price; S.data.inv[wk] = cap; }
       }
     }
+    // VEHICLES ARE NO LONGER SOLD OR SWAPPED (the game is always played with the Scout Jeep): any vehicle bought in an older version is refunded
+    // at its price and the jeep is re-equipped, so nothing the player paid for is lost.
+    if (S.data.owned && Array.isArray(S.data.owned.vehicles)) {
+      let refund = 0;
+      for (const vid of S.data.owned.vehicles) { if (vid !== 'jeep' && WZ.CFG.vehicles[vid]) refund += WZ.CFG.vehicles[vid].price | 0; }
+      if (refund > 0) S.data.coins = (S.data.coins | 0) + refund;
+      S.data.owned.vehicles = ['jeep'];
+    }
+    if (S.data.equipped) S.data.equipped.vehicle = 'jeep';
     if (WZ.Progress) WZ.Progress.sanitize();
     if (!S.data.runSeed) {
       S.data.runSeed = ((Date.now() ^ (Math.random() * 4294967296)) >>> 0) || 1;
