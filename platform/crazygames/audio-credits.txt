@@ -1,0 +1,12 @@
+# WARZAR: Crate Rush · Audio credits (1.0.0)
+
+The 88 recorded and produced licensed MP3s are shared by all builds. The previous code-rendered WARZAR score and cues remain in the source tree for reference only; no current build packages or plays them. The runtime only decodes and mixes compressed samples. No audio is fetched from a third-party origin.
+
+| Material | Creator and license | Source |
+|---|---|---|
+| Empacotatron, menu version and main loop | Fupi · [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Original FLAC menu and loop](https://opengameart.org/content/empacotatron) |
+| Car Engine Loop 96kHz, 4s | qubodup · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Original recording and normalized WAV](https://opengameart.org/content/car-engine-loop-96khz-4s) |
+| Wind Whoosh Loop, edited from Loopable Dungeon Ambience | SketchMan3, after JaggedStone · [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Whoosh](https://opengameart.org/content/wind-whoosh-loop) · [original ambience](https://opengameart.org/content/loopable-dungeon-ambience) |
+| Interface Sounds, 50 RPG Sound Effects, Sci-Fi Sounds, 85 Short Music Jingles | Kenney (Kenney Vleugels) · [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Interface](https://opengameart.org/content/interface-sounds) · [RPG](https://opengameart.org/content/50-rpg-sound-effects) · [Sci-Fi](https://opengameart.org/content/sci-fi-sounds) · [Jingles](https://opengameart.org/content/85-short-music-jingles) |
+
+**Changes:** WAV/OGG/FLAC excerpts were trimmed, leveled and MP3 encoded. The motor recording was converted to mono, seam-blended and EQ'd in six matching bands for the in-game RPM mix. The wind was seam-blended, EQ'd and panned at runtime. The menu track has a short seam blend; on a mission the game crossfades to the separate music loop. Short effects were trimmed, pitch-adjusted where indicated, and faded. The audio manifest records the source filename and exact MP3 boundaries for every cut. The author links above are attribution, not a claim of endorsement or catalog acceptance. These credits ship in the upload ZIP.

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0E0E0E" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>WARZAR: Crate Rush</title>
+    <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+    <style>
+#wz-start{position:fixed;inset:0;z-index:60;display:grid;place-content:center;justify-items:center;padding:20px;text-align:center;
+background:radial-gradient(ellipse at 50% 38%,#30343b,#101216 68%);color:#ffecc6;font:700 15px/1.45 system-ui,sans-serif}
+#wz-start[hidden],#wz-start.hand-off,#wz-start-retry[hidden]{display:none}
+#wz-start .title{margin:0;color:#ffba22;font-size:clamp(28px,7vw,58px);letter-spacing:-.045em}
+#wz-start .rule{width:68px;height:4px;background:#ffba22;transform:skew(-20deg);margin:14px 0 2px}
+#wz-start-retry{font:inherit;background:#ffba22;color:#141415;border:0;border-radius:8px;min-height:44px;padding:8px 20px;cursor:pointer}
+</style>
+    <script type="module" crossorigin src="./assets/index-DcpgZx-a.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <section id="wz-start"><h1 class="title">WARZAR: Crate Rush</h1><div class="rule" aria-hidden="true"></div><p id="wz-start-status" role="status">Getting the game ready…</p><button type="button" id="wz-start-retry" hidden>Try again</button></section>
+  </body>
+</html>
